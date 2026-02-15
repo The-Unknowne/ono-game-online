@@ -1984,22 +1984,45 @@
         clone.style.top = startRect.top + 'px';
         clone.style.width = startRect.width + 'px';
         clone.style.height = startRect.height + 'px';
-        clone.style.transform = 'scale(1)';
+        clone.style.transform = 'scale(1) rotate(5deg)';
+        clone.style.opacity = '0.9';
         
         document.body.appendChild(clone);
         
-        // Trigger animation
+        // Calculate arc motion - card goes up first, then down
+        const midY = Math.min(startRect.top, endRect.top) - 50;
+        
+        // Trigger animation with arc motion
         requestAnimationFrame(() => {
-            clone.style.left = endRect.left + 'px';
-            clone.style.top = endRect.top + 'px';
-            clone.style.transform = 'scale(1.1)';
+            // First animate to arc peak
+            setTimeout(() => {
+                clone.style.left = (startRect.left + endRect.left) / 2 + 'px';
+                clone.style.top = midY + 'px';
+                clone.style.transform = 'scale(1.05) rotate(-3deg)';
+            }, 50);
+            
+            // Then animate to final position
+            setTimeout(() => {
+                clone.style.left = endRect.left + 'px';
+                clone.style.top = endRect.top + 'px';
+                clone.style.transform = 'scale(1.1) rotate(0deg)';
+                clone.style.opacity = '1';
+            }, 100);
         });
+        
+        // Add landing animation to discard pile
+        setTimeout(() => {
+            discardPileElement.classList.add('discard-pile-pulse');
+            setTimeout(() => {
+                discardPileElement.classList.remove('discard-pile-pulse');
+            }, 300);
+        }, 600);
         
         // Clean up after animation
         setTimeout(() => {
             clone.remove();
             onComplete();
-        }, 500);
+        }, 600);
     }
 
     // Animation helper function: Animate a card-back from draw pile to hand
@@ -2017,22 +2040,43 @@
         cardBack.style.top = startRect.top + 'px';
         cardBack.style.width = startRect.width + 'px';
         cardBack.style.height = startRect.height + 'px';
-        cardBack.style.transform = 'scale(1)';
+        cardBack.style.transform = 'scale(0.8) rotateY(0deg) rotate(-5deg)';
+        cardBack.style.opacity = '0.5';
         
         document.body.appendChild(cardBack);
         
-        // Trigger animation
+        // Calculate arc motion
+        const midY = Math.min(startRect.top, endRect.top) - 40;
+        
+        // Trigger animation with arc and flip
         requestAnimationFrame(() => {
-            cardBack.style.left = endRect.left + 'px';
-            cardBack.style.top = endRect.top + 'px';
-            cardBack.style.transform = 'scale(1.1)';
+            // Animate to arc peak with rotation
+            setTimeout(() => {
+                cardBack.style.left = (startRect.left + endRect.left) / 2 + 'px';
+                cardBack.style.top = midY + 'px';
+                cardBack.style.transform = 'scale(0.9) rotateY(90deg) rotate(0deg)';
+                cardBack.style.opacity = '0.7';
+            }, 50);
+            
+            // Animate to final position with flip completion
+            setTimeout(() => {
+                cardBack.style.left = endRect.left + 'px';
+                cardBack.style.top = endRect.top + 'px';
+                cardBack.style.transform = 'scale(1) rotateY(180deg) rotate(5deg)';
+                cardBack.style.opacity = '1';
+            }, 300);
+            
+            // Final settle
+            setTimeout(() => {
+                cardBack.style.transform = 'scale(1) rotateY(180deg) rotate(0deg)';
+            }, 500);
         });
         
         // Clean up after animation
         setTimeout(() => {
             cardBack.remove();
             onComplete();
-        }, 500);
+        }, 600);
     }
 
     function canPlayCard(card) {
