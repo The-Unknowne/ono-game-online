@@ -649,6 +649,22 @@
             font-size: 1.2em;
         }
     }
+
+    /* Card fly animation for playing a card to center */
+    .card-fly-to-center {
+        position: fixed;
+        z-index: 9999;
+        transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+        pointer-events: none;
+    }
+
+    /* Card fly animation for drawing a card to hand */
+    .card-fly-to-hand {
+        position: fixed;
+        z-index: 9999;
+        transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+        pointer-events: none;
+    }
 </style>
 ```
 
@@ -1154,6 +1170,109 @@
         return card.color === currentColor || card.value === currentValue;
     }
 
+    // Animation helper function: Animate a card from source element to target element
+    function animateCardToCenter(cardElement, card, onComplete) {
+        if (!cardElement) {
+            onComplete();
+            return;
+        }
+        
+        // Get positions
+        const startRect = cardElement.getBoundingClientRect();
+        const discardPile = document.getElementById('discardPile');
+        const endRect = discardPile.getBoundingClientRect();
+        
+        // Clone the card for animation
+        const clone = cardElement.cloneNode(true);
+        clone.className = `card ${card.color} card-fly-to-center`;
+        clone.style.left = startRect.left + 'px';
+        clone.style.top = startRect.top + 'px';
+        clone.style.width = startRect.width + 'px';
+        clone.style.height = startRect.height + 'px';
+        clone.style.transform = 'scale(1)';
+        
+        document.body.appendChild(clone);
+        
+        // Trigger animation
+        requestAnimationFrame(() => {
+            clone.style.left = endRect.left + 'px';
+            clone.style.top = endRect.top + 'px';
+            clone.style.transform = 'scale(1.1)';
+        });
+        
+        // Clean up after animation
+        setTimeout(() => {
+            clone.remove();
+            onComplete();
+        }, 500);
+    }
+
+    // Animation helper function: Animate a card-back from draw pile to hand
+    function animateCardToHand(targetArea, onComplete) {
+        const drawPile = document.getElementById('drawPile');
+        const startRect = drawPile.getBoundingClientRect();
+        
+        // Determine end position based on target area
+        let endRect;
+        if (targetArea === 'player') {
+            const playerHand = document.getElementById('playerHand');
+            endRect = playerHand.getBoundingClientRect();
+        } else {
+            const computerCards = document.getElementById('computerCards');
+            endRect = computerCards.getBoundingClientRect();
+        }
+        
+        // Create card-back element
+        const cardBack = document.createElement('div');
+        cardBack.className = 'card card-back card-fly-to-hand';
+        cardBack.innerHTML = '<div style="color: white; font-size: 3em;">🎴</div>';
+        cardBack.style.left = startRect.left + 'px';
+        cardBack.style.top = startRect.top + 'px';
+        cardBack.style.width = startRect.width + 'px';
+        cardBack.style.height = startRect.height + 'px';
+        cardBack.style.transform = 'scale(1)';
+        
+        document.body.appendChild(cardBack);
+        
+        // Trigger animation
+        requestAnimationFrame(() => {
+            cardBack.style.left = endRect.left + 'px';
+            cardBack.style.top = endRect.top + 'px';
+            cardBack.style.transform = 'scale(1.1)';
+        });
+        
+        // Clean up after animation
+        setTimeout(() => {
+            cardBack.remove();
+            onComplete();
+        }, 500);
+    }
+
+    // Animation helper function: Animate multiple cards with stagger
+    function animateMultipleCardsToHand(targetArea, count, onComplete) {
+        let completed = 0;
+        
+        function animateNext(index) {
+            if (index >= count) {
+                return;
+            }
+            
+            animateCardToHand(targetArea, () => {
+                completed++;
+                if (completed === count) {
+                    onComplete();
+                }
+            });
+            
+            // Stagger next card
+            if (index + 1 < count) {
+                setTimeout(() => animateNext(index + 1), 250);
+            }
+        }
+        
+        animateNext(0);
+    }
+
     function playCard(index) {
         if (!gameInProgress) return;
         
@@ -1176,25 +1295,32 @@
             currentPlayer = 'player'; // Take control of the turn
         }
         
-        playerHand.splice(index, 1);
-        discardPile.push(card);
+        // Get the card element before removing it from hand
+        const playerHandDiv = document.getElementById('playerHand');
+        const cardElement = playerHandDiv.children[index];
         
-        if (card.type === 'wild') {
-            pendingWildCard = card;
-            showColorPicker();
-        } else {
-            currentColor = card.color;
-            currentValue = card.value;
-            handleCardEffect(card);
-        }
-        
-        renderPlayerHand();
-        renderDiscardPile();
-        updateGameInfo();
-        
-        if (playerHand.length === 0) {
-            endGame('player');
-        }
+        // Animate card to center, then proceed with game logic
+        animateCardToCenter(cardElement, card, () => {
+            playerHand.splice(index, 1);
+            discardPile.push(card);
+            
+            if (card.type === 'wild') {
+                pendingWildCard = card;
+                showColorPicker();
+            } else {
+                currentColor = card.color;
+                currentValue = card.value;
+                handleCardEffect(card);
+            }
+            
+            renderPlayerHand();
+            renderDiscardPile();
+            updateGameInfo();
+            
+            if (playerHand.length === 0) {
+                endGame('player');
+            }
+        });
     }
 
     function handleCardEffect(card) {
@@ -1275,15 +1401,15 @@
                     renderComputerHand();
                     setTimeout(() => switchTurn(), 1500);
                 } else {
-                    drawCardsForPlayer('computer', 2);
-                    showMessage('Computer draws 2 cards and is skipped!');
-                    renderComputerHand();
-                    setTimeout(() => {
-                        currentPlayer = 'player';
-                        updateGameInfo();
-                        renderPlayerHand();
-                        showMessage("Your turn again!");
-                    }, 1500);
+                    drawCardsForPlayer('computer', 2, () => {
+                        showMessage('Computer draws 2 cards and is skipped!');
+                        setTimeout(() => {
+                            currentPlayer = 'player';
+                            updateGameInfo();
+                            renderPlayerHand();
+                            showMessage("Your turn again!");
+                        }, 1500);
+                    });
                 }
                 break;
                 
@@ -1293,20 +1419,33 @@
         }
     }
 
-    function drawCardsForPlayer(player, count) {
-        for (let i = 0; i < count; i++) {
-            if (deck.length === 0) {
-                reshuffleDeck();
-            }
-            if (deck.length > 0) {
-                if (player === 'computer') {
-                    computerHand.push(deck.pop());
-                } else {
-                    playerHand.push(deck.pop());
+    function drawCardsForPlayer(player, count, callback) {
+        const targetArea = player === 'computer' ? 'computer' : 'player';
+        
+        // Animate cards being drawn
+        animateMultipleCardsToHand(targetArea, count, () => {
+            for (let i = 0; i < count; i++) {
+                if (deck.length === 0) {
+                    reshuffleDeck();
+                }
+                if (deck.length > 0) {
+                    if (player === 'computer') {
+                        computerHand.push(deck.pop());
+                    } else {
+                        playerHand.push(deck.pop());
+                    }
                 }
             }
-        }
-        updateGameInfo();
+            
+            if (player === 'computer') {
+                renderComputerHand();
+            } else {
+                renderPlayerHand();
+            }
+            updateGameInfo();
+            
+            if (callback) callback();
+        });
     }
 
     function reshuffleDeck() {
@@ -1324,10 +1463,10 @@
         // Only check for O,No penalty if player has exactly 1 card after playing
         if (playerHand.length === 1 && !playerCalledUno && currentPlayer === 'player' && !settings.autoUno) {
             showMessage('You forgot to call O,No! Draw 2 cards!');
-            drawCardsForPlayer('player', 2);
-            renderPlayerHand();
-            playerCalledUno = false; // Reset after penalty
-            setTimeout(() => switchTurn(), 1500);
+            drawCardsForPlayer('player', 2, () => {
+                playerCalledUno = false; // Reset after penalty
+                setTimeout(() => switchTurn(), 1500);
+            });
         } else {
             playerCalledUno = false; // Reset for next turn
             switchTurn();
@@ -1391,69 +1530,98 @@
         if (playableCards.length > 0) {
             const cardToPlay = playableCards[0];
             const index = computerHand.indexOf(cardToPlay);
-            computerHand.splice(index, 1);
-            discardPile.push(cardToPlay);
             
-            if (cardToPlay.type === 'wild') {
-                const colorCounts = { red: 0, blue: 0, green: 0, yellow: 0 };
-                computerHand.forEach(c => {
-                    if (c.color !== 'wild') colorCounts[c.color]++;
-                });
+            // Get computer cards area for animation start position
+            const computerCards = document.getElementById('computerCards');
+            const computerRect = computerCards.getBoundingClientRect();
+            const discardPile = document.getElementById('discardPile');
+            const discardRect = discardPile.getBoundingClientRect();
+            
+            // Create a card element for animation
+            const animCard = renderCard(cardToPlay);
+            animCard.className = `card ${cardToPlay.color} card-fly-to-center`;
+            animCard.style.left = computerRect.left + 'px';
+            animCard.style.top = computerRect.top + 'px';
+            animCard.style.width = '100px';
+            animCard.style.height = '150px';
+            animCard.style.transform = 'scale(1)';
+            
+            document.body.appendChild(animCard);
+            
+            // Trigger animation
+            requestAnimationFrame(() => {
+                animCard.style.left = discardRect.left + 'px';
+                animCard.style.top = discardRect.top + 'px';
+                animCard.style.transform = 'scale(1.1)';
+            });
+            
+            // Clean up and proceed with game logic after animation
+            setTimeout(() => {
+                animCard.remove();
                 
-                let maxColor = 'red';
-                let maxCount = 0;
-                Object.keys(colorCounts).forEach(color => {
-                    if (colorCounts[color] > maxCount) {
-                        maxCount = colorCounts[color];
-                        maxColor = color;
-                    }
-                });
+                computerHand.splice(index, 1);
+                discardPile.push(cardToPlay);
                 
-                currentColor = maxColor;
-                currentValue = cardToPlay.value;
-                showMessage(`Computer played ${cardToPlay.value} and chose ${currentColor}!`);
-                
-                renderComputerHand();
-                renderDiscardPile();
-                updateGameInfo();
-                
-                if (computerHand.length === 0) {
-                    endGame('computer');
-                    return;
-                }
-                
-                // Handle Wild+4 effect
-                setTimeout(() => {
-                    if (cardToPlay.value === 'Wild+4') {
-                        if (settings.allowStacking) {
-                            stackedDrawCount += 4;
-                            showMessage(`You must draw ${stackedDrawCount} or stack another +4!`);
-                            renderPlayerHand();
-                            setTimeout(() => switchTurn(), 1500);
-                        } else {
-                            drawCardsForPlayer('player', 4);
-                            showMessage('You draw 4 cards and are skipped!');
-                            renderPlayerHand();
-                            // Player is skipped, computer goes again
-                            setTimeout(() => {
-                                currentPlayer = 'computer';
-                                updateGameInfo();
-                                setTimeout(computerPlay, 500);
-                            }, 1500);
+                if (cardToPlay.type === 'wild') {
+                    const colorCounts = { red: 0, blue: 0, green: 0, yellow: 0 };
+                    computerHand.forEach(c => {
+                        if (c.color !== 'wild') colorCounts[c.color]++;
+                    });
+                    
+                    let maxColor = 'red';
+                    let maxCount = 0;
+                    Object.keys(colorCounts).forEach(color => {
+                        if (colorCounts[color] > maxCount) {
+                            maxCount = colorCounts[color];
+                            maxColor = color;
                         }
-                    } else {
-                        // Regular Wild - switch to player
-                        switchTurn();
+                    });
+                    
+                    currentColor = maxColor;
+                    currentValue = cardToPlay.value;
+                    showMessage(`Computer played ${cardToPlay.value} and chose ${currentColor}!`);
+                    
+                    renderComputerHand();
+                    renderDiscardPile();
+                    updateGameInfo();
+                    
+                    if (computerHand.length === 0) {
+                        endGame('computer');
+                        return;
                     }
-                }, 1500);
-            } else {
-                currentColor = cardToPlay.color;
-                currentValue = cardToPlay.value;
-                showMessage(`Computer played ${cardToPlay.value} ${cardToPlay.color}!`);
-                
-                renderComputerHand();
-                renderDiscardPile();
-                updateGameInfo();
+                    
+                    // Handle Wild+4 effect
+                    setTimeout(() => {
+                        if (cardToPlay.value === 'Wild+4') {
+                            if (settings.allowStacking) {
+                                stackedDrawCount += 4;
+                                showMessage(`You must draw ${stackedDrawCount} or stack another +4!`);
+                                renderPlayerHand();
+                                setTimeout(() => switchTurn(), 1500);
+                            } else {
+                                drawCardsForPlayer('player', 4, () => {
+                                    showMessage('You draw 4 cards and are skipped!');
+                                    // Player is skipped, computer goes again
+                                    setTimeout(() => {
+                                        currentPlayer = 'computer';
+                                        updateGameInfo();
+                                        setTimeout(computerPlay, 500);
+                                    }, 1500);
+                                });
+                            }
+                        } else {
+                            // Regular Wild - switch to player
+                            switchTurn();
+                        }
+                    }, 1500);
+                } else {
+                    currentColor = cardToPlay.color;
+                    currentValue = cardToPlay.value;
+                    showMessage(`Computer played ${cardToPlay.value} ${cardToPlay.color}!`);
+                    
+                    renderComputerHand();
+                    renderDiscardPile();
+                    updateGameInfo();
                 
                 if (computerHand.length === 0) {
                     endGame('computer');
@@ -1461,7 +1629,8 @@
                 }
                 
                 setTimeout(() => handleComputerCardEffect(cardToPlay), 1500);
-            }
+                }
+            }, 500); // End of animation setTimeout
         } else {
             // Computer can't play - must draw
             if (settings.allowStacking && stackedDrawCount > 0) {
@@ -1491,10 +1660,12 @@
                 setTimeout(() => {
                     if (computerHand.length === 1 && !computerCalledUno) {
                         showMessage('Computer forgot to call O,No! Draws 2 cards!');
-                        drawCardsForPlayer('computer', 2);
-                        renderComputerHand();
+                        drawCardsForPlayer('computer', 2, () => {
+                            switchTurn();
+                        });
+                    } else {
+                        switchTurn();
                     }
-                    switchTurn();
                 }, 1500);
             }
         }
@@ -1578,15 +1749,15 @@
                     renderPlayerHand();
                     setTimeout(() => switchTurn(), 1500);
                 } else {
-                    drawCardsForPlayer('player', 2);
-                    showMessage('You draw 2 cards and are skipped!');
-                    renderPlayerHand();
-                    // Player draws and is skipped, computer goes again
-                    setTimeout(() => {
-                        currentPlayer = 'computer';
-                        updateGameInfo();
-                        setTimeout(computerPlay, 500);
-                    }, 1500);
+                    drawCardsForPlayer('player', 2, () => {
+                        showMessage('You draw 2 cards and are skipped!');
+                        // Player draws and is skipped, computer goes again
+                        setTimeout(() => {
+                            currentPlayer = 'computer';
+                            updateGameInfo();
+                            setTimeout(computerPlay, 500);
+                        }, 1500);
+                    });
                 }
                 break;
                 
@@ -1601,21 +1772,26 @@
         
         // If there's a stacked draw count, player must draw all cards
         if (settings.allowStacking && stackedDrawCount > 0) {
-            for (let i = 0; i < stackedDrawCount; i++) {
-                if (deck.length === 0) reshuffleDeck();
-                if (deck.length > 0) playerHand.push(deck.pop());
-            }
-            showMessage(`You drew ${stackedDrawCount} cards!`);
-            stackedDrawCount = 0; // Reset stack
-            renderPlayerHand();
-            updateGameInfo();
+            const count = stackedDrawCount;
             
-            // Player is skipped after drawing stacked cards
-            setTimeout(() => {
-                currentPlayer = 'computer';
+            // Animate multiple cards being drawn
+            animateMultipleCardsToHand('player', count, () => {
+                for (let i = 0; i < count; i++) {
+                    if (deck.length === 0) reshuffleDeck();
+                    if (deck.length > 0) playerHand.push(deck.pop());
+                }
+                showMessage(`You drew ${count} cards!`);
+                stackedDrawCount = 0; // Reset stack
+                renderPlayerHand();
                 updateGameInfo();
-                setTimeout(computerPlay, 1000);
-            }, 1500);
+                
+                // Player is skipped after drawing stacked cards
+                setTimeout(() => {
+                    currentPlayer = 'computer';
+                    updateGameInfo();
+                    setTimeout(computerPlay, 1000);
+                }, 1500);
+            });
             return;
         }
         
@@ -1624,13 +1800,16 @@
         }
         
         if (deck.length > 0) {
-            const drawnCard = deck.pop();
-            playerHand.push(drawnCard);
-            showMessage('You drew a card!');
-            renderPlayerHand();
-            updateGameInfo();
-            
-            setTimeout(() => switchTurn(), 1000);
+            // Animate single card draw
+            animateCardToHand('player', () => {
+                const drawnCard = deck.pop();
+                playerHand.push(drawnCard);
+                showMessage('You drew a card!');
+                renderPlayerHand();
+                updateGameInfo();
+                
+                setTimeout(() => switchTurn(), 1000);
+            });
         } else {
             showMessage('No cards available!');
         }
@@ -1665,15 +1844,15 @@
                     setTimeout(() => switchTurn(), 1500);
                 } else {
                     // Draw 4 for opponent and skip their turn
-                    drawCardsForPlayer('computer', 4);
-                    showMessage('Computer draws 4 cards and is skipped!');
-                    renderComputerHand();
-                    setTimeout(() => {
-                        currentPlayer = 'player';
-                        updateGameInfo();
-                        renderPlayerHand();
-                        showMessage("Your turn again!");
-                    }, 1500);
+                    drawCardsForPlayer('computer', 4, () => {
+                        showMessage('Computer draws 4 cards and is skipped!');
+                        setTimeout(() => {
+                            currentPlayer = 'player';
+                            updateGameInfo();
+                            renderPlayerHand();
+                            showMessage("Your turn again!");
+                        }, 1500);
+                    });
                 }
             } else {
                 // Regular Wild - just switch turns normally
