@@ -706,7 +706,7 @@
         </div>
 
         <div class="setting-item">
-            <label>Background Animation</label>
+            <label for="backgroundAnimation">Background Animation</label>
             <select id="backgroundAnimation">
                 <option value="static">Static</option>
                 <option value="color-cycle">Color Cycling</option>
@@ -853,7 +853,15 @@
         const savedSettings = localStorage.getItem('onoGameSettings');
         if (savedSettings) {
             try {
-                settings = { ...settings, ...JSON.parse(savedSettings) };
+                const parsed = JSON.parse(savedSettings);
+                const validKeys = ['difficulty', 'startingCards', 'soundEffects', 'autoUno', 'allowStacking', 'allowSpecial07', 'allowJumpIn', 'backgroundAnimation'];
+                
+                // Only merge validated properties
+                validKeys.forEach(key => {
+                    if (parsed.hasOwnProperty(key)) {
+                        settings[key] = parsed[key];
+                    }
+                });
             } catch (e) {
                 console.error('Error loading settings:', e);
             }
@@ -863,14 +871,18 @@
 
     // Apply background animation based on current setting
     function applyBackgroundAnimation() {
-        const validAnimations = ['static', 'color-cycle', 'pulsing'];
-        const animation = validAnimations.includes(settings.backgroundAnimation) 
-            ? settings.backgroundAnimation 
-            : 'static';
+        const classMap = {
+            'static': 'bg-static',
+            'color-cycle': 'bg-color-cycle',
+            'pulsing': 'bg-pulsing'
+        };
+        
+        const animation = settings.backgroundAnimation;
+        const className = classMap[animation] || 'bg-static';
         
         const body = document.body;
         body.classList.remove('bg-static', 'bg-color-cycle', 'bg-pulsing');
-        body.classList.add('bg-' + animation);
+        body.classList.add(className);
     }
 
     // Screen Management

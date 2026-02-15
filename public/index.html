@@ -864,14 +864,17 @@
     }
 
     function applyBackgroundAnimation(animation) {
-        const validAnimations = ['static', 'color-cycle', 'pulsing'];
-        if (!validAnimations.includes(animation)) {
-            animation = 'static';
-        }
+        const classMap = {
+            'static': 'bg-static',
+            'color-cycle': 'bg-color-cycle',
+            'pulsing': 'bg-pulsing'
+        };
+        
+        const className = classMap[animation] || 'bg-static';
         
         const body = document.body;
         body.classList.remove('bg-static', 'bg-color-cycle', 'bg-pulsing');
-        body.classList.add('bg-' + animation);
+        body.classList.add(className);
     }
 
     // Initialize socket connection with error handling
