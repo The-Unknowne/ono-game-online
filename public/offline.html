@@ -1953,33 +1953,37 @@
         }
         
         // Draw cards until we find one that matches the current color or is wild
-        let cardsDrawn = 0;
+        // First, determine how many cards need to be drawn
+        let cardsToDrawCount = 0;
         let matchFound = false;
+        const tempDeck = [...deck]; // Create a temporary copy to check
         
-        // Draw cards until we find a match
-        while (!matchFound && cardsDrawn < MAX_DRAW_ATTEMPTS) {
-            if (deck.length === 0) reshuffleDeck();
-            if (deck.length === 0) break; // No more cards available
+        // Check how many cards we need to draw
+        while (!matchFound && cardsToDrawCount < MAX_DRAW_ATTEMPTS && tempDeck.length > 0) {
+            const testCard = tempDeck.pop();
+            cardsToDrawCount++;
             
-            const drawnCard = deck.pop();
-            playerHand.push(drawnCard);
-            cardsDrawn++;
-            
-            // Check if the drawn card matches the current color or is wild
-            if (drawnCard.type === 'wild' || drawnCard.color === currentColor) {
+            // Check if the card matches the current color or is wild
+            if (testCard.type === 'wild' || testCard.color === currentColor) {
                 matchFound = true;
             }
         }
         
-        if (cardsDrawn > 0) {
+        if (cardsToDrawCount > 0) {
             // Set animation lock before starting animation
             isAnimating = true;
             
             // Animate multiple cards being drawn
-            animateMultipleCardsToHand('player', cardsDrawn, () => {
-                const message = cardsDrawn === 1 
+            animateMultipleCardsToHand('player', cardsToDrawCount, () => {
+                // Now actually draw the cards from the real deck
+                for (let i = 0; i < cardsToDrawCount; i++) {
+                    if (deck.length === 0) reshuffleDeck();
+                    if (deck.length > 0) playerHand.push(deck.pop());
+                }
+                
+                const message = cardsToDrawCount === 1 
                     ? 'You drew a card!' 
-                    : `You drew ${cardsDrawn} cards until finding a matching color!`;
+                    : `You drew ${cardsToDrawCount} cards until finding a matching color!`;
                 showMessage(message);
                 renderPlayerHand();
                 updateGameInfo();
