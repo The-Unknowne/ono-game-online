@@ -1080,11 +1080,92 @@
         0%, 100% { transform: translateX(-50%) scale(1); box-shadow: 0 4px 15px rgba(255, 65, 108, 0.5); }
         50% { transform: translateX(-50%) scale(1.05); box-shadow: 0 6px 25px rgba(255, 65, 108, 0.8); }
     }
+
+    /* Disconnect Notification Styles */
+    .disconnect-notification {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+        color: white;
+        padding: 15px 25px;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 1em;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        z-index: 10000;
+        display: none;
+        animation: slideDown 0.3s ease-out;
+        max-width: 90%;
+        text-align: center;
+    }
+
+    .disconnect-notification.active {
+        display: block;
+    }
+
+    .disconnect-notification.reconnected {
+        background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
+    }
+
+    @keyframes slideDown {
+        from {
+            transform: translateX(-50%) translateY(-100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .disconnect-notification .reconnect-timer {
+        display: block;
+        font-size: 0.9em;
+        margin-top: 5px;
+        opacity: 0.9;
+    }
+
+    /* Player connection status indicator */
+    .player-connection-status {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 5px;
+        background: #51cf66;
+    }
+
+    .player-connection-status.disconnected {
+        background: #ff6b6b;
+        animation: blink 1s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.3; }
+    }
+
+    /* Minimum players warning */
+    .min-players-warning {
+        background: rgba(255, 152, 0, 0.15);
+        border: 2px solid #ff9800;
+        border-radius: 10px;
+        padding: 12px;
+        margin: 10px 0;
+        color: #f57c00;
+        font-weight: 600;
+        text-align: center;
+    }
 </style>
 ```
 
 </head>
 <body>
+    <!-- Disconnect Notification -->
+    <div id="disconnectNotification" class="disconnect-notification"></div>
+
     <!-- Main Menu -->
     <div id="mainMenu" class="screen active">
         <div class="menu-container">
@@ -1311,6 +1392,7 @@
     <div class="popup-buttons" id="popupButtons"></div>
 </div>
 
+<script src="/js/playerPresence.js"></script>
 <script>
     let socket;
     let gameState = null;
@@ -1322,6 +1404,8 @@
     let isReady = false;
     let currentLobbyData = null;
     let isWaitingForServer = false;
+    let heartbeatInterval = null;
+    let disconnectNotificationTimeout = null;
 
     // Background animation settings
     function loadBackgroundAnimation() {
@@ -1463,14 +1547,16 @@
             roomId = data.roomId;
             currentLobbyData = data;
             isReady = false;
-            showWaitingLobby(data.lobbyName, data.settings, data.players);
+            startHeartbeat(); // Start heartbeat in lobby
+            showWaitingLobby(data.lobbyName, data.settings, data.players, data.minPlayers || 3);
         });
 
         socket.on('lobbyJoined', (data) => {
             roomId = data.roomId;
             currentLobbyData = data;
             isReady = false;
-            showWaitingLobby(data.lobbyName, data.settings, data.players);
+            startHeartbeat(); // Start heartbeat in lobby
+            showWaitingLobby(data.lobbyName, data.settings, data.players, data.minPlayers || 3);
         });
 
         socket.on('lobbyUpdate', (data) => {
@@ -1483,6 +1569,8 @@
         socket.on('gameStarted', (state) => {
             gameState = state;
             showScreen('gameScreen');
+            // Start heartbeat monitoring for in-game presence
+            startHeartbeat();
             // Explicitly set the initial game message based on whose turn it is
             if (gameState.isYourTurn) {
                 showMessage('Your turn!');
@@ -1535,6 +1623,28 @@
             isWaitingForServer = false; // Reset flag on error
             showPopup(message);
         });
+
+        // Player presence events
+        socket.on('playerDisconnected', (data) => {
+            showDisconnectNotification(
+                `${data.playerName} disconnected. Waiting for reconnection...`,
+                data.reconnectTimeout
+            );
+        });
+
+        socket.on('playerTimeout', (data) => {
+            showDisconnectNotification(
+                `${data.playerName} has been removed from the game.`,
+                0,
+                'reconnected'
+            );
+            setTimeout(() => hideDisconnectNotification(), 5000);
+        });
+
+        socket.on('gameEnded', (data) => {
+            showPopup(data.reason, data.message);
+            setTimeout(() => showMainMenu(), 2000);
+        });
     }
 
     // Initialize on page load
@@ -1549,6 +1659,11 @@
     }
 
     function showMainMenu() {
+        const tempRoomId = roomId;
+        roomId = null;  // Clear roomId first to prevent race condition
+        isReady = false;
+        stopHeartbeat();
+        hideDisconnectNotification();
         showScreen('mainMenu');
     }
 
@@ -1668,13 +1783,17 @@
     }
 
     function leaveLobby() {
-        if (socket && socket.connected) {
-            socket.emit('leaveLobby', { roomId: roomId });
+        const tempRoomId = roomId;
+        roomId = null;  // Clear roomId first to prevent race condition
+        isReady = false;
+        stopHeartbeat();
+        if (socket && socket.connected && tempRoomId) {
+            socket.emit('leaveLobby', { roomId: tempRoomId });
         }
         showOnlineMenu();
     }
 
-    function showWaitingLobby(lobbyName, settings, players) {
+    function showWaitingLobby(lobbyName, settings, players, minPlayers = 3) {
         document.getElementById('waitingLobbyName').textContent = lobbyName;
         
         // Display lobby ID
@@ -1690,6 +1809,7 @@
         
         gameSettings.push(`<div class="rule-item">🎴 <strong>Starting Cards:</strong> ${settings.startingCards}</div>`);
         gameSettings.push(`<div class="rule-item">👥 <strong>Max Players:</strong> ${settings.maxPlayers}</div>`);
+        gameSettings.push(`<div class="rule-item">⚠️ <strong>Min Players:</strong> ${minPlayers}</div>`);
         
         if (settings.allowStacking) {
             activeRules.push(`<div class="rule-item">✅ +2/+4 Stacking Enabled</div>`);
@@ -1734,12 +1854,12 @@
         rulesHTML += '</div>';
         rulesDiv.innerHTML = rulesHTML;
 
-        updateLobbyStatus(players || [{ id: socket.id, name: 'You', ready: false }]);
+        updateLobbyStatus(players || [{ id: socket.id, name: 'You', ready: false }], minPlayers);
         
         showScreen('waitingLobby');
     }
 
-    function updateLobbyStatus(players) {
+    function updateLobbyStatus(players, minPlayers = 3) {
         const maxPlayers = currentLobbyData?.settings?.maxPlayers || 2;
         const playerCount = players.length;
         document.getElementById('playerCountText').textContent = `${playerCount} / ${maxPlayers}`;
@@ -1747,6 +1867,14 @@
         const statusDiv = document.getElementById('playersStatus');
         statusDiv.innerHTML = '<div style="display: flex; flex-direction: column; gap: 12px;"></div>';
         const container = statusDiv.firstChild;
+
+        // Show minimum players warning if needed
+        if (playerCount < minPlayers) {
+            const warning = document.createElement('div');
+            warning.className = 'min-players-warning';
+            warning.innerHTML = `⚠️ Need at least ${minPlayers} players to start the game!<br><span style="font-size: 0.9em;">(Currently ${playerCount} / ${minPlayers})</span>`;
+            container.appendChild(warning);
+        }
 
         // Player avatars/emojis for variety
         const avatars = ['👤', '🎮', '🎯', '🎲', '🃏', '🎪', '🎭', '🎨'];
@@ -1833,7 +1961,7 @@
         const readyCount = players.filter(p => p.ready).length;
         const readyStatusBar = document.getElementById('readyStatusBar');
         
-        if (playerCount >= 2) {
+        if (playerCount >= minPlayers) {
             readyStatusBar.style.display = 'block';
             
             if (readyCount === playerCount) {
@@ -1849,15 +1977,19 @@
 
         // Show/hide waiting message
         const waitingMessage = document.getElementById('waitingMessage');
-        if (playerCount < 2) {
+        if (playerCount < minPlayers) {
             waitingMessage.style.display = 'flex';
+            const messageSpan = waitingMessage.querySelector('span:last-child');
+            if (messageSpan) {
+                messageSpan.textContent = `Waiting for more players to join... (${playerCount}/${minPlayers})`;
+            }
         } else {
             waitingMessage.style.display = 'none';
         }
 
-        // Show ready button if lobby has at least 2 players
+        // Show ready button if lobby has at least minimum players
         const readyButton = document.getElementById('readyButton');
-        if (playerCount >= 2) {
+        if (playerCount >= minPlayers) {
             readyButton.style.display = 'block';
             // Update button state based on current ready status
             const currentPlayer = players.find(p => p.id === socket.id);
@@ -1888,6 +2020,78 @@
         }
         
         socket.emit('playerReady', { roomId: roomId, ready: isReady });
+    }
+
+    // Heartbeat management
+    function startHeartbeat() {
+        if (heartbeatInterval) {
+            clearInterval(heartbeatInterval);
+        }
+        
+        console.log('[Client] Starting heartbeat');
+        heartbeatInterval = setInterval(() => {
+            if (socket && socket.connected && roomId) {
+                socket.emit('heartbeat', { roomId: roomId });
+            }
+        }, 5000); // Send heartbeat every 5 seconds
+    }
+
+    function stopHeartbeat() {
+        if (heartbeatInterval) {
+            console.log('[Client] Stopping heartbeat');
+            clearInterval(heartbeatInterval);
+            heartbeatInterval = null;
+        }
+    }
+
+    // Disconnect notification management
+    function showDisconnectNotification(message, timeout = 0, type = 'disconnected') {
+        const notification = document.getElementById('disconnectNotification');
+        
+        if (type === 'reconnected') {
+            notification.className = 'disconnect-notification active reconnected';
+        } else {
+            notification.className = 'disconnect-notification active';
+        }
+        
+        if (timeout > 0) {
+            const seconds = Math.ceil(timeout / 1000);
+            notification.innerHTML = `
+                ${message}
+                <span class="reconnect-timer">Grace period: ${seconds} seconds</span>
+            `;
+            
+            // Update timer countdown
+            let remaining = seconds;
+            if (disconnectNotificationTimeout) {
+                clearInterval(disconnectNotificationTimeout);
+            }
+            
+            disconnectNotificationTimeout = setInterval(() => {
+                remaining--;
+                if (remaining <= 0) {
+                    clearInterval(disconnectNotificationTimeout);
+                    hideDisconnectNotification();
+                } else {
+                    const timerSpan = notification.querySelector('.reconnect-timer');
+                    if (timerSpan) {
+                        timerSpan.textContent = `Grace period: ${remaining} seconds`;
+                    }
+                }
+            }, 1000);
+        } else {
+            notification.textContent = message;
+        }
+    }
+
+    function hideDisconnectNotification() {
+        const notification = document.getElementById('disconnectNotification');
+        notification.classList.remove('active');
+        
+        if (disconnectNotificationTimeout) {
+            clearInterval(disconnectNotificationTimeout);
+            disconnectNotificationTimeout = null;
+        }
     }
 
     function leaveGame() {
