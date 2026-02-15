@@ -1953,14 +1953,13 @@
         }
         
         // Draw cards until we find one that matches the current color or is wild
-        // First, determine how many cards need to be drawn
+        // First, determine how many cards need to be drawn by checking from the end
         let cardsToDrawCount = 0;
         let matchFound = false;
-        const tempDeck = [...deck]; // Create a temporary copy to check
         
-        // Check how many cards we need to draw
-        while (!matchFound && cardsToDrawCount < MAX_DRAW_ATTEMPTS && tempDeck.length > 0) {
-            const testCard = tempDeck.pop();
+        // Check how many cards we need to draw (from the end of the deck)
+        for (let i = deck.length - 1; i >= 0 && !matchFound && cardsToDrawCount < MAX_DRAW_ATTEMPTS; i--) {
+            const testCard = deck[i];
             cardsToDrawCount++;
             
             // Check if the card matches the current color or is wild

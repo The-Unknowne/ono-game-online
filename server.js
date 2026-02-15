@@ -327,14 +327,14 @@ class GameRoom {
             this.drawCards(playerIndex, 1);
             cardsDrawn++;
             
-            const drawnCard = playerHand[playerHand.length - 1];
-            if (!drawnCard) {
+            const currentDrawnCard = playerHand[playerHand.length - 1];
+            if (!currentDrawnCard) {
                 // No more cards in deck (even after reshuffling)
                 break;
             }
             
             // Check if the drawn card matches the current color or is wild
-            if (drawnCard.type === 'wild' || drawnCard.color === this.currentColor) {
+            if (currentDrawnCard.type === 'wild' || currentDrawnCard.color === this.currentColor) {
                 matchFound = true;
             }
         }
