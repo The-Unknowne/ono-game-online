@@ -656,6 +656,19 @@
         </div>
 
         <div class="setting-item">
+            <label>Number of Players</label>
+            <select id="maxPlayers">
+                <option value="2" selected>2 Players (1v1)</option>
+                <option value="3">3 Players (1v1v1)</option>
+                <option value="4">4 Players (1v1v1v1)</option>
+                <option value="5">5 Players (1v1v1v1v1)</option>
+                <option value="6">6 Players (1v1v1v1v1v1)</option>
+                <option value="7">7 Players (1v1v1v1v1v1v1)</option>
+                <option value="8">8 Players (1v1v1v1v1v1v1v1)</option>
+            </select>
+        </div>
+
+        <div class="setting-item">
             <label>Starting Cards</label>
             <select id="startingCards">
                 <option value="5">5 Cards</option>
@@ -717,17 +730,8 @@
             <p id="waitingLobbyName" style="font-size: 1.3em; margin-bottom: 15px;">Lobby Name</p>
             <p style="font-size: 1.1em; margin-bottom: 20px;"><span id="playerCountText">1 / 2</span> Players</p>
             
-            <div id="playersStatus" style="background: rgba(255,255,255,0.15); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
-                <div style="display: flex; flex-direction: column; gap: 10px;">
-                    <div id="player1Status" style="padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
-                        <span id="player1Name">Player 1</span>
-                        <span id="player1Ready" style="font-weight: bold; color: #f39c12;">⏳ Waiting</span>
-                    </div>
-                    <div id="player2Status" style="padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
-                        <span id="player2Name">Waiting for player...</span>
-                        <span id="player2Ready" style="font-weight: bold; color: #95a5a6;">-</span>
-                    </div>
-                </div>
+            <div id="playersStatus" style="background: rgba(255,255,255,0.15); padding: 15px; border-radius: 10px; margin-bottom: 20px; max-height: 300px; overflow-y: auto;">
+                <!-- Player status will be dynamically added here -->
             </div>
 
             <div id="waitingRules" style="text-align: left;">
@@ -753,8 +757,10 @@
         </div>
 
         <div class="opponent-area">
-            <div><strong id="opponentName">Opponent</strong> (<span id="opponentCardCount">0</span> cards)</div>
-            <div class="opponent-cards" id="opponentCards"></div>
+            <div style="margin-bottom: 15px;"><strong>Other Players:</strong></div>
+            <div id="opponentsList" style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center;">
+                <!-- Opponents will be dynamically added here -->
+            </div>
         </div>
 
         <div class="message" id="message">Waiting for game to start...</div>
@@ -963,7 +969,7 @@
             card.innerHTML = `
                 <div class="lobby-card-header">
                     <div class="lobby-name">${lobby.name}</div>
-                    <div class="lobby-players">${lobby.players} / 2</div>
+                    <div class="lobby-players">${lobby.players} / ${lobby.settings.maxPlayers || 2}</div>
                 </div>
                 <div class="lobby-info">
                     <span class="lobby-tag">${lobby.settings.startingCards} Cards</span>
@@ -995,6 +1001,7 @@
         }
 
         const settings = {
+            maxPlayers: parseInt(document.getElementById('maxPlayers').value),
             startingCards: parseInt(document.getElementById('startingCards').value),
             allowStacking: document.getElementById('allowStacking').checked,
             allowSpecial07: document.getElementById('allowSpecial07').checked,
@@ -1063,38 +1070,59 @@
     }
 
     function updateLobbyStatus(players) {
+        const maxPlayers = currentLobbyData?.settings?.maxPlayers || 2;
         const playerCount = players.length;
-        document.getElementById('playerCountText').textContent = `${playerCount} / 2`;
+        document.getElementById('playerCountText').textContent = `${playerCount} / ${maxPlayers}`;
 
-        if (playerCount >= 1) {
-            const p1 = players[0];
-            document.getElementById('player1Name').textContent = p1.id === socket.id ? 'You' : p1.name;
-            const p1ReadyEl = document.getElementById('player1Ready');
-            if (p1.ready) {
-                p1ReadyEl.textContent = '✓ Ready';
-                p1ReadyEl.style.color = '#2ecc71';
+        const statusDiv = document.getElementById('playersStatus');
+        statusDiv.innerHTML = '<div style="display: flex; flex-direction: column; gap: 10px;"></div>';
+        const container = statusDiv.firstChild;
+
+        // Show all current players
+        players.forEach((player, index) => {
+            const playerDiv = document.createElement('div');
+            playerDiv.style.cssText = 'padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; display: flex; justify-content: space-between; align-items: center;';
+            
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = player.id === socket.id ? 'You' : player.name;
+            
+            const readySpan = document.createElement('span');
+            readySpan.style.fontWeight = 'bold';
+            if (player.ready) {
+                readySpan.textContent = '✓ Ready';
+                readySpan.style.color = '#2ecc71';
             } else {
-                p1ReadyEl.textContent = '⏳ Not Ready';
-                p1ReadyEl.style.color = '#f39c12';
+                readySpan.textContent = '⏳ Not Ready';
+                readySpan.style.color = '#f39c12';
             }
+            
+            playerDiv.appendChild(nameSpan);
+            playerDiv.appendChild(readySpan);
+            container.appendChild(playerDiv);
+        });
+
+        // Show empty slots
+        for (let i = playerCount; i < maxPlayers; i++) {
+            const emptyDiv = document.createElement('div');
+            emptyDiv.style.cssText = 'padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 2px dashed rgba(255,255,255,0.2);';
+            
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = 'Waiting for player...';
+            nameSpan.style.color = '#95a5a6';
+            
+            const readySpan = document.createElement('span');
+            readySpan.textContent = '-';
+            readySpan.style.color = '#95a5a6';
+            
+            emptyDiv.appendChild(nameSpan);
+            emptyDiv.appendChild(readySpan);
+            container.appendChild(emptyDiv);
         }
 
+        // Show ready button if lobby has at least 2 players
         if (playerCount >= 2) {
-            const p2 = players[1];
-            document.getElementById('player2Name').textContent = p2.id === socket.id ? 'You' : p2.name;
-            const p2ReadyEl = document.getElementById('player2Ready');
-            if (p2.ready) {
-                p2ReadyEl.textContent = '✓ Ready';
-                p2ReadyEl.style.color = '#2ecc71';
-            } else {
-                p2ReadyEl.textContent = '⏳ Not Ready';
-                p2ReadyEl.style.color = '#f39c12';
-            }
             document.getElementById('readyButton').style.display = 'block';
         } else {
-            document.getElementById('player2Name').textContent = 'Waiting for player...';
-            document.getElementById('player2Ready').textContent = '-';
-            document.getElementById('player2Ready').style.color = '#95a5a6';
             document.getElementById('readyButton').style.display = 'none';
         }
     }
@@ -1132,17 +1160,33 @@
 
         try {
             document.getElementById('yourName').textContent = gameState.yourName;
-            document.getElementById('opponentName').textContent = gameState.opponentName;
-            document.getElementById('opponentCardCount').textContent = gameState.opponentCardCount;
             document.getElementById('currentColor').textContent = gameState.currentColor || '-';
             document.getElementById('deckCount').textContent = gameState.deckCount;
 
-            const opponentCardsDiv = document.getElementById('opponentCards');
-            opponentCardsDiv.innerHTML = '';
-            for (let i = 0; i < Math.min(gameState.opponentCardCount, 15); i++) {
-                const cardBack = document.createElement('div');
-                cardBack.className = 'card-back-small';
-                opponentCardsDiv.appendChild(cardBack);
+            // Render all opponents
+            const opponentsDiv = document.getElementById('opponentsList');
+            opponentsDiv.innerHTML = '';
+            
+            if (gameState.opponents) {
+                gameState.opponents.forEach(opponent => {
+                    const oppBox = document.createElement('div');
+                    oppBox.style.cssText = 'background: rgba(255,255,255,0.15); padding: 15px; border-radius: 12px; min-width: 150px; text-align: center;';
+                    
+                    // Check if it's this opponent's turn
+                    const isTheirTurn = gameState.currentPlayerName === opponent.name;
+                    if (isTheirTurn) {
+                        oppBox.style.border = '3px solid #2ecc71';
+                        oppBox.style.boxShadow = '0 0 15px rgba(46, 204, 113, 0.5)';
+                    }
+                    
+                    oppBox.innerHTML = `
+                        <div style="font-weight: bold; margin-bottom: 10px; font-size: 1.1em;">${opponent.name}</div>
+                        <div style="font-size: 1.3em; color: #f1c40f;">${opponent.cardCount} 🎴</div>
+                        ${isTheirTurn ? '<div style="margin-top: 5px; color: #2ecc71; font-weight: bold;">⏰ Their Turn</div>' : ''}
+                    `;
+                    
+                    opponentsDiv.appendChild(oppBox);
+                });
             }
 
             renderDiscardPile();
@@ -1151,7 +1195,7 @@
             if (gameState.isYourTurn) {
                 showMessage('Your turn!');
             } else {
-                showMessage(`${gameState.opponentName}'s turn...`);
+                showMessage(`${gameState.currentPlayerName}'s turn...`);
             }
 
             const unoBtn = document.getElementById('unoButton');
