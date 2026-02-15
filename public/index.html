@@ -982,14 +982,8 @@
     }
 
     /* Card fly animation for playing a card to center */
-    .card-fly-to-center {
-        position: fixed;
-        z-index: 9999;
-        transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
-        pointer-events: none;
-    }
-
-    /* Card fly animation for drawing a card to hand */
+    /* Card fly animation for playing/drawing cards */
+    .card-fly-to-center,
     .card-fly-to-hand {
         position: fixed;
         z-index: 9999;
