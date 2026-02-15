@@ -1456,6 +1456,19 @@
         socket.on('gameState', (state) => {
             gameState = state;
             isWaitingForServer = false; // Reset flag when server responds
+            
+            // Show message if cards were drawn
+            if (state.lastDrawInfo && state.lastDrawInfo.cardsDrawn) {
+                const count = state.lastDrawInfo.cardsDrawn;
+                const wasYou = state.lastDrawInfo.playerId === socket.id;
+                const message = count === 1 
+                    ? (wasYou ? 'You drew a card!' : 'Opponent drew a card!')
+                    : (wasYou 
+                        ? `You drew ${count} cards until finding a matching color!`
+                        : `Opponent drew ${count} cards!`);
+                showMessage(message);
+            }
+            
             updateGameUI();
         });
 
