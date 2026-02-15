@@ -13,6 +13,7 @@ const io = socketIO(server, {
 });
 
 const PORT = process.env.PORT || 3000;
+const MAX_DRAW_ATTEMPTS = 50; // Safety limit for "draw until match" to prevent infinite loops
 
 /* =======================
    STATIC FILES & ROUTES
@@ -322,7 +323,7 @@ class GameRoom {
         let cardsDrawn = 0;
         let matchFound = false;
         
-        while (!matchFound && cardsDrawn < 50) { // Safety limit to prevent infinite loops
+        while (!matchFound && cardsDrawn < MAX_DRAW_ATTEMPTS) {
             this.drawCards(playerIndex, 1);
             cardsDrawn++;
             

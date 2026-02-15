@@ -911,6 +911,9 @@
     let stackedDrawCount = 0; // Track stacked +2/+4 cards
     let isAnimating = false; // Animation lock to prevent rapid clicks
     
+    // Constants
+    const MAX_DRAW_ATTEMPTS = 50; // Safety limit for "draw until match" to prevent infinite loops
+    
     // Settings
     let settings = {
         difficulty: 'medium',
@@ -1781,7 +1784,7 @@
                 let matchFound = false;
                 
                 // Draw cards until we find a match
-                while (!matchFound && cardsDrawn < 50) { // Safety limit
+                while (!matchFound && cardsDrawn < MAX_DRAW_ATTEMPTS) {
                     if (deck.length === 0) reshuffleDeck();
                     if (deck.length === 0) break; // No more cards available
                     
@@ -1955,7 +1958,7 @@
         const drawnCards = [];
         
         // Draw cards until we find a match
-        while (!matchFound && cardsDrawn < 50) { // Safety limit
+        while (!matchFound && cardsDrawn < MAX_DRAW_ATTEMPTS) {
             if (deck.length === 0) reshuffleDeck();
             if (deck.length === 0) break; // No more cards available
             
