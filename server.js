@@ -163,6 +163,12 @@ io.on('connection', socket => {
             players: [{ id: socket.id, name: playerName, ready: false }]
         };
         socket.join(id);
+        socket.emit('lobbyCreated', {
+            roomId: id,
+            lobbyName: lobbyName,
+            settings: settings,
+            players: lobbies[id].players
+        });
         broadcastLobbyList();
     });
 
@@ -172,7 +178,13 @@ io.on('connection', socket => {
 
         lobby.players.push({ id: socket.id, name: playerName, ready: false });
         socket.join(lobbyId);
-        io.to(lobbyId).emit('lobbyUpdate', lobby.players);
+        socket.emit('lobbyJoined', {
+            roomId: lobbyId,
+            lobbyName: lobby.name,
+            settings: lobby.settings,
+            players: lobby.players
+        });
+        io.to(lobbyId).emit('lobbyUpdate', { roomId: lobbyId, players: lobby.players });
         broadcastLobbyList();
     });
 
@@ -182,6 +194,9 @@ io.on('connection', socket => {
 
         const player = lobby.players.find(p => p.id === socket.id);
         if (player) player.ready = ready;
+
+        // Send lobby update to all players in the lobby
+        io.to(roomId).emit('lobbyUpdate', { roomId: roomId, players: lobby.players });
 
         if (lobby.players.length >= 2 && lobby.players.every(p => p.ready)) {
             const room = new GameRoom(roomId, lobby.players, lobby.settings);
