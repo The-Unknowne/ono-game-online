@@ -393,6 +393,18 @@ io.on('connection', socket => {
         const lobby = lobbies[lobbyId];
         if (!lobby) return;
 
+        // Check if player is already in lobby
+        if (lobby.players.some(p => p.id === socket.id)) {
+            socket.emit('error', 'You are already in this lobby');
+            return;
+        }
+
+        // Check if lobby has reached maxPlayers limit
+        if (lobby.players.length >= lobby.settings.maxPlayers) {
+            socket.emit('error', 'Lobby is full');
+            return;
+        }
+
         lobby.players.push({ id: socket.id, name: playerName, ready: false });
         socket.join(lobbyId);
         socket.emit('lobbyJoined', {
@@ -416,6 +428,16 @@ io.on('connection', socket => {
         io.to(roomId).emit('lobbyUpdate', { roomId: roomId, players: lobby.players });
 
         if (lobby.players.length >= 2 && lobby.players.every(p => p.ready)) {
+            // Verify all players are still connected
+            const allConnected = lobby.players.every(p => io.sockets.sockets.get(p.id));
+            
+            if (!allConnected) {
+                // Remove disconnected players
+                lobby.players = lobby.players.filter(p => io.sockets.sockets.get(p.id));
+                io.to(roomId).emit('lobbyUpdate', { roomId: roomId, players: lobby.players });
+                return;
+            }
+
             const room = new GameRoom(roomId, lobby.players, lobby.settings);
             rooms.set(roomId, room);
             room.createDeck();
@@ -483,7 +505,14 @@ io.on('connection', socket => {
 
     socket.on('disconnect', () => {
         Object.keys(lobbies).forEach(id => {
+            const hadPlayer = lobbies[id].players.some(p => p.id === socket.id);
             lobbies[id].players = lobbies[id].players.filter(p => p.id !== socket.id);
+            
+            // Notify remaining players in the lobby if someone left
+            if (hadPlayer && lobbies[id].players.length > 0) {
+                io.to(id).emit('lobbyUpdate', { roomId: id, players: lobbies[id].players });
+            }
+            
             if (lobbies[id].players.length === 0) delete lobbies[id];
         });
         broadcastLobbyList();
