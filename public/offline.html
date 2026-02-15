@@ -909,6 +909,7 @@
     let pendingWildCard = null;
     let gameInProgress = false;
     let stackedDrawCount = 0; // Track stacked +2/+4 cards
+    let isAnimating = false; // Animation lock to prevent rapid clicks
     
     // Settings
     let settings = {
@@ -1266,7 +1267,7 @@
                 clone.style.top = endRect.top + 'px';
                 clone.style.transform = 'scale(1.1) rotate(0deg)';
                 clone.style.opacity = '1';
-            }, 100);
+            }, 300);
         });
         
         // Add landing animation to discard pile
@@ -1373,6 +1374,7 @@
 
     function playCard(index) {
         if (!gameInProgress) return;
+        if (isAnimating) return; // Prevent rapid clicking during animation
         
         const card = playerHand[index];
         const isJumpIn = settings.allowJumpIn && currentPlayer !== 'player' && 
@@ -1393,6 +1395,9 @@
             currentPlayer = 'player'; // Take control of the turn
         }
         
+        // Set animation lock before starting animation
+        isAnimating = true;
+        
         // Get the card element before removing it from hand
         const playerHandDiv = document.getElementById('playerHand');
         const cardElement = playerHandDiv.children[index];
@@ -1405,10 +1410,14 @@
             if (card.type === 'wild') {
                 pendingWildCard = card;
                 showColorPicker();
+                // Don't release lock yet - will be released in chooseColor()
             } else {
                 currentColor = card.color;
                 currentValue = card.value;
                 handleCardEffect(card);
+                
+                // Release animation lock after game logic completes (non-wild cards only)
+                isAnimating = false;
             }
             
             renderPlayerHand();
@@ -1890,10 +1899,14 @@
 
     function drawCard() {
         if (currentPlayer !== 'player' || !gameInProgress) return;
+        if (isAnimating) return; // Prevent rapid clicking during animation
         
         // If there's a stacked draw count, player must draw all cards
         if (settings.allowStacking && stackedDrawCount > 0) {
             const count = stackedDrawCount;
+            
+            // Set animation lock before starting animation
+            isAnimating = true;
             
             // Animate multiple cards being drawn
             animateMultipleCardsToHand('player', count, () => {
@@ -1912,6 +1925,9 @@
                     updateGameInfo();
                     setTimeout(computerPlay, 1000);
                 }, 1500);
+                
+                // Release animation lock after game logic completes
+                isAnimating = false;
             });
             return;
         }
@@ -1921,6 +1937,9 @@
         }
         
         if (deck.length > 0) {
+            // Set animation lock before starting animation
+            isAnimating = true;
+            
             // Animate single card draw
             animateCardToHand('player', () => {
                 const drawnCard = deck.pop();
@@ -1930,6 +1949,9 @@
                 updateGameInfo();
                 
                 setTimeout(() => switchTurn(), 1000);
+                
+                // Release animation lock after game logic completes
+                isAnimating = false;
             });
         } else {
             showMessage('No cards available!');
@@ -1979,6 +2001,9 @@
                 // Regular Wild - just switch turns normally
                 switchTurn();
             }
+            
+            // Release animation lock after wild card effect completes
+            isAnimating = false;
         }, 1000);
     }
 

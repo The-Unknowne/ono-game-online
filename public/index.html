@@ -2007,7 +2007,7 @@
                 clone.style.top = endRect.top + 'px';
                 clone.style.transform = 'scale(1.1) rotate(0deg)';
                 clone.style.opacity = '1';
-            }, 100);
+            }, 300);
         });
         
         // Add landing animation to discard pile
@@ -2111,9 +2111,11 @@
             pendingCardIndex = index;
             showColorPicker();
         } else {
+            // Block further plays before starting animation
+            isWaitingForServer = true;
+            
             // Animate card to center, then emit to server
             animateCardToCenter(cardElement, card, () => {
-                isWaitingForServer = true; // Block further plays
                 if (socket && socket.connected) {
                     socket.emit('playCard', {
                         roomId: roomId,
@@ -2139,8 +2141,10 @@
         const yourHandDiv = document.getElementById('playerHand');
         const cardElement = yourHandDiv.children[pendingCardIndex];
         
+        // Block further plays before starting animation
+        isWaitingForServer = true;
+        
         animateCardToCenter(cardElement, card, () => {
-            isWaitingForServer = true; // Block further plays
             if (socket && socket.connected) {
                 socket.emit('playCard', {
                     roomId: roomId,
@@ -2157,9 +2161,11 @@
         if (!gameState || !gameState.isYourTurn) return;
         if (isWaitingForServer) return; // Prevent rapid clicking
         
+        // Block further actions before starting animation
+        isWaitingForServer = true;
+        
         // Animate card draw
         animateCardToHand(() => {
-            isWaitingForServer = true; // Block further actions
             if (socket && socket.connected) {
                 socket.emit('drawCard', { roomId: roomId });
             }
