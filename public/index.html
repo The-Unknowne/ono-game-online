@@ -1945,7 +1945,7 @@
     function animateCardToHand(onComplete) {
         const drawPile = document.getElementById('drawPile');
         const startRect = drawPile.getBoundingClientRect();
-        const playerHand = document.getElementById('yourHand');
+        const playerHand = document.getElementById('playerHand');
         const endRect = playerHand.getBoundingClientRect();
         
         // Create card-back element
@@ -1999,7 +1999,7 @@
         if (!canPlayCard(card)) return;
         
         // Get the card element before emitting to server
-        const yourHandDiv = document.getElementById('yourHand');
+        const yourHandDiv = document.getElementById('playerHand');
         const cardElement = yourHandDiv.children[index];
         
         if (card.type === 'wild') {
@@ -2031,7 +2031,7 @@
         
         // Get the card element and animate it
         const card = gameState.yourHand[pendingCardIndex];
-        const yourHandDiv = document.getElementById('yourHand');
+        const yourHandDiv = document.getElementById('playerHand');
         const cardElement = yourHandDiv.children[pendingCardIndex];
         
         animateCardToCenter(cardElement, card, () => {
