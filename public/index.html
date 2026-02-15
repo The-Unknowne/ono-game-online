@@ -655,11 +655,12 @@
         border-radius: 12px;
         margin-bottom: 20px;
         text-align: center;
+        color: #333;
     }
 
     .lobby-id {
         font-size: 0.9em;
-        color: rgba(255, 255, 255, 0.7);
+        color: rgba(0, 0, 0, 0.7);
         font-family: monospace;
         margin-top: 5px;
     }
@@ -673,17 +674,20 @@
         gap: 12px;
         transition: all 0.3s ease;
         border: 2px solid transparent;
+        color: #333;
     }
 
     .player-slot.you {
         background: rgba(102, 126, 234, 0.25);
         border: 2px solid rgba(102, 126, 234, 0.5);
         box-shadow: 0 0 15px rgba(102, 126, 234, 0.3);
+        color: #333;
     }
 
     .player-slot.empty {
         background: rgba(255, 255, 255, 0.05);
         border: 2px dashed rgba(255, 255, 255, 0.2);
+        color: #333;
     }
 
     .player-avatar {
@@ -767,6 +771,7 @@
         padding: 18px;
         border-radius: 12px;
         margin: 20px 0;
+        color: #333;
     }
 
     .rules-section {
@@ -784,7 +789,7 @@
         display: flex;
         align-items: center;
         gap: 8px;
-        color: rgba(255, 255, 255, 0.95);
+        color: #333;
     }
 
     .rule-item {
@@ -796,6 +801,7 @@
         align-items: center;
         gap: 8px;
         font-size: 0.95em;
+        color: #333;
     }
 
     .ready-status-bar {
@@ -855,7 +861,7 @@
 
     .waiting-message {
         font-size: 0.95em;
-        color: rgba(255, 255, 255, 0.8);
+        color: rgba(0, 0, 0, 0.8);
         text-align: center;
         margin: 10px 0;
         display: flex;
@@ -1017,9 +1023,9 @@
         <div class="loading">
             <!-- Lobby Header with Name and ID -->
             <div class="lobby-header">
-                <p id="waitingLobbyName" style="font-size: 1.4em; font-weight: 700; margin-bottom: 5px;">Lobby Name</p>
+                <p id="waitingLobbyName" style="font-size: 1.4em; font-weight: 700; margin-bottom: 5px; color: #333;">Lobby Name</p>
                 <p class="lobby-id" id="lobbyIdDisplay">Lobby ID: ••••••</p>
-                <p style="font-size: 1.05em; margin-top: 10px; color: rgba(255,255,255,0.9);">
+                <p style="font-size: 1.05em; margin-top: 10px; color: rgba(0, 0, 0, 0.9);">
                     <span id="playerCountText">1 / 2</span> Players
                 </p>
             </div>
@@ -1036,7 +1042,7 @@
             </div>
             
             <!-- Players Status -->
-            <div id="playersStatus" style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); padding: 15px; border-radius: 12px; margin-bottom: 20px; max-height: 350px; overflow-y: auto;">
+            <div id="playersStatus" style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); padding: 15px; border-radius: 12px; margin-bottom: 20px; max-height: 350px; overflow-y: auto; color: #333;">
                 <!-- Player status will be dynamically added here -->
             </div>
 
