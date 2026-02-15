@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const socketIO = require('socket.io');
 const path = require('path');
+const { PlayerPresenceManager, PlayerState } = require('./public/js/playerPresence.js');
 
 const app = express();
 const server = http.createServer(app);
@@ -47,6 +48,7 @@ app.get('*', (req, res) => {
 
 const rooms = new Map();
 const lobbies = {};
+const lobbyPresenceManagers = new Map(); // lobbyId -> PlayerPresenceManager
 
 /* =======================
    GAME ROOM CLASS
@@ -394,6 +396,17 @@ io.on('connection', socket => {
 
     socket.on('createLobby', ({ lobbyName, playerName, settings }) => {
         const id = `lobby_${Date.now()}`;
+        
+        // Create presence manager for lobby (minimum 3 players as per requirements)
+        const presenceManager = new PlayerPresenceManager(3, {
+            heartbeatInterval: 5000,
+            reconnectTimeout: 60000
+        });
+        lobbyPresenceManagers.set(id, presenceManager);
+        
+        // Add player to presence manager
+        presenceManager.addPlayer(socket.id, playerName, PlayerState.LOBBY);
+        
         lobbies[id] = {
             id,
             name: lobbyName,
@@ -405,7 +418,8 @@ io.on('connection', socket => {
             roomId: id,
             lobbyName: lobbyName,
             settings: settings,
-            players: lobbies[id].players
+            players: lobbies[id].players,
+            minPlayers: 3
         });
         broadcastLobbyList();
     });
@@ -426,13 +440,20 @@ io.on('connection', socket => {
             return;
         }
 
+        // Add to presence manager
+        const presenceManager = lobbyPresenceManagers.get(lobbyId);
+        if (presenceManager) {
+            presenceManager.addPlayer(socket.id, playerName, PlayerState.LOBBY);
+        }
+
         lobby.players.push({ id: socket.id, name: playerName, ready: false });
         socket.join(lobbyId);
         socket.emit('lobbyJoined', {
             roomId: lobbyId,
             lobbyName: lobby.name,
             settings: lobby.settings,
-            players: lobby.players
+            players: lobby.players,
+            minPlayers: 3
         });
         io.to(lobbyId).emit('lobbyUpdate', { roomId: lobbyId, players: lobby.players });
         broadcastLobbyList();
@@ -445,10 +466,17 @@ io.on('connection', socket => {
         const player = lobby.players.find(p => p.id === socket.id);
         if (player) player.ready = ready;
 
+        // Update presence manager
+        const presenceManager = lobbyPresenceManagers.get(roomId);
+        if (presenceManager) {
+            presenceManager.setPlayerReady(socket.id, ready);
+        }
+
         // Send lobby update to all players in the lobby
         io.to(roomId).emit('lobbyUpdate', { roomId: roomId, players: lobby.players });
 
-        if (lobby.players.length >= 2 && lobby.players.every(p => p.ready)) {
+        // Check if can start game (minimum 3 players as per requirements)
+        if (lobby.players.length >= 3 && lobby.players.every(p => p.ready)) {
             // Verify all players are still connected
             const allConnected = lobby.players.every(p => !!io.sockets.sockets.get(p.id));
             
@@ -456,8 +484,22 @@ io.on('connection', socket => {
                 // Remove disconnected players
                 lobby.players = lobby.players.filter(p => io.sockets.sockets.get(p.id));
                 io.to(roomId).emit('lobbyUpdate', { roomId: roomId, players: lobby.players });
+                io.to(roomId).emit('error', 'Some players disconnected. Waiting for more players...');
                 return;
             }
+
+            // Final presence check using presence manager
+            if (presenceManager) {
+                const presenceCheck = presenceManager.finalPresenceCheck();
+                if (!presenceCheck.success) {
+                    const missingNames = presenceCheck.missingPlayers.map(p => p.name).join(', ');
+                    io.to(roomId).emit('error', `Cannot start: Players not responding: ${missingNames}`);
+                    console.log(`[Server] Game start prevented - missing players: ${missingNames}`);
+                    return;
+                }
+            }
+
+            console.log(`[Server] Starting game in lobby ${roomId} with ${lobby.players.length} players`);
 
             const room = new GameRoom(roomId, lobby.players, lobby.settings);
             rooms.set(roomId, room);
@@ -465,12 +507,24 @@ io.on('connection', socket => {
             room.dealCards();
             room.gameStarted = true;
 
+            // Move players to IN_GAME state
+            if (presenceManager) {
+                lobby.players.forEach(p => {
+                    presenceManager.updatePlayerState(p.id, PlayerState.IN_GAME);
+                });
+                // Start heartbeat monitoring for in-game presence
+                presenceManager.startHeartbeat();
+            }
+
             room.players.forEach(p => {
                 io.to(p.id).emit('gameStarted', room.getGameState(p.id));
             });
 
             delete lobbies[roomId];
             broadcastLobbyList();
+        } else if (lobby.players.length < 3 && lobby.players.every(p => p.ready)) {
+            // Not enough players
+            io.to(roomId).emit('error', `Need at least 3 players to start (currently ${lobby.players.length})`);
         }
     });
 
@@ -524,18 +578,119 @@ io.on('connection', socket => {
         });
     });
 
+    // Heartbeat handler - clients send this every 5 seconds
+    socket.on('heartbeat', ({ roomId }) => {
+        // Check if player is in a lobby
+        const lobby = lobbies[roomId];
+        if (lobby) {
+            const presenceManager = lobbyPresenceManagers.get(roomId);
+            if (presenceManager) {
+                presenceManager.receiveHeartbeat(socket.id);
+            }
+        }
+        
+        // Check if player is in an active game
+        const room = rooms.get(roomId);
+        if (room) {
+            const presenceManager = lobbyPresenceManagers.get(roomId);
+            if (presenceManager) {
+                presenceManager.receiveHeartbeat(socket.id);
+            }
+        }
+    });
+
     socket.on('disconnect', () => {
+        console.log('Disconnected:', socket.id);
+        
+        // Handle lobby disconnections
         Object.keys(lobbies).forEach(id => {
             const hadPlayer = lobbies[id].players.some(p => p.id === socket.id);
-            lobbies[id].players = lobbies[id].players.filter(p => p.id !== socket.id);
             
-            // Notify remaining players in the lobby if someone left
-            if (hadPlayer && lobbies[id].players.length > 0) {
-                io.to(id).emit('lobbyUpdate', { roomId: id, players: lobbies[id].players });
+            if (hadPlayer) {
+                const presenceManager = lobbyPresenceManagers.get(id);
+                if (presenceManager) {
+                    presenceManager.onPlayerDisconnect(socket.id);
+                    const player = presenceManager.getPlayer(socket.id);
+                    
+                    // Notify other players
+                    if (player) {
+                        io.to(id).emit('playerDisconnected', {
+                            playerId: socket.id,
+                            playerName: player.name,
+                            reconnectTimeout: presenceManager.reconnectTimeout
+                        });
+                    }
+                }
+                
+                lobbies[id].players = lobbies[id].players.filter(p => p.id !== socket.id);
+                
+                // Notify remaining players in the lobby if someone left
+                if (lobbies[id].players.length > 0) {
+                    io.to(id).emit('lobbyUpdate', { roomId: id, players: lobbies[id].players });
+                } else {
+                    // Clean up empty lobby
+                    delete lobbies[id];
+                    if (presenceManager) {
+                        presenceManager.destroy();
+                        lobbyPresenceManagers.delete(id);
+                    }
+                }
             }
-            
-            if (lobbies[id].players.length === 0) delete lobbies[id];
         });
+        
+        // Handle in-game disconnections
+        rooms.forEach((room, roomId) => {
+            const playerIndex = room.players.findIndex(p => p.id === socket.id);
+            if (playerIndex !== -1) {
+                const player = room.players[playerIndex];
+                const presenceManager = lobbyPresenceManagers.get(roomId);
+                
+                if (presenceManager) {
+                    presenceManager.onPlayerDisconnect(socket.id);
+                    
+                    // Notify other players in game
+                    room.players.forEach(p => {
+                        if (p.id !== socket.id) {
+                            io.to(p.id).emit('playerDisconnected', {
+                                playerId: socket.id,
+                                playerName: player.name,
+                                reconnectTimeout: presenceManager.reconnectTimeout
+                            });
+                        }
+                    });
+                    
+                    // Set up timeout handler
+                    presenceManager.on('player-timeout', (timedOutPlayer) => {
+                        if (timedOutPlayer.id === socket.id) {
+                            // Player timed out, end game or continue with remaining
+                            const activePlayers = room.players.filter(p => {
+                                const pm = presenceManager.getPlayer(p.id);
+                                return pm && pm.state !== PlayerState.TIMEOUT && pm.state !== PlayerState.DISCONNECTED;
+                            });
+                            
+                            if (activePlayers.length < 3) {
+                                // Not enough players, end game
+                                io.to(roomId).emit('gameEnded', {
+                                    reason: 'Not enough players remaining',
+                                    message: `${player.name} disconnected and did not reconnect in time.`
+                                });
+                                rooms.delete(roomId);
+                                presenceManager.destroy();
+                                lobbyPresenceManagers.delete(roomId);
+                            } else {
+                                // Continue game with remaining players
+                                io.to(roomId).emit('playerTimeout', {
+                                    playerId: socket.id,
+                                    playerName: player.name,
+                                    message: `${player.name} has been removed from the game due to disconnection.`
+                                });
+                            }
+                        }
+                    });
+                }
+            }
+        });
+        
         broadcastLobbyList();
     });
 });
