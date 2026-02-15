@@ -1603,7 +1603,7 @@
             if (lobby.settings.allowSpecial07) rules.push('<span class="lobby-tag active">0 & 7 Swap</span>');
             if (lobby.settings.allowSpecial48) rules.push('<span class="lobby-tag active">4 & 8 Special</span>');
             if (lobby.settings.allowJumpIn) rules.push('<span class="lobby-tag active">Jump-In</span>');
-            if (lobby.settings.drawUntilMatch) rules.push('<span class="lobby-tag active">Draw Until Match</span>');
+            if (lobby.settings.drawUntilMatch !== false) rules.push('<span class="lobby-tag active">Draw Until Match</span>');
             if (rules.length === 0) rules.push('<span class="lobby-tag">Classic Rules</span>');
 
             card.innerHTML = `
@@ -1703,12 +1703,12 @@
         if (settings.allowJumpIn) {
             activeRules.push(`<div class="rule-item">✅ Jump-In Enabled</div>`);
         }
-        if (settings.drawUntilMatch) {
+        if (settings.drawUntilMatch !== false) {
             activeRules.push(`<div class="rule-item">✅ Draw Until Match Enabled</div>`);
         }
         
         const hasActiveRules = settings.allowStacking || settings.allowSpecial07 || 
-                               settings.allowSpecial48 || settings.allowJumpIn || settings.drawUntilMatch;
+                               settings.allowSpecial48 || settings.allowJumpIn || settings.drawUntilMatch !== false;
         
         let rulesHTML = '<div class="rules-container">';
         
