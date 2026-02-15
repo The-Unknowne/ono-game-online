@@ -1,164 +1,787 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>O,No Online</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
 
-<title>O,No Online</title>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            overflow-x: hidden;
+            touch-action: pan-y;
+        }
 
-<script src="/socket.io/socket.io.js"></script>
+        .screen {
+            display: none;
+            width: 100%;
+            max-width: 1000px;
+        }
 
-<style>
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
-}
+        .screen.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
 
-body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 10px;
-    overflow-x: hidden;
-}
+        .menu-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 30px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
 
-/* screens */
-.screen { display: none; width: 100%; max-width: 1000px; }
-.screen.active { display: flex; flex-direction: column; align-items: center; }
+        h1 {
+            font-size: 3.5em;
+            color: #667eea;
+            margin-bottom: 20px;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.2);
+        }
 
-/* menu */
-.menu-container {
-    background: rgba(255,255,255,0.95);
-    border-radius: 30px;
-    padding: 40px;
-    max-width: 500px;
-    width: 100%;
-    text-align: center;
-}
+        .menu-button {
+            display: block;
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 20px;
+            font-size: 1.3em;
+            border-radius: 15px;
+            cursor: pointer;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+            box-shadow: 0 6px 15px rgba(102, 126, 234, 0.4);
+            touch-action: manipulation;
+        }
 
-.menu-button {
-    width: 100%;
-    padding: 20px;
-    font-size: 1.3em;
-    border-radius: 15px;
-    border: none;
-    margin-bottom: 15px;
-    cursor: pointer;
-    color: white;
-}
+        .menu-button:active {
+            transform: translateY(2px);
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+        }
 
-.menu-button.online { background: #2ecc71; }
-.menu-button.offline { background: #3498db; }
+        .menu-button.online {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+        }
 
-/* game */
-.game-container {
-    background: rgba(255,255,255,0.1);
-    backdrop-filter: blur(10px);
-    border-radius: 20px;
-    padding: 20px;
-}
+        .menu-button.offline {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        }
 
-.card {
-    width: 100px;
-    height: 150px;
-    border-radius: 12px;
-    border: 4px solid white;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
+        input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.2em;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
 
-.card-back {
-    background: linear-gradient(135deg, #2c3e50, #34495e);
-}
+        .game-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            width: 100%;
+            max-width: 1000px;
+        }
 
-.card-inner {
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    font-size: 2em;
-    font-weight: bold;
-}
+        .game-header {
+            color: white;
+            text-align: center;
+            margin-bottom: 20px;
+        }
 
-.card.red { background: #e74c3c; }
-.card.blue { background: #3498db; }
-.card.green { background: #2ecc71; }
-.card.yellow { background: #f1c40f; }
-.card.wild {
-    background: linear-gradient(135deg, red, blue, green, yellow);
-}
+        .game-info {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            color: white;
+            margin-bottom: 15px;
+            font-size: 1em;
+            gap: 10px;
+        }
 
-.player-hand { display: flex; gap: 8px; flex-wrap: wrap; }
-.disabled { opacity: 0.5; pointer-events: none; }
+        .game-info div {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 15px;
+            border-radius: 10px;
+        }
 
-.uno-button {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: #e74c3c;
-    color: white;
-    padding: 15px 30px;
-    border-radius: 50px;
-    display: none;
-}
-.uno-button.active { display: block; }
-</style>
+        .opponent-area {
+            text-align: center;
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .opponent-cards {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .card-back-small {
+            width: 50px;
+            height: 75px;
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            border-radius: 8px;
+            border: 2px solid white;
+        }
+
+        .play-area {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin: 20px 0;
+            min-height: 140px;
+        }
+
+        .card {
+            width: 100px;
+            height: 150px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            border: 4px solid white;
+            touch-action: manipulation;
+            position: relative;
+        }
+
+        .card:active {
+            transform: scale(0.95);
+        }
+
+        .card-inner {
+            width: 80%;
+            height: 80%;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .card.red { background-color: #e74c3c; }
+        .card.blue { background-color: #3498db; }
+        .card.green { background-color: #2ecc71; }
+        .card.yellow { background-color: #f1c40f; }
+        .card.wild { 
+            background: linear-gradient(135deg, #e74c3c 0%, #3498db 33%, #2ecc71 66%, #f1c40f 100%);
+        }
+
+        .wild-color-indicator {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .player-hand {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            min-height: 160px;
+        }
+
+        .player-hand .card {
+            width: 80px;
+            height: 120px;
+        }
+
+        .player-hand .card-inner {
+            font-size: 1.6em;
+        }
+
+        .card.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .message {
+            text-align: center;
+            color: white;
+            font-size: 1.3em;
+            margin: 15px 0;
+            min-height: 35px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .color-picker {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .color-picker.active {
+            display: block;
+        }
+
+        .color-options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .color-option {
+            width: 80px;
+            height: 80px;
+            border-radius: 10px;
+            cursor: pointer;
+            border: 4px solid #fff;
+            transition: transform 0.2s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            touch-action: manipulation;
+        }
+
+        .color-option:active {
+            transform: scale(0.9);
+        }
+
+        .color-option.red { background-color: #e74c3c !important; }
+        .color-option.blue { background-color: #3498db !important; }
+        .color-option.green { background-color: #2ecc71 !important; }
+        .color-option.yellow { background-color: #f1c40f !important; }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 999;
+        }
+
+        .overlay.active {
+            display: block;
+        }
+
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 1.5em;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .uno-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.3em;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+            display: none;
+            z-index: 100;
+            touch-action: manipulation;
+        }
+
+        .uno-button.active {
+            display: block;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .controls button {
+            padding: 12px 25px;
+            font-size: 1em;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            touch-action: manipulation;
+        }
+
+        .controls button:active {
+            transform: translateY(2px);
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 2.5em; }
+            .menu-container { padding: 30px 20px; }
+            .card { width: 80px; height: 120px; }
+            .card-inner { font-size: 1.6em; }
+            .player-hand .card { width: 65px; height: 100px; }
+            .player-hand .card-inner { font-size: 1.3em; }
+        }
+    </style>
 </head>
-
 <body>
-
-<div id="mainMenu" class="screen active">
-    <div class="menu-container">
-        <h1>🎴 O,No 🎴</h1>
-        <button class="menu-button online" onclick="showOnlineSetup()">Play Online</button>
-        <button class="menu-button offline" onclick="playOffline()">Play vs AI</button>
+    <!-- Main Menu -->
+    <div id="mainMenu" class="screen active">
+        <div class="menu-container">
+            <h1>🎴 O,No 🎴</h1>
+            <p style="margin-bottom: 30px; color: #666;">Choose Game Mode</p>
+            <button class="menu-button online" onclick="showOnlineSetup()">🌐 Play Online</button>
+            <button class="menu-button offline" onclick="playOffline()">🤖 Play vs Computer</button>
+        </div>
     </div>
-</div>
 
-<div id="onlineSetup" class="screen">
-    <div class="menu-container">
-        <input id="playerName" placeholder="Your name">
-        <button class="menu-button online" onclick="findGame()">Find Game</button>
-        <button class="menu-button offline" onclick="showMainMenu()">Back</button>
+    <!-- Online Setup -->
+    <div id="onlineSetup" class="screen">
+        <div class="menu-container">
+            <h1>🌐 Online Play</h1>
+            <input type="text" id="playerName" placeholder="Enter your name" maxlength="20">
+            <button class="menu-button" onclick="findGame()">Find Match</button>
+            <button class="menu-button offline" onclick="showMainMenu()">Back</button>
+        </div>
     </div>
-</div>
 
-<div id="gameScreen" class="screen">
-    <div class="game-container">
-        <div id="playerHand" class="player-hand"></div>
-        <div class="card card-back" onclick="drawCard()">🎴</div>
+    <!-- Waiting -->
+    <div id="waiting" class="screen">
+        <div class="menu-container">
+            <h1>⏳ Finding Match</h1>
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Looking for an opponent...</p>
+            </div>
+            <button class="menu-button offline" onclick="cancelSearch()">Cancel</button>
+        </div>
     </div>
-</div>
 
-<button id="unoButton" class="uno-button" onclick="callUno()">O,NO!</button>
+    <!-- Game Screen -->
+    <div id="gameScreen" class="screen">
+        <div class="game-container">
+            <div class="game-header">
+                <h1 style="font-size: 2em;">🎴 O,No 🎴</h1>
+            </div>
 
-<script>
-let socket;
+            <div class="game-info">
+                <div>You: <span id="yourName">-</span></div>
+                <div>Color: <span id="currentColor">-</span></div>
+                <div>Deck: <span id="deckCount">-</span></div>
+            </div>
 
-function showScreen(id){
-    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-}
+            <div class="opponent-area">
+                <div><strong id="opponentName">Opponent</strong> (<span id="opponentCardCount">0</span> cards)</div>
+                <div class="opponent-cards" id="opponentCards"></div>
+            </div>
 
-function showOnlineSetup(){ showScreen('onlineSetup'); }
-function showMainMenu(){ showScreen('mainMenu'); }
-function playOffline(){ alert("Offline mode coming soon"); }
+            <div class="message" id="message">Waiting for game to start...</div>
 
-function findGame(){
-    socket = io();
-    showScreen('gameScreen');
-}
+            <div class="play-area">
+                <div class="card card-back" id="drawPile" onclick="drawCard()" style="cursor: pointer;">
+                    <div style="color: white; font-size: 2.5em;">🎴</div>
+                </div>
+                <div id="discardPile"></div>
+            </div>
 
-function drawCard(){}
-function callUno(){}
-</script>
+            <div class="player-hand" id="playerHand"></div>
 
+            <div class="controls">
+                <button onclick="leaveGame()">Leave Game</button>
+            </div>
+        </div>
+    </div>
+
+    <button class="uno-button" id="unoButton" onclick="callUno()">O,NO!</button>
+
+    <div class="overlay" id="overlay"></div>
+    
+    <div class="color-picker" id="colorPicker">
+        <h3>Choose a Color:</h3>
+        <div class="color-options">
+            <div class="color-option red" onclick="chooseColor('red')"></div>
+            <div class="color-option blue" onclick="chooseColor('blue')"></div>
+            <div class="color-option green" onclick="chooseColor('green')"></div>
+            <div class="color-option yellow" onclick="chooseColor('yellow')"></div>
+        </div>
+    </div>
+
+    <script>
+        let socket;
+        let gameState = null;
+        let roomId = null;
+        let pendingCardIndex = null;
+        let reconnectAttempts = 0;
+        const MAX_RECONNECT_ATTEMPTS = 5;
+
+        // Initialize socket connection with error handling
+        function initializeSocket() {
+            try {
+                socket = io({
+                    reconnection: true,
+                    reconnectionDelay: 1000,
+                    reconnectionDelayMax: 5000,
+                    reconnectionAttempts: MAX_RECONNECT_ATTEMPTS
+                });
+
+                setupSocketListeners();
+            } catch (error) {
+                console.error('Socket initialization error:', error);
+                alert('Failed to connect to server. Please refresh the page.');
+            }
+        }
+
+        function setupSocketListeners() {
+            socket.on('connect', () => {
+                console.log('Connected to server');
+                reconnectAttempts = 0;
+            });
+
+            socket.on('disconnect', () => {
+                console.log('Disconnected from server');
+            });
+
+            socket.on('connect_error', (error) => {
+                console.error('Connection error:', error);
+                reconnectAttempts++;
+                if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+                    alert('Unable to connect to server. Please check your internet connection and refresh the page.');
+                }
+            });
+
+            socket.on('waiting', () => {
+                showScreen('waiting');
+            });
+
+            socket.on('gameFound', (data) => {
+                roomId = data.roomId;
+                socket.emit('startGame', {
+                    roomId: roomId,
+                    settings: {
+                        startingCards: 7,
+                        allowStacking: false,
+                        allowSpecial07: false,
+                        allowJumpIn: false
+                    }
+                });
+            });
+
+            socket.on('gameStarted', (state) => {
+                gameState = state;
+                showScreen('gameScreen');
+                updateGameUI();
+            });
+
+            socket.on('gameState', (state) => {
+                gameState = state;
+                updateGameUI();
+            });
+
+            socket.on('unoCalled', (data) => {
+                showMessage(`${data.playerName} called O,NO!`);
+            });
+
+            socket.on('gameOver', (data) => {
+                const isWinner = data.winnerId === socket.id;
+                setTimeout(() => {
+                    alert(isWinner ? '🎉 You Won!' : '😢 You Lost!');
+                    showMainMenu();
+                }, 500);
+            });
+
+            socket.on('opponentDisconnected', () => {
+                alert('Opponent disconnected');
+                showMainMenu();
+            });
+        }
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            initializeSocket();
+        });
+
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function showMainMenu() {
+            showScreen('mainMenu');
+        }
+
+        function showOnlineSetup() {
+            showScreen('onlineSetup');
+            document.getElementById('playerName').value = '';
+        }
+
+        function playOffline() {
+            window.location.href = '/offline.html';
+        }
+
+        function findGame() {
+            const name = document.getElementById('playerName').value.trim();
+            if (!name) {
+                alert('Please enter your name');
+                return;
+            }
+            if (!socket || !socket.connected) {
+                alert('Not connected to server. Please refresh the page.');
+                return;
+            }
+            socket.emit('findGame', name);
+            showScreen('waiting');
+        }
+
+        function cancelSearch() {
+            if (socket && socket.connected) {
+                socket.emit('cancelSearch');
+            }
+            showMainMenu();
+        }
+
+        function leaveGame() {
+            if (confirm('Are you sure you want to leave?')) {
+                if (socket) {
+                    socket.disconnect();
+                    socket.connect();
+                }
+                showMainMenu();
+            }
+        }
+
+        function updateGameUI() {
+            if (!gameState) return;
+
+            try {
+                document.getElementById('yourName').textContent = gameState.yourName;
+                document.getElementById('opponentName').textContent = gameState.opponentName;
+                document.getElementById('opponentCardCount').textContent = gameState.opponentCardCount;
+                document.getElementById('currentColor').textContent = gameState.currentColor || '-';
+                document.getElementById('deckCount').textContent = gameState.deckCount;
+
+                // Render opponent cards
+                const opponentCardsDiv = document.getElementById('opponentCards');
+                opponentCardsDiv.innerHTML = '';
+                for (let i = 0; i < Math.min(gameState.opponentCardCount, 15); i++) {
+                    const cardBack = document.createElement('div');
+                    cardBack.className = 'card-back-small';
+                    opponentCardsDiv.appendChild(cardBack);
+                }
+
+                // Render discard pile
+                renderDiscardPile();
+
+                // Render player hand
+                renderPlayerHand();
+
+                // Update message
+                if (gameState.isYourTurn) {
+                    showMessage('Your turn!');
+                } else {
+                    showMessage(`${gameState.opponentName}'s turn...`);
+                }
+
+                // UNO button
+                const unoBtn = document.getElementById('unoButton');
+                if (gameState.yourHand && (gameState.yourHand.length === 2 || gameState.yourHand.length === 1)) {
+                    unoBtn.classList.add('active');
+                } else {
+                    unoBtn.classList.remove('active');
+                }
+            } catch (error) {
+                console.error('Error updating UI:', error);
+            }
+        }
+
+        function renderDiscardPile() {
+            const discardDiv = document.getElementById('discardPile');
+            discardDiv.innerHTML = '';
+            
+            if (gameState.discardPile) {
+                const card = gameState.discardPile;
+                const cardDiv = createCardElement(card);
+                
+                if (card.type === 'wild' && gameState.currentColor) {
+                    cardDiv.style.borderColor = getColorHex(gameState.currentColor);
+                    cardDiv.style.borderWidth = '6px';
+                    
+                    const indicator = document.createElement('div');
+                    indicator.className = 'wild-color-indicator';
+                    indicator.style.backgroundColor = getColorHex(gameState.currentColor);
+                    cardDiv.appendChild(indicator);
+                }
+                
+                discardDiv.appendChild(cardDiv);
+            }
+        }
+
+        function renderPlayerHand() {
+            const handDiv = document.getElementById('playerHand');
+            handDiv.innerHTML = '';
+            
+            if (!gameState.yourHand) return;
+            
+            gameState.yourHand.forEach((card, index) => {
+                const isPlayable = canPlayCard(card);
+                const cardDiv = createCardElement(card);
+                
+                if (!isPlayable || !gameState.isYourTurn) {
+                    cardDiv.classList.add('disabled');
+                } else {
+                    cardDiv.onclick = () => playCard(index);
+                }
+                
+                handDiv.appendChild(cardDiv);
+            });
+        }
+
+        function createCardElement(card) {
+            const cardDiv = document.createElement('div');
+            cardDiv.className = `card ${card.color}`;
+            
+            const cardInner = document.createElement('div');
+            cardInner.className = 'card-inner';
+            cardInner.style.color = card.color === 'yellow' ? '#000' : card.color;
+            if (card.color === 'wild') cardInner.style.color = '#333';
+            
+            cardInner.textContent = card.value;
+            cardDiv.appendChild(cardInner);
+            
+            return cardDiv;
+        }
+
+        function canPlayCard(card) {
+            if (!gameState || !card) return false;
+            if (card.type === 'wild') return true;
+            
+            if (gameState.settings.allowStacking && gameState.stackedDrawCount > 0) {
+                if (gameState.currentValue === '+2' && card.value === '+2') return true;
+                if (gameState.currentValue === 'Wild+4' && card.value === 'Wild+4') return true;
+                return false;
+            }
+            
+            return card.color === gameState.currentColor || card.value === gameState.currentValue;
+        }
+
+        function playCard(index) {
+            if (!gameState || !gameState.yourHand) return;
+            const card = gameState.yourHand[index];
+            if (!card) return;
+            
+            if (card.type === 'wild') {
+                pendingCardIndex = index;
+                showColorPicker();
+            } else {
+                if (socket && socket.connected) {
+                    socket.emit('playCard', {
+                        roomId: roomId,
+                        cardIndex: index,
+                        chosenColor: null
+                    });
+                }
+            }
+        }
+
+        function showColorPicker() {
+            document.getElementById('overlay').classList.add('active');
+            document.getElementById('colorPicker').classList.add('active');
+        }
+
+        function chooseColor(color) {
+            document.getElementById('overlay').classList.remove('active');
+            document.getElementById('colorPicker').classList.remove('active');
+            
+            if (socket && socket.connected) {
+                socket.emit('playCard', {
+                    roomId: roomId,
+                    cardIndex: pendingCardIndex,
+                    chosenColor: color
+                });
+            }
+            
+            pendingCardIndex = null;
+        }
+
+        function drawCard() {
+            if (!gameState || !gameState.isYourTurn) return;
+            
+            if (socket && socket.connected) {
+                socket.emit('drawCard', { roomId: roomId });
+            }
+        }
+
+        function callUno() {
+            if (socket && socket.connected) {
+                socket.emit('callUno', { roomId: roomId });
+                showMessage('O,NO!');
+            }
+        }
+
+        function showMessage(msg) {
+            document.getElementById('message').textContent = msg;
+        }
+
+        function getColorHex(color) {
+            const map = {
+                'red': '#e74c3c',
+                'blue': '#3498db',
+                'green': '#2ecc71',
+                'yellow': '#f1c40f'
+            };
+            return map[color] || '#ffffff';
+        }
+    </script>
 </body>
 </html>
