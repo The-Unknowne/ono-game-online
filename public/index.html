@@ -164,6 +164,7 @@
 
     .lobby-tag {
         background: #ecf0f1;
+        background-color: #ecf0f1;
         color: #34495e;
         padding: 5px 10px;
         border-radius: 8px;
@@ -172,6 +173,7 @@
 
     .lobby-tag.active {
         background: #3498db;
+        background-color: #3498db;
         color: white;
     }
 
@@ -371,6 +373,29 @@
         flex-wrap: wrap;
         gap: 8px;
         min-height: 160px;
+        padding: 10px;
+        border-radius: 15px;
+        transition: all 0.3s;
+    }
+
+    .player-hand.your-turn {
+        animation: glowPulse 2s ease-in-out infinite;
+        box-shadow: 0 0 20px rgba(46, 204, 113, 0.6),
+                    0 0 40px rgba(46, 204, 113, 0.4),
+                    0 0 60px rgba(46, 204, 113, 0.2);
+    }
+
+    @keyframes glowPulse {
+        0%, 100% {
+            box-shadow: 0 0 20px rgba(46, 204, 113, 0.6),
+                        0 0 40px rgba(46, 204, 113, 0.4),
+                        0 0 60px rgba(46, 204, 113, 0.2);
+        }
+        50% {
+            box-shadow: 0 0 30px rgba(46, 204, 113, 0.8),
+                        0 0 60px rgba(46, 204, 113, 0.6),
+                        0 0 90px rgba(46, 204, 113, 0.4);
+        }
     }
 
     .player-hand .card {
@@ -436,10 +461,22 @@
         transform: scale(0.9);
     }
 
-    .color-option.red { background-color: #e74c3c !important; }
-    .color-option.blue { background-color: #3498db !important; }
-    .color-option.green { background-color: #2ecc71 !important; }
-    .color-option.yellow { background-color: #f1c40f !important; }
+    .color-option.red { 
+        background-color: #e74c3c !important;
+        background: #e74c3c !important;
+    }
+    .color-option.blue { 
+        background-color: #3498db !important;
+        background: #3498db !important;
+    }
+    .color-option.green { 
+        background-color: #2ecc71 !important;
+        background: #2ecc71 !important;
+    }
+    .color-option.yellow { 
+        background-color: #f1c40f !important;
+        background: #f1c40f !important;
+    }
 
     .overlay {
         display: none;
@@ -638,15 +675,29 @@
 <!-- Waiting in Lobby -->
 <div id="waitingLobby" class="screen">
     <div class="menu-container">
-        <h2>⏳ Waiting for Player</h2>
+        <h2>⏳ Waiting in Lobby</h2>
         <div class="loading">
-            <div class="spinner"></div>
-            <p id="waitingLobbyName">Lobby Name</p>
-            <p style="font-size: 0.9em; margin-top: 10px;">1 / 2 Players</p>
-            <div id="waitingRules" style="margin-top: 20px; text-align: left;">
+            <p id="waitingLobbyName" style="font-size: 1.3em; margin-bottom: 15px;">Lobby Name</p>
+            <p style="font-size: 1.1em; margin-bottom: 20px;"><span id="playerCountText">1 / 2</span> Players</p>
+            
+            <div id="playersStatus" style="background: rgba(255,255,255,0.15); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <div id="player1Status" style="padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                        <span id="player1Name">Player 1</span>
+                        <span id="player1Ready" style="font-weight: bold; color: #f39c12;">⏳ Waiting</span>
+                    </div>
+                    <div id="player2Status" style="padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                        <span id="player2Name">Waiting for player...</span>
+                        <span id="player2Ready" style="font-weight: bold; color: #95a5a6;">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="waitingRules" style="text-align: left;">
                 <!-- Rules will be displayed here -->
             </div>
         </div>
+        <button class="menu-button online" id="readyButton" onclick="toggleReady()" style="display: none;">✓ Ready Up!</button>
         <button class="menu-button offline" onclick="leaveLobby()">Leave Lobby</button>
     </div>
 </div>
@@ -708,6 +759,8 @@
     let reconnectAttempts = 0;
     const MAX_RECONNECT_ATTEMPTS = 5;
     let currentLobbies = [];
+    let isReady = false;
+    let currentLobbyData = null;
 
     // Initialize socket connection with error handling
     function initializeSocket() {
@@ -751,12 +804,23 @@
 
         socket.on('lobbyCreated', (data) => {
             roomId = data.roomId;
-            showWaitingLobby(data.lobbyName, data.settings);
+            currentLobbyData = data;
+            isReady = false;
+            showWaitingLobby(data.lobbyName, data.settings, data.players);
         });
 
         socket.on('lobbyJoined', (data) => {
             roomId = data.roomId;
-            showWaitingLobby(data.lobbyName, data.settings);
+            currentLobbyData = data;
+            isReady = false;
+            showWaitingLobby(data.lobbyName, data.settings, data.players);
+        });
+
+        socket.on('lobbyUpdate', (data) => {
+            if (roomId === data.roomId) {
+                currentLobbyData = data;
+                updateLobbyStatus(data.players);
+            }
         });
 
         socket.on('gameStarted', (state) => {
@@ -923,7 +987,7 @@
         showOnlineMenu();
     }
 
-    function showWaitingLobby(lobbyName, settings) {
+    function showWaitingLobby(lobbyName, settings, players) {
         document.getElementById('waitingLobbyName').textContent = lobbyName;
         
         const rulesDiv = document.getElementById('waitingRules');
@@ -950,8 +1014,64 @@
                 ${rules.join('')}
             </div>
         `;
+
+        updateLobbyStatus(players || [{ id: socket.id, name: 'You', ready: false }]);
         
         showScreen('waitingLobby');
+    }
+
+    function updateLobbyStatus(players) {
+        const playerCount = players.length;
+        document.getElementById('playerCountText').textContent = `${playerCount} / 2`;
+
+        if (playerCount >= 1) {
+            const p1 = players[0];
+            document.getElementById('player1Name').textContent = p1.id === socket.id ? 'You' : p1.name;
+            const p1ReadyEl = document.getElementById('player1Ready');
+            if (p1.ready) {
+                p1ReadyEl.textContent = '✓ Ready';
+                p1ReadyEl.style.color = '#2ecc71';
+            } else {
+                p1ReadyEl.textContent = '⏳ Not Ready';
+                p1ReadyEl.style.color = '#f39c12';
+            }
+        }
+
+        if (playerCount >= 2) {
+            const p2 = players[1];
+            document.getElementById('player2Name').textContent = p2.id === socket.id ? 'You' : p2.name;
+            const p2ReadyEl = document.getElementById('player2Ready');
+            if (p2.ready) {
+                p2ReadyEl.textContent = '✓ Ready';
+                p2ReadyEl.style.color = '#2ecc71';
+            } else {
+                p2ReadyEl.textContent = '⏳ Not Ready';
+                p2ReadyEl.style.color = '#f39c12';
+            }
+            document.getElementById('readyButton').style.display = 'block';
+        } else {
+            document.getElementById('player2Name').textContent = 'Waiting for player...';
+            document.getElementById('player2Ready').textContent = '-';
+            document.getElementById('player2Ready').style.color = '#95a5a6';
+            document.getElementById('readyButton').style.display = 'none';
+        }
+    }
+
+    function toggleReady() {
+        if (!socket || !socket.connected || !roomId) return;
+        
+        isReady = !isReady;
+        const btn = document.getElementById('readyButton');
+        
+        if (isReady) {
+            btn.textContent = '✓ Ready!';
+            btn.style.background = 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)';
+        } else {
+            btn.textContent = '✓ Ready Up!';
+            btn.style.background = 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)';
+        }
+        
+        socket.emit('playerReady', { roomId: roomId, ready: isReady });
     }
 
     function leaveGame() {
@@ -1030,6 +1150,13 @@
         handDiv.innerHTML = '';
         
         if (!gameState.yourHand) return;
+        
+        // Add glowing effect if it's your turn
+        if (gameState.isYourTurn) {
+            handDiv.classList.add('your-turn');
+        } else {
+            handDiv.classList.remove('your-turn');
+        }
         
         gameState.yourHand.forEach((card, index) => {
             const isPlayable = canPlayCard(card);
