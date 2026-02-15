@@ -639,6 +639,233 @@
         transform: translateY(2px);
     }
 
+    /* Waiting Lobby Enhancements */
+    .lobby-header {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        padding: 15px 20px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+
+    .lobby-id {
+        font-size: 0.9em;
+        color: rgba(255, 255, 255, 0.7);
+        font-family: monospace;
+        margin-top: 5px;
+    }
+
+    .player-slot {
+        padding: 12px 15px;
+        background: rgba(255, 255, 255, 0.12);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+
+    .player-slot.you {
+        background: rgba(102, 126, 234, 0.25);
+        border: 2px solid rgba(102, 126, 234, 0.5);
+        box-shadow: 0 0 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .player-slot.empty {
+        background: rgba(255, 255, 255, 0.05);
+        border: 2px dashed rgba(255, 255, 255, 0.2);
+    }
+
+    .player-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3em;
+        flex-shrink: 0;
+    }
+
+    .player-avatar.empty {
+        background: rgba(255, 255, 255, 0.1);
+        opacity: 0.5;
+    }
+
+    .player-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+    }
+
+    .player-name {
+        font-weight: 600;
+        font-size: 1.05em;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .host-badge {
+        background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+        padding: 2px 8px;
+        border-radius: 5px;
+        font-size: 0.75em;
+        font-weight: bold;
+    }
+
+    .player-ready-status {
+        font-size: 0.9em;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .ready-badge {
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.85em;
+        font-weight: bold;
+        text-align: center;
+        min-width: 80px;
+    }
+
+    .ready-badge.ready {
+        background: rgba(46, 204, 113, 0.25);
+        color: #2ecc71;
+        border: 1px solid rgba(46, 204, 113, 0.4);
+    }
+
+    .ready-badge.not-ready {
+        background: rgba(243, 156, 18, 0.25);
+        color: #f39c12;
+        border: 1px solid rgba(243, 156, 18, 0.4);
+    }
+
+    .ready-badge.empty {
+        background: rgba(255, 255, 255, 0.05);
+        color: #95a5a6;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .rules-container {
+        background: rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(10px);
+        padding: 18px;
+        border-radius: 12px;
+        margin: 20px 0;
+    }
+
+    .rules-section {
+        margin-bottom: 15px;
+    }
+
+    .rules-section:last-child {
+        margin-bottom: 0;
+    }
+
+    .rules-title {
+        font-weight: 700;
+        font-size: 1.05em;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: rgba(255, 255, 255, 0.95);
+    }
+
+    .rule-item {
+        background: rgba(255, 255, 255, 0.08);
+        padding: 8px 12px;
+        border-radius: 8px;
+        margin: 6px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.95em;
+    }
+
+    .ready-status-bar {
+        background: rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(10px);
+        padding: 12px 18px;
+        border-radius: 10px;
+        margin: 15px 0;
+        text-align: center;
+        font-size: 1em;
+        font-weight: 600;
+    }
+
+    .ready-status-bar.all-ready {
+        background: rgba(46, 204, 113, 0.25);
+        color: #2ecc71;
+        border: 2px solid rgba(46, 204, 113, 0.4);
+        animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    .ready-status-bar.waiting {
+        background: rgba(243, 156, 18, 0.25);
+        color: #f39c12;
+        border: 2px solid rgba(243, 156, 18, 0.4);
+    }
+
+    @keyframes pulse {
+        0%, 100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+        50% {
+            transform: scale(1.02);
+            opacity: 0.9;
+        }
+    }
+
+    @keyframes readyPulse {
+        0%, 100% {
+            box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4);
+        }
+        50% {
+            box-shadow: 0 4px 25px rgba(46, 204, 113, 0.7);
+        }
+    }
+
+    #readyButton {
+        animation: readyPulse 2s ease-in-out infinite;
+        font-size: 1.1em;
+        padding: 15px 30px;
+        font-weight: 700;
+    }
+
+    #readyButton.is-ready {
+        animation: none;
+    }
+
+    .waiting-message {
+        font-size: 0.95em;
+        color: rgba(255, 255, 255, 0.8);
+        text-align: center;
+        margin: 10px 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .spinner {
+        display: inline-block;
+        animation: spin 1s linear infinite;
+    }
+
     @media (max-width: 768px) {
         h1 { font-size: 2.5em; }
         h2 { font-size: 1.5em; }
@@ -647,6 +874,9 @@
         .card-inner { font-size: 1.6em; }
         .player-hand .card { width: 65px; height: 100px; }
         .player-hand .card-inner { font-size: 1.3em; }
+        .player-avatar { width: 35px; height: 35px; font-size: 1.1em; }
+        .player-name { font-size: 0.95em; }
+        .ready-badge { min-width: 70px; font-size: 0.8em; }
     }
 </style>
 ```
@@ -777,14 +1007,33 @@
     <div class="menu-container">
         <h2>⏳ Waiting in Lobby</h2>
         <div class="loading">
-            <p id="waitingLobbyName" style="font-size: 1.3em; margin-bottom: 15px;">Lobby Name</p>
-            <p style="font-size: 1.1em; margin-bottom: 20px;"><span id="playerCountText">1 / 2</span> Players</p>
+            <!-- Lobby Header with Name and ID -->
+            <div class="lobby-header">
+                <p id="waitingLobbyName" style="font-size: 1.4em; font-weight: 700; margin-bottom: 5px;">Lobby Name</p>
+                <p class="lobby-id" id="lobbyIdDisplay">Lobby ID: ••••••</p>
+                <p style="font-size: 1.05em; margin-top: 10px; color: rgba(255,255,255,0.9);">
+                    <span id="playerCountText">1 / 2</span> Players
+                </p>
+            </div>
+
+            <!-- Ready Status Bar -->
+            <div id="readyStatusBar" class="ready-status-bar waiting" style="display: none;">
+                <!-- Dynamic ready status message -->
+            </div>
+
+            <!-- Waiting Message -->
+            <div id="waitingMessage" class="waiting-message" style="display: none;">
+                <span class="spinner">⏳</span>
+                <span>Waiting for more players to join...</span>
+            </div>
             
-            <div id="playersStatus" style="background: rgba(255,255,255,0.15); padding: 15px; border-radius: 10px; margin-bottom: 20px; max-height: 300px; overflow-y: auto;">
+            <!-- Players Status -->
+            <div id="playersStatus" style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); padding: 15px; border-radius: 12px; margin-bottom: 20px; max-height: 350px; overflow-y: auto;">
                 <!-- Player status will be dynamically added here -->
             </div>
 
-            <div id="waitingRules" style="text-align: left;">
+            <!-- Rules Display -->
+            <div id="waitingRules">
                 <!-- Rules will be displayed here -->
             </div>
         </div>
@@ -1109,33 +1358,59 @@
     function showWaitingLobby(lobbyName, settings, players) {
         document.getElementById('waitingLobbyName').textContent = lobbyName;
         
-        const rulesDiv = document.getElementById('waitingRules');
-        const rules = [];
+        // Display lobby ID
+        if (roomId) {
+            document.getElementById('lobbyIdDisplay').textContent = `Lobby ID: ${roomId}`;
+        }
         
-        rules.push(`<div style="margin: 5px 0;"><strong>Starting Cards:</strong> ${settings.startingCards}</div>`);
+        const rulesDiv = document.getElementById('waitingRules');
+        
+        // Categorize rules
+        const gameSettings = [];
+        const activeRules = [];
+        
+        gameSettings.push(`<div class="rule-item">🎴 <strong>Starting Cards:</strong> ${settings.startingCards}</div>`);
+        gameSettings.push(`<div class="rule-item">👥 <strong>Max Players:</strong> ${settings.maxPlayers}</div>`);
         
         if (settings.allowStacking) {
-            rules.push(`<div style="margin: 5px 0;">✅ +2/+4 Stacking Enabled</div>`);
+            activeRules.push(`<div class="rule-item">✅ +2/+4 Stacking Enabled</div>`);
         }
         if (settings.allowSpecial07) {
-            rules.push(`<div style="margin: 5px 0;">✅ 0 & 7 Swap Enabled</div>`);
+            activeRules.push(`<div class="rule-item">✅ 0 & 7 Swap Enabled</div>`);
         }
         if (settings.allowSpecial48) {
-            rules.push(`<div style="margin: 5px 0;">✅ 4 & 8 Special Rules Enabled</div>`);
+            activeRules.push(`<div class="rule-item">✅ 4 & 8 Special Rules Enabled</div>`);
         }
         if (settings.allowJumpIn) {
-            rules.push(`<div style="margin: 5px 0;">✅ Jump-In Enabled</div>`);
-        }
-        if (!settings.allowStacking && !settings.allowSpecial07 && !settings.allowSpecial48 && !settings.allowJumpIn) {
-            rules.push(`<div style="margin: 5px 0;">📋 Classic Rules</div>`);
+            activeRules.push(`<div class="rule-item">✅ Jump-In Enabled</div>`);
         }
         
-        rulesDiv.innerHTML = `
-            <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; color: white;">
-                <strong>Rules:</strong>
-                ${rules.join('')}
-            </div>
-        `;
+        const hasActiveRules = settings.allowStacking || settings.allowSpecial07 || 
+                               settings.allowSpecial48 || settings.allowJumpIn;
+        
+        let rulesHTML = '<div class="rules-container">';
+        
+        // Game Settings Section
+        rulesHTML += '<div class="rules-section">';
+        rulesHTML += '<div class="rules-title">⚙️ Game Settings</div>';
+        rulesHTML += gameSettings.join('');
+        rulesHTML += '</div>';
+        
+        // Active Rules or Classic Rules Section
+        if (hasActiveRules) {
+            rulesHTML += '<div class="rules-section">';
+            rulesHTML += '<div class="rules-title">🎮 Active Rules</div>';
+            rulesHTML += activeRules.join('');
+            rulesHTML += '</div>';
+        } else {
+            rulesHTML += '<div class="rules-section">';
+            rulesHTML += '<div class="rules-title">📋 Classic Rules</div>';
+            rulesHTML += '<div class="rule-item">🎯 Playing with standard O,No rules</div>';
+            rulesHTML += '</div>';
+        }
+        
+        rulesHTML += '</div>';
+        rulesDiv.innerHTML = rulesHTML;
 
         updateLobbyStatus(players || [{ id: socket.id, name: 'You', ready: false }]);
         
@@ -1148,55 +1423,129 @@
         document.getElementById('playerCountText').textContent = `${playerCount} / ${maxPlayers}`;
 
         const statusDiv = document.getElementById('playersStatus');
-        statusDiv.innerHTML = '<div style="display: flex; flex-direction: column; gap: 10px;"></div>';
+        statusDiv.innerHTML = '<div style="display: flex; flex-direction: column; gap: 12px;"></div>';
         const container = statusDiv.firstChild;
+
+        // Player avatars/emojis for variety
+        const avatars = ['👤', '🎮', '🎯', '🎲', '🃏', '🎪', '🎭', '🎨'];
 
         // Show all current players
         players.forEach((player, index) => {
+            const isYou = player.id === socket.id;
+            const isHost = index === 0; // First player is host
+            
             const playerDiv = document.createElement('div');
-            playerDiv.style.cssText = 'padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; display: flex; justify-content: space-between; align-items: center;';
+            playerDiv.className = `player-slot${isYou ? ' you' : ''}`;
             
-            const nameSpan = document.createElement('span');
-            nameSpan.textContent = player.id === socket.id ? 'You' : player.name;
+            // Player Avatar
+            const avatar = document.createElement('div');
+            avatar.className = 'player-avatar';
+            avatar.textContent = avatars[index % avatars.length];
             
-            const readySpan = document.createElement('span');
-            readySpan.style.fontWeight = 'bold';
-            if (player.ready) {
-                readySpan.textContent = '✓ Ready';
-                readySpan.style.color = '#2ecc71';
-            } else {
-                readySpan.textContent = '⏳ Not Ready';
-                readySpan.style.color = '#f39c12';
+            // Player Info
+            const info = document.createElement('div');
+            info.className = 'player-info';
+            
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'player-name';
+            
+            const nameText = document.createElement('span');
+            nameText.textContent = isYou ? '👋 You' : player.name;
+            nameDiv.appendChild(nameText);
+            
+            // Host badge
+            if (isHost) {
+                const hostBadge = document.createElement('span');
+                hostBadge.className = 'host-badge';
+                hostBadge.textContent = '👑 Host';
+                nameDiv.appendChild(hostBadge);
             }
             
-            playerDiv.appendChild(nameSpan);
-            playerDiv.appendChild(readySpan);
+            info.appendChild(nameDiv);
+            
+            // Ready Badge
+            const readyBadge = document.createElement('div');
+            readyBadge.className = `ready-badge ${player.ready ? 'ready' : 'not-ready'}`;
+            if (player.ready) {
+                readyBadge.textContent = '✓ Ready';
+            } else {
+                readyBadge.textContent = '⏳ Not Ready';
+            }
+            
+            playerDiv.appendChild(avatar);
+            playerDiv.appendChild(info);
+            playerDiv.appendChild(readyBadge);
             container.appendChild(playerDiv);
         });
 
         // Show empty slots
         for (let i = playerCount; i < maxPlayers; i++) {
             const emptyDiv = document.createElement('div');
-            emptyDiv.style.cssText = 'padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 2px dashed rgba(255,255,255,0.2);';
+            emptyDiv.className = 'player-slot empty';
             
-            const nameSpan = document.createElement('span');
-            nameSpan.textContent = 'Waiting for player...';
-            nameSpan.style.color = '#95a5a6';
+            const avatar = document.createElement('div');
+            avatar.className = 'player-avatar empty';
+            avatar.textContent = '👤';
             
-            const readySpan = document.createElement('span');
-            readySpan.textContent = '-';
-            readySpan.style.color = '#95a5a6';
+            const info = document.createElement('div');
+            info.className = 'player-info';
             
-            emptyDiv.appendChild(nameSpan);
-            emptyDiv.appendChild(readySpan);
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'player-name';
+            nameDiv.style.color = '#95a5a6';
+            nameDiv.textContent = 'Waiting for player...';
+            
+            info.appendChild(nameDiv);
+            
+            const readyBadge = document.createElement('div');
+            readyBadge.className = 'ready-badge empty';
+            readyBadge.textContent = '-';
+            
+            emptyDiv.appendChild(avatar);
+            emptyDiv.appendChild(info);
+            emptyDiv.appendChild(readyBadge);
             container.appendChild(emptyDiv);
         }
 
-        // Show ready button if lobby has at least 2 players
+        // Update ready status bar
+        const readyCount = players.filter(p => p.ready).length;
+        const readyStatusBar = document.getElementById('readyStatusBar');
+        
         if (playerCount >= 2) {
-            document.getElementById('readyButton').style.display = 'block';
+            readyStatusBar.style.display = 'block';
+            
+            if (readyCount === playerCount) {
+                readyStatusBar.className = 'ready-status-bar all-ready';
+                readyStatusBar.innerHTML = '🎉 All players ready! Starting game...';
+            } else {
+                readyStatusBar.className = 'ready-status-bar waiting';
+                readyStatusBar.innerHTML = `⏳ Waiting for players to ready up... (${readyCount}/${playerCount} ready)`;
+            }
         } else {
-            document.getElementById('readyButton').style.display = 'none';
+            readyStatusBar.style.display = 'none';
+        }
+
+        // Show/hide waiting message
+        const waitingMessage = document.getElementById('waitingMessage');
+        if (playerCount < 2) {
+            waitingMessage.style.display = 'flex';
+        } else {
+            waitingMessage.style.display = 'none';
+        }
+
+        // Show ready button if lobby has at least 2 players
+        const readyButton = document.getElementById('readyButton');
+        if (playerCount >= 2) {
+            readyButton.style.display = 'block';
+            // Update button state based on current ready status
+            const currentPlayer = players.find(p => p.id === socket.id);
+            if (currentPlayer && currentPlayer.ready) {
+                readyButton.classList.add('is-ready');
+            } else {
+                readyButton.classList.remove('is-ready');
+            }
+        } else {
+            readyButton.style.display = 'none';
         }
     }
 
@@ -1208,10 +1557,12 @@
         
         if (isReady) {
             btn.textContent = '✓ Ready!';
+            btn.classList.add('is-ready');
             btn.style.background = 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)';
         } else {
-            btn.textContent = '✓ Ready Up!';
-            btn.style.background = 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)';
+            btn.textContent = '⏳ Ready Up!';
+            btn.classList.remove('is-ready');
+            btn.style.background = 'linear-gradient(135deg, #f39c12 0%, #e67e22 100%)';
         }
         
         socket.emit('playerReady', { roomId: roomId, ready: isReady });
