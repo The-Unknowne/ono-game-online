@@ -35,6 +35,56 @@
         -moz-osx-font-smoothing: grayscale;
     }
 
+    /* Background Animation Classes */
+    body.bg-static {
+        background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background-attachment: fixed;
+    }
+
+    body.bg-color-cycle {
+        background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background-attachment: fixed;
+        animation: colorCycle 15s ease-in-out infinite;
+    }
+
+    body.bg-pulsing {
+        background-image: linear-gradient(-45deg, #667eea, #764ba2, #667eea, #764ba2);
+        background-size: 400% 400%;
+        background-attachment: fixed;
+        animation: pulsing 10s ease infinite;
+    }
+
+    /* Keyframe Animations */
+    @keyframes colorCycle {
+        0% {
+            background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        25% {
+            background-image: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        50% {
+            background-image: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        75% {
+            background-image: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+        100% {
+            background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+    }
+
+    @keyframes pulsing {
+        0% {
+            background-position: 0% 50%;
+        }
+        50% {
+            background-position: 100% 50%;
+        }
+        100% {
+            background-position: 0% 50%;
+        }
+    }
+
     .screen {
         display: none;
         width: 100%;
@@ -805,6 +855,20 @@
     let isReady = false;
     let currentLobbyData = null;
 
+    // Background animation settings
+    function loadBackgroundAnimation() {
+        const savedAnimation = localStorage.getItem('onoBackgroundAnimation');
+        const animation = savedAnimation || 'static';
+        applyBackgroundAnimation(animation);
+    }
+
+    function applyBackgroundAnimation(animation) {
+        const body = document.body;
+        body.classList.remove('bg-static', 'bg-color-cycle', 'bg-pulsing');
+        body.classList.add('bg-' + animation);
+        localStorage.setItem('onoBackgroundAnimation', animation);
+    }
+
     // Initialize socket connection with error handling
     function initializeSocket() {
         try {
@@ -901,6 +965,7 @@
 
     // Initialize on page load
     window.addEventListener('DOMContentLoaded', () => {
+        loadBackgroundAnimation();
         initializeSocket();
     });
 

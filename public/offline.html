@@ -16,12 +16,63 @@
     body {
         font-family: 'Arial', sans-serif;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background-attachment: fixed;
         min-height: 100vh;
         display: flex;
         justify-content: center;
         align-items: center;
         padding: 20px;
         overflow-x: hidden;
+    }
+
+    /* Background Animation Classes */
+    body.bg-static {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background-attachment: fixed;
+    }
+
+    body.bg-color-cycle {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background-attachment: fixed;
+        animation: colorCycle 15s ease-in-out infinite;
+    }
+
+    body.bg-pulsing {
+        background: linear-gradient(-45deg, #667eea, #764ba2, #667eea, #764ba2);
+        background-size: 400% 400%;
+        background-attachment: fixed;
+        animation: pulsing 10s ease infinite;
+    }
+
+    /* Keyframe Animations */
+    @keyframes colorCycle {
+        0% {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        25% {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        50% {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        75% {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+        100% {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+    }
+
+    @keyframes pulsing {
+        0% {
+            background-position: 0% 50%;
+        }
+        50% {
+            background-position: 100% 50%;
+        }
+        100% {
+            background-position: 0% 50%;
+        }
     }
 
     /* Screen Management */
@@ -655,6 +706,15 @@
         </div>
 
         <div class="setting-item">
+            <label>Background Animation</label>
+            <select id="backgroundAnimation">
+                <option value="static">Static</option>
+                <option value="color-cycle">Color Cycling</option>
+                <option value="pulsing">Pulsing</option>
+            </select>
+        </div>
+
+        <div class="setting-item">
             <label style="margin-bottom: 20px; font-size: 1.4em; color: #667eea;">Game Rules</label>
             
             <div class="toggle-container" style="margin-bottom: 15px;">
@@ -784,8 +844,29 @@
         autoUno: false,
         allowStacking: false,
         allowSpecial07: false,
-        allowJumpIn: false
+        allowJumpIn: false,
+        backgroundAnimation: 'static'
     };
+
+    // Load settings from localStorage on page load
+    function loadSettings() {
+        const savedSettings = localStorage.getItem('onoGameSettings');
+        if (savedSettings) {
+            try {
+                settings = { ...settings, ...JSON.parse(savedSettings) };
+            } catch (e) {
+                console.error('Error loading settings:', e);
+            }
+        }
+        applyBackgroundAnimation();
+    }
+
+    // Apply background animation based on current setting
+    function applyBackgroundAnimation() {
+        const body = document.body;
+        body.classList.remove('bg-static', 'bg-color-cycle', 'bg-pulsing');
+        body.classList.add('bg-' + settings.backgroundAnimation);
+    }
 
     // Screen Management
     function showScreen(screenId) {
@@ -803,6 +884,7 @@
         document.getElementById('allowStacking').checked = settings.allowStacking;
         document.getElementById('allowSpecial07').checked = settings.allowSpecial07;
         document.getElementById('allowJumpIn').checked = settings.allowJumpIn;
+        document.getElementById('backgroundAnimation').value = settings.backgroundAnimation;
         
         showScreen('settingsScreen');
     }
@@ -815,6 +897,13 @@
         settings.allowStacking = document.getElementById('allowStacking').checked;
         settings.allowSpecial07 = document.getElementById('allowSpecial07').checked;
         settings.allowJumpIn = document.getElementById('allowJumpIn').checked;
+        settings.backgroundAnimation = document.getElementById('backgroundAnimation').value;
+        
+        // Save to localStorage
+        localStorage.setItem('onoGameSettings', JSON.stringify(settings));
+        
+        // Apply background animation
+        applyBackgroundAnimation();
         
         showScreen('mainMenuScreen');
     }
@@ -1635,6 +1724,9 @@
         updateGameInfo();
         showMessage('New game started! Your turn.');
     }
+
+    // Initialize settings on page load
+    loadSettings();
 </script>
 ```
 
