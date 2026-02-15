@@ -238,34 +238,30 @@ class GameRoom {
                 
             case '0':
                 if (this.settings.allowSpecial07 && this.players.length === 2) {
-                    // Swap hands with next player in 2-player
-                    const nextPlayerIndex = (playerIndex + 1) % this.players.length;
-                    const temp = this.players[playerIndex].hand;
-                    this.players[playerIndex].hand = this.players[nextPlayerIndex].hand;
-                    this.players[nextPlayerIndex].hand = temp;
+                    this.swapHands(playerIndex);
                 }
                 this.advanceTurn();
                 break;
                 
             case '7':
                 if (this.settings.allowSpecial07 && this.players.length === 2) {
-                    // Swap hands with next player in 2-player
-                    const nextPlayerIndex = (playerIndex + 1) % this.players.length;
-                    const temp = this.players[playerIndex].hand;
-                    this.players[playerIndex].hand = this.players[nextPlayerIndex].hand;
-                    this.players[nextPlayerIndex].hand = temp;
+                    this.swapHands(playerIndex);
                 }
                 this.advanceTurn();
                 break;
                 
             default:
-                // Regular card or wild without special effect
-                if (card.value !== 'Wild+4') {
-                    this.advanceTurn();
-                } else {
-                    this.advanceTurn();
-                }
+                // Regular card or wild
+                this.advanceTurn();
         }
+    }
+
+    swapHands(playerIndex) {
+        // Swap hands with next player
+        const nextPlayerIndex = (playerIndex + 1) % this.players.length;
+        const temp = this.players[playerIndex].hand;
+        this.players[playerIndex].hand = this.players[nextPlayerIndex].hand;
+        this.players[nextPlayerIndex].hand = temp;
     }
 
     advanceTurn() {
