@@ -1204,6 +1204,12 @@
         socket.on('gameStarted', (state) => {
             gameState = state;
             showScreen('gameScreen');
+            // Explicitly set the initial game message based on whose turn it is
+            if (gameState.isYourTurn) {
+                showMessage('Your turn!');
+            } else {
+                showMessage(gameState.currentPlayerName ? `${gameState.currentPlayerName}'s turn...` : "Opponent's turn...");
+            }
             updateGameUI();
         });
 
