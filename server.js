@@ -328,36 +328,47 @@ class GameRoom {
             return { success: true, drewStacked: true };
         }
 
-        // Draw cards until we find one that matches the current color or is wild
-        let cardsDrawn = 0;
-        let matchFound = false;
         const playerHand = this.players[playerIndex].hand;
-        
-        while (!matchFound && cardsDrawn < MAX_DRAW_ATTEMPTS) {
+
+        if (this.settings.drawUntilMatch !== false) {
+            // Draw Until Match mode (default): draw cards until a playable card is found
+            let cardsDrawn = 0;
+            let matchFound = false;
+            
+            while (!matchFound && cardsDrawn < MAX_DRAW_ATTEMPTS) {
+                this.drawCards(playerIndex, 1);
+                cardsDrawn++;
+                
+                const currentDrawnCard = playerHand[playerHand.length - 1];
+                if (!currentDrawnCard) break;
+                
+                // Use canPlayCard for consistent matching (color, value, or wild)
+                if (this.canPlayCard(currentDrawnCard)) {
+                    matchFound = true;
+                }
+            }
+            
+            const lastDrawnCard = playerHand[playerHand.length - 1];
+            const canPlay = lastDrawnCard ? this.canPlayCard(lastDrawnCard) : false;
+            
+            if (!canPlay) {
+                this.advanceTurn();
+            }
+            
+            return { success: true, canPlayDrawn: canPlay, cardsDrawn: cardsDrawn };
+        } else {
+            // Draw One Card mode: draw exactly one card
             this.drawCards(playerIndex, 1);
-            cardsDrawn++;
             
-            const currentDrawnCard = playerHand[playerHand.length - 1];
-            if (!currentDrawnCard) {
-                // No more cards in deck (even after reshuffling)
-                break;
+            const drawnCard = playerHand[playerHand.length - 1];
+            const canPlay = drawnCard ? this.canPlayCard(drawnCard) : false;
+            
+            if (!canPlay) {
+                this.advanceTurn();
             }
             
-            // Check if the drawn card matches the current color or is wild
-            if (currentDrawnCard.type === 'wild' || currentDrawnCard.color === this.currentColor) {
-                matchFound = true;
-            }
+            return { success: true, canPlayDrawn: canPlay, cardsDrawn: 1 };
         }
-        
-        // Check if the last drawn card can be played immediately
-        const lastDrawnCard = playerHand[playerHand.length - 1];
-        const canPlay = lastDrawnCard ? this.canPlayCard(lastDrawnCard) : false;
-        
-        if (!canPlay) {
-            this.advanceTurn();
-        }
-        
-        return { success: true, canPlayDrawn: canPlay, cardsDrawn: cardsDrawn };
     }
 
     reshuffleDeck() {
