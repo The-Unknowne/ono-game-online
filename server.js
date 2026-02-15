@@ -319,7 +319,6 @@ class GameRoom {
         }
 
         // Draw cards until we find one that matches the current color or is wild
-        const playerHand = this.players[playerIndex].hand;
         let cardsDrawn = 0;
         let matchFound = false;
         
@@ -327,6 +326,7 @@ class GameRoom {
             this.drawCards(playerIndex, 1);
             cardsDrawn++;
             
+            const playerHand = this.players[playerIndex].hand;
             const drawnCard = playerHand[playerHand.length - 1];
             if (!drawnCard) {
                 // No more cards in deck (even after reshuffling)
@@ -340,6 +340,7 @@ class GameRoom {
         }
         
         // Check if the last drawn card can be played immediately
+        const playerHand = this.players[playerIndex].hand;
         const lastDrawnCard = playerHand[playerHand.length - 1];
         const canPlay = lastDrawnCard ? this.canPlayCard(lastDrawnCard) : false;
         

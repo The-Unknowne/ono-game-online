@@ -1955,7 +1955,6 @@
         // Draw cards until we find one that matches the current color or is wild
         let cardsDrawn = 0;
         let matchFound = false;
-        const drawnCards = [];
         
         // Draw cards until we find a match
         while (!matchFound && cardsDrawn < MAX_DRAW_ATTEMPTS) {
@@ -1964,7 +1963,6 @@
             
             const drawnCard = deck.pop();
             playerHand.push(drawnCard);
-            drawnCards.push(drawnCard);
             cardsDrawn++;
             
             // Check if the drawn card matches the current color or is wild
