@@ -854,10 +854,8 @@
         if (savedSettings) {
             try {
                 const parsed = JSON.parse(savedSettings);
-                const validKeys = ['difficulty', 'startingCards', 'soundEffects', 'autoUno', 'allowStacking', 'allowSpecial07', 'allowJumpIn', 'backgroundAnimation'];
-                
-                // Only merge validated properties
-                validKeys.forEach(key => {
+                // Only merge properties that exist in the default settings object
+                Object.keys(settings).forEach(key => {
                     if (parsed.hasOwnProperty(key)) {
                         settings[key] = parsed[key];
                     }
