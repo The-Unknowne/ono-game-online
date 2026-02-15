@@ -68,6 +68,7 @@ class GameRoom {
         this.currentValue = null;
         this.direction = 1;
         this.stackedDrawCount = 0;
+        this.stackStartedBy = null;
         this.settings = settings || {};
         this.gameStarted = false;
     }
@@ -146,7 +147,8 @@ class GameRoom {
             currentValue: this.currentValue,
             deckCount: this.deck.length,
             settings: this.settings,
-            stackedDrawCount: this.stackedDrawCount
+            stackedDrawCount: this.stackedDrawCount,
+            stackStartedBy: this.stackStartedBy
         };
     }
 
@@ -191,6 +193,9 @@ class GameRoom {
             
             if (card.value === 'Wild+4') {
                 if (this.settings.allowStacking) {
+                    if (this.stackedDrawCount === 0) {
+                        this.stackStartedBy = this.players[playerIndex].name;
+                    }
                     this.stackedDrawCount += 4;
                 } else {
                     this.drawCards(this.getNextPlayerIndex(), 4);
@@ -225,6 +230,9 @@ class GameRoom {
                 
             case '+2':
                 if (this.settings.allowStacking) {
+                    if (this.stackedDrawCount === 0) {
+                        this.stackStartedBy = this.players[playerIndex].name;
+                    }
                     this.stackedDrawCount += 2;
                     this.advanceTurn();
                 } else {
@@ -288,6 +296,7 @@ class GameRoom {
                 // Player can't stack, must draw
                 this.drawCards(this.currentPlayer, this.stackedDrawCount);
                 this.stackedDrawCount = 0;
+                this.stackStartedBy = null;
                 this.advanceTurn();
             }
         }
@@ -314,6 +323,7 @@ class GameRoom {
         if (this.stackedDrawCount > 0) {
             this.drawCards(playerIndex, this.stackedDrawCount);
             this.stackedDrawCount = 0;
+            this.stackStartedBy = null;
             this.advanceTurn();
             return { success: true, drewStacked: true };
         }
