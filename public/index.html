@@ -980,6 +980,16 @@
         .player-name { font-size: 0.95em; }
         .ready-badge { min-width: 70px; font-size: 0.8em; }
     }
+
+    /* Card fly animation for playing a card to center */
+    /* Card fly animation for playing/drawing cards */
+    .card-fly-to-center,
+    .card-fly-to-hand {
+        position: fixed;
+        z-index: 9999;
+        transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+        pointer-events: none;
+    }
 </style>
 ```
 
@@ -1894,6 +1904,76 @@
         return cardDiv;
     }
 
+    // Animation helper function: Animate a card from source element to target element
+    function animateCardToCenter(cardElement, card, onComplete) {
+        if (!cardElement) {
+            onComplete();
+            return;
+        }
+        
+        // Get positions
+        const startRect = cardElement.getBoundingClientRect();
+        const discardPileElement = document.getElementById('discardPile');
+        const endRect = discardPileElement.getBoundingClientRect();
+        
+        // Clone the card for animation
+        const clone = cardElement.cloneNode(true);
+        clone.className = `card ${card.color} card-fly-to-center`;
+        clone.style.left = startRect.left + 'px';
+        clone.style.top = startRect.top + 'px';
+        clone.style.width = startRect.width + 'px';
+        clone.style.height = startRect.height + 'px';
+        clone.style.transform = 'scale(1)';
+        
+        document.body.appendChild(clone);
+        
+        // Trigger animation
+        requestAnimationFrame(() => {
+            clone.style.left = endRect.left + 'px';
+            clone.style.top = endRect.top + 'px';
+            clone.style.transform = 'scale(1.1)';
+        });
+        
+        // Clean up after animation
+        setTimeout(() => {
+            clone.remove();
+            onComplete();
+        }, 500);
+    }
+
+    // Animation helper function: Animate a card-back from draw pile to hand
+    function animateCardToHand(onComplete) {
+        const drawPile = document.getElementById('drawPile');
+        const startRect = drawPile.getBoundingClientRect();
+        const playerHand = document.getElementById('yourHand');
+        const endRect = playerHand.getBoundingClientRect();
+        
+        // Create card-back element
+        const cardBack = document.createElement('div');
+        cardBack.className = 'card card-back card-fly-to-hand';
+        cardBack.innerHTML = '<div style="color: white; font-size: 3em;">🎴</div>';
+        cardBack.style.left = startRect.left + 'px';
+        cardBack.style.top = startRect.top + 'px';
+        cardBack.style.width = startRect.width + 'px';
+        cardBack.style.height = startRect.height + 'px';
+        cardBack.style.transform = 'scale(1)';
+        
+        document.body.appendChild(cardBack);
+        
+        // Trigger animation
+        requestAnimationFrame(() => {
+            cardBack.style.left = endRect.left + 'px';
+            cardBack.style.top = endRect.top + 'px';
+            cardBack.style.transform = 'scale(1.1)';
+        });
+        
+        // Clean up after animation
+        setTimeout(() => {
+            cardBack.remove();
+            onComplete();
+        }, 500);
+    }
+
     function canPlayCard(card) {
         if (!gameState || !card) return false;
         if (card.type === 'wild') return true;
@@ -1918,18 +1998,25 @@
         // Validate card can be played
         if (!canPlayCard(card)) return;
         
+        // Get the card element before emitting to server
+        const yourHandDiv = document.getElementById('yourHand');
+        const cardElement = yourHandDiv.children[index];
+        
         if (card.type === 'wild') {
             pendingCardIndex = index;
             showColorPicker();
         } else {
-            isWaitingForServer = true; // Block further plays
-            if (socket && socket.connected) {
-                socket.emit('playCard', {
-                    roomId: roomId,
-                    cardIndex: index,
-                    chosenColor: null
-                });
-            }
+            // Animate card to center, then emit to server
+            animateCardToCenter(cardElement, card, () => {
+                isWaitingForServer = true; // Block further plays
+                if (socket && socket.connected) {
+                    socket.emit('playCard', {
+                        roomId: roomId,
+                        cardIndex: index,
+                        chosenColor: null
+                    });
+                }
+            });
         }
     }
 
@@ -1942,26 +2029,36 @@
         document.getElementById('overlay').classList.remove('active');
         document.getElementById('colorPicker').classList.remove('active');
         
-        isWaitingForServer = true; // Block further plays
-        if (socket && socket.connected) {
-            socket.emit('playCard', {
-                roomId: roomId,
-                cardIndex: pendingCardIndex,
-                chosenColor: color
-            });
-        }
+        // Get the card element and animate it
+        const card = gameState.yourHand[pendingCardIndex];
+        const yourHandDiv = document.getElementById('yourHand');
+        const cardElement = yourHandDiv.children[pendingCardIndex];
         
-        pendingCardIndex = null;
+        animateCardToCenter(cardElement, card, () => {
+            isWaitingForServer = true; // Block further plays
+            if (socket && socket.connected) {
+                socket.emit('playCard', {
+                    roomId: roomId,
+                    cardIndex: pendingCardIndex,
+                    chosenColor: color
+                });
+            }
+            
+            pendingCardIndex = null;
+        });
     }
 
     function drawCard() {
         if (!gameState || !gameState.isYourTurn) return;
         if (isWaitingForServer) return; // Prevent rapid clicking
         
-        isWaitingForServer = true; // Block further actions
-        if (socket && socket.connected) {
-            socket.emit('drawCard', { roomId: roomId });
-        }
+        // Animate card draw
+        animateCardToHand(() => {
+            isWaitingForServer = true; // Block further actions
+            if (socket && socket.connected) {
+                socket.emit('drawCard', { roomId: roomId });
+            }
+        });
     }
 
     function callUno() {
