@@ -18,15 +18,21 @@
 
 ```
     body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+        background-color: #667eea;
+        background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background-attachment: fixed;
         min-height: 100vh;
+        min-height: -webkit-fill-available;
         display: flex;
         justify-content: center;
         align-items: center;
         padding: 10px;
         overflow-x: hidden;
         touch-action: pan-y;
+        margin: 0;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
     }
 
     .screen {
@@ -69,17 +75,20 @@
     .menu-button {
         display: block;
         width: 100%;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background-color: #667eea;
+        background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         border: none;
         padding: 20px;
         font-size: 1.3em;
+        font-weight: 600;
         border-radius: 15px;
         cursor: pointer;
         margin-bottom: 15px;
         transition: all 0.3s;
         box-shadow: 0 6px 15px rgba(102, 126, 234, 0.4);
         touch-action: manipulation;
+        -webkit-appearance: none;
     }
 
     .menu-button:active {
@@ -88,15 +97,18 @@
     }
 
     .menu-button.online {
-        background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+        background-color: #2ecc71;
+        background-image: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
     }
 
     .menu-button.offline {
-        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        background-color: #3498db;
+        background-image: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
     }
 
     .menu-button.create {
-        background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+        background-color: #f39c12;
+        background-image: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
     }
 
     input[type="text"], select {
@@ -348,12 +360,25 @@
         font-weight: bold;
     }
 
-    .card.red { background-color: #e74c3c; }
-    .card.blue { background-color: #3498db; }
-    .card.green { background-color: #2ecc71; }
-    .card.yellow { background-color: #f1c40f; }
+    .card.red { 
+        background-color: #e74c3c;
+        background: #e74c3c;
+    }
+    .card.blue { 
+        background-color: #3498db;
+        background: #3498db;
+    }
+    .card.green { 
+        background-color: #2ecc71;
+        background: #2ecc71;
+    }
+    .card.yellow { 
+        background-color: #f1c40f;
+        background: #f1c40f;
+    }
     .card.wild { 
-        background: linear-gradient(135deg, #e74c3c 0%, #3498db 33%, #2ecc71 66%, #f1c40f 100%);
+        background-color: #e74c3c;
+        background-image: linear-gradient(135deg, #e74c3c 0%, #3498db 33%, #2ecc71 66%, #f1c40f 100%);
     }
 
     .wild-color-indicator {
@@ -548,13 +573,16 @@
     .controls button {
         padding: 12px 25px;
         font-size: 1em;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background-color: #667eea;
+        background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         border: none;
         border-radius: 10px;
         cursor: pointer;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
         touch-action: manipulation;
+        font-weight: 600;
+        -webkit-appearance: none;
     }
 
     .controls button:active {
@@ -656,6 +684,15 @@
                 </label>
             </div>
             <p style="font-size: 0.9em; color: #666; margin-bottom: 10px;">Playing 0 or 7 swaps hands with opponent</p>
+            
+            <div class="toggle-container">
+                <label style="margin: 0;">Allow 4 & 8 Special Rules</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="allowSpecial48">
+                    <span class="slider-toggle"></span>
+                </label>
+            </div>
+            <p style="font-size: 0.9em; color: #666; margin-bottom: 10px;">4 skips opponent, 8 reverses direction</p>
             
             <div class="toggle-container">
                 <label style="margin: 0;">Allow Jump-In</label>
@@ -919,6 +956,7 @@
             const rules = [];
             if (lobby.settings.allowStacking) rules.push('<span class="lobby-tag active">+2/+4 Stack</span>');
             if (lobby.settings.allowSpecial07) rules.push('<span class="lobby-tag active">0 & 7 Swap</span>');
+            if (lobby.settings.allowSpecial48) rules.push('<span class="lobby-tag active">4 & 8 Special</span>');
             if (lobby.settings.allowJumpIn) rules.push('<span class="lobby-tag active">Jump-In</span>');
             if (rules.length === 0) rules.push('<span class="lobby-tag">Classic Rules</span>');
 
@@ -960,6 +998,7 @@
             startingCards: parseInt(document.getElementById('startingCards').value),
             allowStacking: document.getElementById('allowStacking').checked,
             allowSpecial07: document.getElementById('allowSpecial07').checked,
+            allowSpecial48: document.getElementById('allowSpecial48').checked,
             allowJumpIn: document.getElementById('allowJumpIn').checked
         };
 
@@ -1001,10 +1040,13 @@
         if (settings.allowSpecial07) {
             rules.push(`<div style="margin: 5px 0;">✅ 0 & 7 Swap Enabled</div>`);
         }
+        if (settings.allowSpecial48) {
+            rules.push(`<div style="margin: 5px 0;">✅ 4 & 8 Special Rules Enabled</div>`);
+        }
         if (settings.allowJumpIn) {
             rules.push(`<div style="margin: 5px 0;">✅ Jump-In Enabled</div>`);
         }
-        if (!settings.allowStacking && !settings.allowSpecial07 && !settings.allowJumpIn) {
+        if (!settings.allowStacking && !settings.allowSpecial07 && !settings.allowSpecial48 && !settings.allowJumpIn) {
             rules.push(`<div style="margin: 5px 0;">📋 Classic Rules</div>`);
         }
         
