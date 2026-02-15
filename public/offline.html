@@ -296,6 +296,7 @@
         margin: 40px 0;
         min-height: 180px;
         flex-wrap: wrap;
+        position: relative;
     }
 
     .card {
@@ -719,6 +720,34 @@
     .discard-pile-pulse {
         animation: discardLand 0.3s ease-out;
     }
+
+    .stack-indicator {
+        display: none;
+        position: absolute;
+        top: -20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: linear-gradient(135deg, #ff416c, #ff4b2b);
+        color: white;
+        padding: 8px 20px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 1.1em;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(255, 65, 108, 0.5);
+        z-index: 10;
+        animation: stackPulse 1.5s ease-in-out infinite;
+        white-space: nowrap;
+    }
+
+    .stack-indicator.active {
+        display: block;
+    }
+
+    @keyframes stackPulse {
+        0%, 100% { transform: translateX(-50%) scale(1); box-shadow: 0 4px 15px rgba(255, 65, 108, 0.5); }
+        50% { transform: translateX(-50%) scale(1.05); box-shadow: 0 6px 25px rgba(255, 65, 108, 0.8); }
+    }
 </style>
 ```
 
@@ -847,6 +876,7 @@
         <div class="message" id="message">Game started! Your turn.</div>
 
         <div class="play-area">
+            <div id="stackIndicator" class="stack-indicator"></div>
             <div class="card card-back" id="drawPile" onclick="drawCard()">
                 <div style="color: white; font-size: 3em;">🎴</div>
             </div>
@@ -909,6 +939,7 @@
     let pendingWildCard = null;
     let gameInProgress = false;
     let stackedDrawCount = 0; // Track stacked +2/+4 cards
+    let stackStartedBy = null; // Track who started the stack
     let isAnimating = false; // Animation lock to prevent rapid clicks
     
     // Constants
@@ -1213,6 +1244,19 @@
         document.getElementById('currentPlayer').textContent = currentPlayer === 'player' ? 'You' : 'Computer';
         document.getElementById('currentColor').textContent = currentColor || '-';
         document.getElementById('deckCount').textContent = deck.length;
+
+        // Update stack indicator
+        const stackIndicator = document.getElementById('stackIndicator');
+        if (stackedDrawCount > 0 && stackStartedBy) {
+            const cardType = currentValue === '+2' ? '+2' : '+4';
+            stackIndicator.innerHTML = `
+                <div style="font-size: 1.2em; margin-bottom: 2px;">${cardType} Stack: Draw ${stackedDrawCount}</div>
+                <div style="font-size: 0.85em; opacity: 0.9;">Started by: ${stackStartedBy}</div>
+            `;
+            stackIndicator.classList.add('active');
+        } else {
+            stackIndicator.classList.remove('active');
+        }
     }
 
     function canPlayCard(card) {
@@ -1506,6 +1550,9 @@
                 
             case '+2':
                 if (settings.allowStacking) {
+                    if (stackedDrawCount === 0) {
+                        stackStartedBy = 'You';
+                    }
                     stackedDrawCount += 2;
                     showMessage(`Computer must draw ${stackedDrawCount} or stack another +2!`);
                     renderComputerHand();
@@ -1727,6 +1774,9 @@
                     setTimeout(() => {
                         if (cardToPlay.value === 'Wild+4') {
                             if (settings.allowStacking) {
+                                if (stackedDrawCount === 0) {
+                                    stackStartedBy = 'Computer';
+                                }
                                 stackedDrawCount += 4;
                                 showMessage(`You must draw ${stackedDrawCount} or stack another +4!`);
                                 renderPlayerHand();
@@ -1774,6 +1824,7 @@
                 }
                 showMessage(`Computer drew ${stackedDrawCount} cards!`);
                 stackedDrawCount = 0; // Reset stack
+                stackStartedBy = null; // Reset who started the stack
                 renderComputerHand();
                 updateGameInfo();
                 
@@ -1894,6 +1945,9 @@
                 
             case '+2':
                 if (settings.allowStacking) {
+                    if (stackedDrawCount === 0) {
+                        stackStartedBy = 'Computer';
+                    }
                     stackedDrawCount += 2;
                     showMessage(`You must draw ${stackedDrawCount} or stack another +2!`);
                     renderPlayerHand();
@@ -1936,6 +1990,7 @@
                 }
                 showMessage(`You drew ${count} cards!`);
                 stackedDrawCount = 0; // Reset stack
+                stackStartedBy = null; // Reset who started the stack
                 renderPlayerHand();
                 updateGameInfo();
                 
@@ -2017,6 +2072,9 @@
         setTimeout(() => {
             if (wildCard.value === 'Wild+4') {
                 if (settings.allowStacking) {
+                    if (stackedDrawCount === 0) {
+                        stackStartedBy = 'You';
+                    }
                     stackedDrawCount += 4;
                     showMessage(`Computer must draw ${stackedDrawCount} or stack another +4!`);
                     renderComputerHand();
@@ -2092,6 +2150,7 @@
         currentColor = null;
         currentValue = null;
         stackedDrawCount = 0;
+        stackStartedBy = null;
         
         // Create fresh deck and deal
         createDeck();
