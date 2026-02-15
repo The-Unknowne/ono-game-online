@@ -209,16 +209,14 @@ class GameRoom {
     handleCardEffect(card, playerIndex) {
         switch(card.value) {
             case 'Skip':
-                this.advanceTurn();
-                this.advanceTurn();
+                this.skipNextPlayer();
                 break;
                 
             case 'Reverse':
                 this.direction *= -1;
                 if (this.players.length === 2) {
                     // In 2-player, Reverse acts like Skip
-                    this.advanceTurn();
-                    this.advanceTurn();
+                    this.skipNextPlayer();
                 } else {
                     this.advanceTurn();
                 }
@@ -230,8 +228,15 @@ class GameRoom {
                     this.advanceTurn();
                 } else {
                     this.drawCards(this.getNextPlayerIndex(), 2);
+                    this.skipNextPlayer();
+                }
+                break;
+                
+            case 'Wild+4':
+                if (this.settings.allowStacking) {
                     this.advanceTurn();
-                    this.advanceTurn();
+                } else {
+                    this.skipNextPlayer();
                 }
                 break;
                 
@@ -247,6 +252,12 @@ class GameRoom {
                 // Regular card or wild
                 this.advanceTurn();
         }
+    }
+
+    skipNextPlayer() {
+        // Advance turn twice to skip the next player
+        this.advanceTurn();
+        this.advanceTurn();
     }
 
     swapHands(playerIndex) {
@@ -309,7 +320,8 @@ class GameRoom {
         this.drawCards(playerIndex, 1);
         
         // Check if drawn card can be played immediately
-        const drawnCard = this.players[playerIndex].hand[this.players[playerIndex].hand.length - 1];
+        const playerHand = this.players[playerIndex].hand;
+        const drawnCard = playerHand[playerHand.length - 1];
         const canPlay = this.canPlayCard(drawnCard);
         
         if (!canPlay) {
