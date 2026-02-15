@@ -432,7 +432,7 @@ io.on('connection', socket => {
         if (result.winner !== null) {
             const winnerName = room.players[result.winner].name;
             const winnerId = room.players[result.winner].id;
-            io.to(roomId).emit('gameOver', { winner: winnerName, winnerId: winnerId });
+            io.to(roomId).emit('gameOver', { winner: winnerName, winnerId });
             rooms.delete(roomId);
         }
     });
