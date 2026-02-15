@@ -251,7 +251,7 @@ class GameRoom {
 
     swapHands(playerIndex) {
         // Swap hands with next player (respecting direction)
-        const nextPlayerIndex = (playerIndex + this.direction + this.players.length) % this.players.length;
+        const nextPlayerIndex = this.getNextPlayerIndex(playerIndex);
         const temp = this.players[playerIndex].hand;
         this.players[playerIndex].hand = this.players[nextPlayerIndex].hand;
         this.players[nextPlayerIndex].hand = temp;
@@ -267,12 +267,12 @@ class GameRoom {
         
         // Handle stacked draws
         if (this.stackedDrawCount > 0) {
-            const currentCard = this.players[this.currentPlayer].hand.find(card => 
+            const stackableCard = this.players[this.currentPlayer].hand.find(card => 
                 (this.currentValue === '+2' && card.value === '+2') ||
                 (this.currentValue === 'Wild+4' && card.value === 'Wild+4')
             );
             
-            if (!currentCard) {
+            if (!stackableCard) {
                 // Player can't stack, must draw
                 this.drawCards(this.currentPlayer, this.stackedDrawCount);
                 this.stackedDrawCount = 0;
