@@ -576,6 +576,94 @@
         display: block;
     }
 
+    /* Custom Popup Styles */
+    .custom-popup {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 40px;
+        border-radius: 20px;
+        text-align: center;
+        z-index: 1001;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        max-width: 90%;
+        min-width: 300px;
+        color: #333;
+        animation: popupFadeIn 0.3s ease-out;
+    }
+
+    .custom-popup.active {
+        display: block;
+    }
+
+    @keyframes popupFadeIn {
+        from {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.9);
+        }
+        to {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+    }
+
+    .custom-popup h2 {
+        font-size: 2em;
+        margin-bottom: 20px;
+        color: #667eea;
+    }
+
+    .custom-popup p {
+        font-size: 1.2em;
+        margin-bottom: 30px;
+        color: #555;
+        line-height: 1.5;
+    }
+
+    .popup-buttons {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .popup-button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 15px 40px;
+        font-size: 1.1em;
+        font-weight: 600;
+        border-radius: 15px;
+        cursor: pointer;
+        transition: all 0.3s;
+        box-shadow: 0 6px 15px rgba(102, 126, 234, 0.4);
+        touch-action: manipulation;
+        min-width: 120px;
+    }
+
+    .popup-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.5);
+    }
+
+    .popup-button:active {
+        transform: translateY(0);
+        box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+    }
+
+    .popup-button.secondary {
+        background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+        box-shadow: 0 6px 15px rgba(149, 165, 166, 0.4);
+    }
+
+    .popup-button.secondary:hover {
+        box-shadow: 0 8px 20px rgba(149, 165, 166, 0.5);
+    }
+
     .loading {
         text-align: center;
         color: white;
@@ -1107,6 +1195,12 @@
     </div>
 </div>
 
+<div class="custom-popup" id="customPopup">
+    <h2 id="popupTitle"></h2>
+    <p id="popupMessage"></p>
+    <div class="popup-buttons" id="popupButtons"></div>
+</div>
+
 <script>
     let socket;
     let gameState = null;
@@ -1141,6 +1235,80 @@
         body.classList.add(className);
     }
 
+    // Custom Popup Functions
+    function showPopup(message, title = '') {
+        const popup = document.getElementById('customPopup');
+        const overlay = document.getElementById('overlay');
+        const popupTitle = document.getElementById('popupTitle');
+        const popupMessage = document.getElementById('popupMessage');
+        const popupButtons = document.getElementById('popupButtons');
+
+        // Set title and message
+        if (title) {
+            popupTitle.textContent = title;
+            popupTitle.style.display = 'block';
+        } else {
+            popupTitle.style.display = 'none';
+        }
+        popupMessage.textContent = message;
+
+        // Clear and create OK button
+        popupButtons.innerHTML = '';
+        const okButton = document.createElement('button');
+        okButton.className = 'popup-button';
+        okButton.textContent = 'OK';
+        okButton.onclick = () => {
+            popup.classList.remove('active');
+            overlay.classList.remove('active');
+        };
+        popupButtons.appendChild(okButton);
+
+        // Show popup and overlay
+        overlay.classList.add('active');
+        popup.classList.add('active');
+    }
+
+    function showConfirm(message, callback, title = 'Confirm') {
+        const popup = document.getElementById('customPopup');
+        const overlay = document.getElementById('overlay');
+        const popupTitle = document.getElementById('popupTitle');
+        const popupMessage = document.getElementById('popupMessage');
+        const popupButtons = document.getElementById('popupButtons');
+
+        // Set title and message
+        popupTitle.textContent = title;
+        popupTitle.style.display = 'block';
+        popupMessage.textContent = message;
+
+        // Clear and create Yes/No buttons
+        popupButtons.innerHTML = '';
+        
+        const noButton = document.createElement('button');
+        noButton.className = 'popup-button secondary';
+        noButton.textContent = 'No';
+        noButton.onclick = () => {
+            popup.classList.remove('active');
+            overlay.classList.remove('active');
+            if (callback) callback(false);
+        };
+
+        const yesButton = document.createElement('button');
+        yesButton.className = 'popup-button';
+        yesButton.textContent = 'Yes';
+        yesButton.onclick = () => {
+            popup.classList.remove('active');
+            overlay.classList.remove('active');
+            if (callback) callback(true);
+        };
+
+        popupButtons.appendChild(noButton);
+        popupButtons.appendChild(yesButton);
+
+        // Show popup and overlay
+        overlay.classList.add('active');
+        popup.classList.add('active');
+    }
+
     // Initialize socket connection with error handling
     function initializeSocket() {
         try {
@@ -1154,7 +1322,7 @@
             setupSocketListeners();
         } catch (error) {
             console.error('Socket initialization error:', error);
-            alert('Failed to connect to server. Please refresh the page.');
+            showPopup('Failed to connect to server. Please refresh the page.');
         }
     }
 
@@ -1172,7 +1340,7 @@
             console.error('Connection error:', error);
             reconnectAttempts++;
             if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-                alert('Unable to connect to server. Please check your internet connection and refresh the page.');
+                showPopup('Unable to connect to server. Please check your internet connection and refresh the page.');
             }
         });
 
@@ -1227,19 +1395,22 @@
         socket.on('gameOver', (data) => {
             const isWinner = data.winnerId === socket.id;
             setTimeout(() => {
-                alert(isWinner ? '🎉 You Won!' : '😢 You Lost!');
+                showPopup(
+                    isWinner ? 'You Won!' : 'You Lost!',
+                    isWinner ? '🎉 Congratulations!' : '😢 Game Over'
+                );
                 showMainMenu();
             }, 500);
         });
 
         socket.on('opponentDisconnected', () => {
-            alert('Opponent disconnected');
+            showPopup('Opponent disconnected');
             showMainMenu();
         });
 
         socket.on('error', (message) => {
             isWaitingForServer = false; // Reset flag on error
-            alert(message);
+            showPopup(message);
         });
     }
 
@@ -1331,17 +1502,17 @@
         const lobbyName = document.getElementById('lobbyName').value.trim();
 
         if (!name) {
-            alert('Please enter your name');
+            showPopup('Please enter your name');
             return;
         }
 
         if (!lobbyName) {
-            alert('Please enter a lobby name');
+            showPopup('Please enter a lobby name');
             return;
         }
 
         if (!socket || !socket.connected) {
-            alert('Not connected to server. Please refresh the page.');
+            showPopup('Not connected to server. Please refresh the page.');
             return;
         }
 
@@ -1364,7 +1535,7 @@
         }
 
         if (!socket || !socket.connected) {
-            alert('Not connected to server. Please refresh the page.');
+            showPopup('Not connected to server. Please refresh the page.');
             return;
         }
 
@@ -1592,13 +1763,15 @@
     }
 
     function leaveGame() {
-        if (confirm('Are you sure you want to leave?')) {
-            if (socket) {
-                socket.disconnect();
-                socket.connect();
+        showConfirm('Are you sure you want to leave?', (confirmed) => {
+            if (confirmed) {
+                if (socket) {
+                    socket.disconnect();
+                    socket.connect();
+                }
+                showMainMenu();
             }
-            showMainMenu();
-        }
+        });
     }
 
     // Game functions (keep existing game logic)
