@@ -1534,8 +1534,8 @@
             // Get computer cards area for animation start position
             const computerCards = document.getElementById('computerCards');
             const computerRect = computerCards.getBoundingClientRect();
-            const discardPile = document.getElementById('discardPile');
-            const discardRect = discardPile.getBoundingClientRect();
+            const discardPileElement = document.getElementById('discardPile');
+            const discardRect = discardPileElement.getBoundingClientRect();
             
             // Create a card element for animation
             const animCard = renderCard(cardToPlay);
