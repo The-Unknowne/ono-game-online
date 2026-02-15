@@ -21,7 +21,7 @@ const PORT = process.env.PORT || 3000;
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index-new.html'));
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.get('/health', (req, res) => {
@@ -34,7 +34,7 @@ app.get('/health', (req, res) => {
 
 app.get('*', (req, res) => {
     if (!req.url.includes('.')) {
-        res.sendFile(path.join(__dirname, 'public', 'index-new.html'));
+        res.sendFile(path.join(__dirname, 'public', 'index.html'));
     } else {
         res.status(404).send('File not found');
     }
@@ -126,6 +126,9 @@ class GameRoom {
 
     getGameState(playerId) {
         const index = this.players.findIndex(p => p.id === playerId);
+        const currentPlayerIndex = this.currentPlayer;
+        const currentPlayerName = this.players[currentPlayerIndex]?.name || 'Unknown';
+        
         return {
             roomId: this.roomId,
             yourHand: this.players[index].hand,
@@ -135,10 +138,14 @@ class GameRoom {
                 cardCount: p.hand.length
             })),
             currentPlayer: this.currentPlayer,
+            currentPlayerName: currentPlayerName,
             isYourTurn: index === this.currentPlayer,
-            discard: this.discardPile.at(-1),
-            color: this.currentColor,
-            value: this.currentValue
+            discardPile: this.discardPile.at(-1),
+            currentColor: this.currentColor,
+            currentValue: this.currentValue,
+            deckCount: this.deck.length,
+            settings: this.settings,
+            stackedDrawCount: this.stackedDrawCount
         };
     }
 }
