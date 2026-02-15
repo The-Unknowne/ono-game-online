@@ -192,7 +192,7 @@ class GameRoom {
                 if (this.settings.allowStacking) {
                     this.stackedDrawCount += 4;
                 } else {
-                    this.drawCards((this.currentPlayer + this.direction + this.players.length) % this.players.length, 4);
+                    this.drawCards(this.getNextPlayerIndex(), 4);
                 }
             }
         } else {
@@ -229,20 +229,13 @@ class GameRoom {
                     this.stackedDrawCount += 2;
                     this.advanceTurn();
                 } else {
-                    const nextPlayer = (this.currentPlayer + this.direction + this.players.length) % this.players.length;
-                    this.drawCards(nextPlayer, 2);
+                    this.drawCards(this.getNextPlayerIndex(), 2);
                     this.advanceTurn();
                     this.advanceTurn();
                 }
                 break;
                 
             case '0':
-                if (this.settings.allowSpecial07 && this.players.length === 2) {
-                    this.swapHands(playerIndex);
-                }
-                this.advanceTurn();
-                break;
-                
             case '7':
                 if (this.settings.allowSpecial07 && this.players.length === 2) {
                     this.swapHands(playerIndex);
@@ -257,15 +250,20 @@ class GameRoom {
     }
 
     swapHands(playerIndex) {
-        // Swap hands with next player
-        const nextPlayerIndex = (playerIndex + 1) % this.players.length;
+        // Swap hands with next player (respecting direction)
+        const nextPlayerIndex = (playerIndex + this.direction + this.players.length) % this.players.length;
         const temp = this.players[playerIndex].hand;
         this.players[playerIndex].hand = this.players[nextPlayerIndex].hand;
         this.players[nextPlayerIndex].hand = temp;
     }
 
+    getNextPlayerIndex(fromIndex = null) {
+        const index = fromIndex !== null ? fromIndex : this.currentPlayer;
+        return (index + this.direction + this.players.length) % this.players.length;
+    }
+
     advanceTurn() {
-        this.currentPlayer = (this.currentPlayer + this.direction + this.players.length) % this.players.length;
+        this.currentPlayer = this.getNextPlayerIndex();
         
         // Handle stacked draws
         if (this.stackedDrawCount > 0) {
