@@ -1776,13 +1776,30 @@
                 
                 setTimeout(() => switchTurn(), 1500);
             } else {
-                // Regular draw
-                if (deck.length === 0) {
-                    reshuffleDeck();
+                // Regular draw - draw until we find a matching color or wild
+                let cardsDrawn = 0;
+                let matchFound = false;
+                
+                // Draw cards until we find a match
+                while (!matchFound && cardsDrawn < 50) { // Safety limit
+                    if (deck.length === 0) reshuffleDeck();
+                    if (deck.length === 0) break; // No more cards available
+                    
+                    const drawnCard = deck.pop();
+                    computerHand.push(drawnCard);
+                    cardsDrawn++;
+                    
+                    // Check if the drawn card matches the current color or is wild
+                    if (drawnCard.type === 'wild' || drawnCard.color === currentColor) {
+                        matchFound = true;
+                    }
                 }
-                if (deck.length > 0) {
-                    computerHand.push(deck.pop());
-                    showMessage('Computer drew a card!');
+                
+                if (cardsDrawn > 0) {
+                    const message = cardsDrawn === 1 
+                        ? 'Computer drew a card!' 
+                        : `Computer drew ${cardsDrawn} cards!`;
+                    showMessage(message);
                     renderComputerHand();
                     updateGameInfo();
                 }
@@ -1932,19 +1949,37 @@
             return;
         }
         
-        if (deck.length === 0) {
-            reshuffleDeck();
+        // Draw cards until we find one that matches the current color or is wild
+        let cardsDrawn = 0;
+        let matchFound = false;
+        const drawnCards = [];
+        
+        // Draw cards until we find a match
+        while (!matchFound && cardsDrawn < 50) { // Safety limit
+            if (deck.length === 0) reshuffleDeck();
+            if (deck.length === 0) break; // No more cards available
+            
+            const drawnCard = deck.pop();
+            playerHand.push(drawnCard);
+            drawnCards.push(drawnCard);
+            cardsDrawn++;
+            
+            // Check if the drawn card matches the current color or is wild
+            if (drawnCard.type === 'wild' || drawnCard.color === currentColor) {
+                matchFound = true;
+            }
         }
         
-        if (deck.length > 0) {
+        if (cardsDrawn > 0) {
             // Set animation lock before starting animation
             isAnimating = true;
             
-            // Animate single card draw
-            animateCardToHand('player', () => {
-                const drawnCard = deck.pop();
-                playerHand.push(drawnCard);
-                showMessage('You drew a card!');
+            // Animate multiple cards being drawn
+            animateMultipleCardsToHand('player', cardsDrawn, () => {
+                const message = cardsDrawn === 1 
+                    ? 'You drew a card!' 
+                    : `You drew ${cardsDrawn} cards until finding a matching color!`;
+                showMessage(message);
                 renderPlayerHand();
                 updateGameInfo();
                 

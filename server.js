@@ -317,18 +317,36 @@ class GameRoom {
             return { success: true, drewStacked: true };
         }
 
-        this.drawCards(playerIndex, 1);
-        
-        // Check if drawn card can be played immediately
+        // Draw cards until we find one that matches the current color or is wild
         const playerHand = this.players[playerIndex].hand;
-        const drawnCard = playerHand[playerHand.length - 1];
-        const canPlay = this.canPlayCard(drawnCard);
+        let cardsDrawn = 0;
+        let matchFound = false;
+        
+        while (!matchFound && cardsDrawn < 50) { // Safety limit to prevent infinite loops
+            this.drawCards(playerIndex, 1);
+            cardsDrawn++;
+            
+            const drawnCard = playerHand[playerHand.length - 1];
+            if (!drawnCard) {
+                // No more cards in deck (even after reshuffling)
+                break;
+            }
+            
+            // Check if the drawn card matches the current color or is wild
+            if (drawnCard.type === 'wild' || drawnCard.color === this.currentColor) {
+                matchFound = true;
+            }
+        }
+        
+        // Check if the last drawn card can be played immediately
+        const lastDrawnCard = playerHand[playerHand.length - 1];
+        const canPlay = lastDrawnCard ? this.canPlayCard(lastDrawnCard) : false;
         
         if (!canPlay) {
             this.advanceTurn();
         }
         
-        return { success: true, canPlayDrawn: canPlay };
+        return { success: true, canPlayDrawn: canPlay, cardsDrawn: cardsDrawn };
     }
 
     reshuffleDeck() {
@@ -450,7 +468,15 @@ io.on('connection', socket => {
 
         // Broadcast updated game state to all players
         room.players.forEach(p => {
-            io.to(p.id).emit('gameState', room.getGameState(p.id));
+            const state = room.getGameState(p.id);
+            // Add draw info to the game state if cards were drawn
+            if (result.cardsDrawn) {
+                state.lastDrawInfo = {
+                    cardsDrawn: result.cardsDrawn,
+                    playerId: socket.id
+                };
+            }
+            io.to(p.id).emit('gameState', state);
         });
     });
 
