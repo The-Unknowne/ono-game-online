@@ -429,7 +429,7 @@ io.on('connection', socket => {
 
         if (lobby.players.length >= 2 && lobby.players.every(p => p.ready)) {
             // Verify all players are still connected
-            const allConnected = lobby.players.every(p => io.sockets.sockets.get(p.id));
+            const allConnected = lobby.players.every(p => !!io.sockets.sockets.get(p.id));
             
             if (!allConnected) {
                 // Remove disconnected players
