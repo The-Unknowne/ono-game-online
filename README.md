@@ -108,6 +108,14 @@ git push -u origin main
   - **Wild**: Choose any color
   - **Wild +4**: Choose color, opponent draws 4
 
+### Optional Game Rules (Configurable in Lobby Settings)
+
+- **+2/+4 Stacking**: Stack draw cards to pass the penalty to the next player
+- **0 & 7 Swap**: Playing a 0 or 7 swaps hands with an opponent
+- **4 & 8 Special**: 4 skips opponent, 8 reverses direction
+- **Jump-In**: Play out of turn with an exact match (same color and number)
+- **Draw Until Match**: Keep drawing cards until a playable card is found (default: enabled). When disabled, draw only one card per turn
+
 ## File Structure
 
 ```
