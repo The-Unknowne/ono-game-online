@@ -484,7 +484,7 @@ io.on('connection', socket => {
                 // Remove disconnected players
                 lobby.players = lobby.players.filter(p => io.sockets.sockets.get(p.id));
                 io.to(roomId).emit('lobbyUpdate', { roomId: roomId, players: lobby.players });
-                io.to(roomId).emit('error', 'Some players disconnected. Waiting for more players...');
+                io.to(roomId).emit('error', 'Some players disconnected before game start. Please ready up again.');
                 return;
             }
 
@@ -514,6 +514,35 @@ io.on('connection', socket => {
                 });
                 // Start heartbeat monitoring for in-game presence
                 presenceManager.startHeartbeat();
+                
+                // Set up timeout handler for the game
+                presenceManager.on('player-timeout', (timedOutPlayer) => {
+                    const room = rooms.get(roomId);
+                    if (!room) return;
+                    
+                    const activePlayers = room.players.filter(p => {
+                        const pm = presenceManager.getPlayer(p.id);
+                        return pm && pm.state !== PlayerState.TIMEOUT && pm.state !== PlayerState.DISCONNECTED;
+                    });
+                    
+                    if (activePlayers.length < 3) {
+                        // Not enough players, end game
+                        io.to(roomId).emit('gameEnded', {
+                            reason: 'Not enough players remaining',
+                            message: `${timedOutPlayer.name} disconnected and did not reconnect in time.`
+                        });
+                        rooms.delete(roomId);
+                        presenceManager.destroy();
+                        lobbyPresenceManagers.delete(roomId);
+                    } else {
+                        // Continue game with remaining players
+                        io.to(roomId).emit('playerTimeout', {
+                            playerId: timedOutPlayer.id,
+                            playerName: timedOutPlayer.name,
+                            message: `${timedOutPlayer.name} has been removed from the game due to disconnection.`
+                        });
+                    }
+                });
             }
 
             room.players.forEach(p => {
@@ -656,35 +685,6 @@ io.on('connection', socket => {
                                 playerName: player.name,
                                 reconnectTimeout: presenceManager.reconnectTimeout
                             });
-                        }
-                    });
-                    
-                    // Set up timeout handler
-                    presenceManager.on('player-timeout', (timedOutPlayer) => {
-                        if (timedOutPlayer.id === socket.id) {
-                            // Player timed out, end game or continue with remaining
-                            const activePlayers = room.players.filter(p => {
-                                const pm = presenceManager.getPlayer(p.id);
-                                return pm && pm.state !== PlayerState.TIMEOUT && pm.state !== PlayerState.DISCONNECTED;
-                            });
-                            
-                            if (activePlayers.length < 3) {
-                                // Not enough players, end game
-                                io.to(roomId).emit('gameEnded', {
-                                    reason: 'Not enough players remaining',
-                                    message: `${player.name} disconnected and did not reconnect in time.`
-                                });
-                                rooms.delete(roomId);
-                                presenceManager.destroy();
-                                lobbyPresenceManagers.delete(roomId);
-                            } else {
-                                // Continue game with remaining players
-                                io.to(roomId).emit('playerTimeout', {
-                                    playerId: socket.id,
-                                    playerName: player.name,
-                                    message: `${player.name} has been removed from the game due to disconnection.`
-                                });
-                            }
                         }
                     });
                 }

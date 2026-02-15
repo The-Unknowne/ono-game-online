@@ -286,6 +286,8 @@ class PlayerPresenceManager {
         if (!player) return;
         
         console.log(`[PlayerPresence] Player ${player.name} disconnected`);
+        // Store previous state for reconnection
+        player.previousState = player.state;
         player.state = PlayerState.DISCONNECTED;
         player.disconnectedAt = Date.now();
         
@@ -307,9 +309,7 @@ class PlayerPresenceManager {
         this.clearDisconnectTimer(playerId);
         
         // Restore previous state (before disconnection)
-        const newState = player.ready ? PlayerState.READY : 
-                        (player.state === PlayerState.IN_GAME ? PlayerState.IN_GAME : PlayerState.LOBBY);
-        player.state = newState;
+        player.state = player.previousState || PlayerState.LOBBY;
         player.reconnectedAt = Date.now();
         
         this.emit('player-reconnected', player);

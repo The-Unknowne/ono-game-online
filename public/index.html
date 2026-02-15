@@ -1659,10 +1659,11 @@
     }
 
     function showMainMenu() {
+        const tempRoomId = roomId;
+        roomId = null;  // Clear roomId first to prevent race condition
+        isReady = false;
         stopHeartbeat();
         hideDisconnectNotification();
-        roomId = null;
-        isReady = false;
         showScreen('mainMenu');
     }
 
@@ -1782,12 +1783,13 @@
     }
 
     function leaveLobby() {
-        stopHeartbeat();
-        if (socket && socket.connected) {
-            socket.emit('leaveLobby', { roomId: roomId });
-        }
-        roomId = null;
+        const tempRoomId = roomId;
+        roomId = null;  // Clear roomId first to prevent race condition
         isReady = false;
+        stopHeartbeat();
+        if (socket && socket.connected && tempRoomId) {
+            socket.emit('leaveLobby', { roomId: tempRoomId });
+        }
         showOnlineMenu();
     }
 
@@ -1977,7 +1979,10 @@
         const waitingMessage = document.getElementById('waitingMessage');
         if (playerCount < minPlayers) {
             waitingMessage.style.display = 'flex';
-            waitingMessage.querySelector('span:last-child').textContent = `Waiting for more players to join... (${playerCount}/${minPlayers})`;
+            const messageSpan = waitingMessage.querySelector('span:last-child');
+            if (messageSpan) {
+                messageSpan.textContent = `Waiting for more players to join... (${playerCount}/${minPlayers})`;
+            }
         } else {
             waitingMessage.style.display = 'none';
         }
