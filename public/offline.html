@@ -1355,14 +1355,6 @@
                 return;
             }
             
-            // Add slight position randomization for variety
-            const drawPile = document.getElementById('drawPile');
-            const startRect = drawPile.getBoundingClientRect();
-            
-            // Create card-back element with randomized start position
-            const randomOffsetX = (Math.random() - 0.5) * 20;
-            const randomOffsetY = (Math.random() - 0.5) * 20;
-            
             animateCardToHand(targetArea, () => {
                 completed++;
                 if (completed === count) {
