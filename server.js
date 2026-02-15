@@ -431,7 +431,8 @@ io.on('connection', socket => {
         // Check for winner
         if (result.winner !== null) {
             const winnerName = room.players[result.winner].name;
-            io.to(roomId).emit('gameOver', { winner: winnerName });
+            const winnerId = room.players[result.winner].id;
+            io.to(roomId).emit('gameOver', { winner: winnerName, winnerId: winnerId });
             rooms.delete(roomId);
         }
     });
