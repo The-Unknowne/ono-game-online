@@ -1117,6 +1117,7 @@
     let currentLobbies = [];
     let isReady = false;
     let currentLobbyData = null;
+    let isWaitingForServer = false;
 
     // Background animation settings
     function loadBackgroundAnimation() {
@@ -1215,6 +1216,7 @@
 
         socket.on('gameState', (state) => {
             gameState = state;
+            isWaitingForServer = false; // Reset flag when server responds
             updateGameUI();
         });
 
@@ -1236,6 +1238,7 @@
         });
 
         socket.on('error', (message) => {
+            isWaitingForServer = false; // Reset flag on error
             alert(message);
         });
     }
@@ -1692,7 +1695,8 @@
             const isPlayable = canPlayCard(card);
             const cardDiv = createCardElement(card);
             
-            if (!isPlayable || !gameState.isYourTurn) {
+            // Disable cards if not playable, not your turn, or waiting for server
+            if (!isPlayable || !gameState.isYourTurn || isWaitingForServer) {
                 cardDiv.classList.add('disabled');
             } else {
                 cardDiv.onclick = () => playCard(index);
@@ -1732,13 +1736,20 @@
 
     function playCard(index) {
         if (!gameState || !gameState.yourHand) return;
+        if (!gameState.isYourTurn) return;
+        if (isWaitingForServer) return; // Prevent rapid clicking
+        
         const card = gameState.yourHand[index];
         if (!card) return;
+        
+        // Validate card can be played
+        if (!canPlayCard(card)) return;
         
         if (card.type === 'wild') {
             pendingCardIndex = index;
             showColorPicker();
         } else {
+            isWaitingForServer = true; // Block further plays
             if (socket && socket.connected) {
                 socket.emit('playCard', {
                     roomId: roomId,
@@ -1758,6 +1769,7 @@
         document.getElementById('overlay').classList.remove('active');
         document.getElementById('colorPicker').classList.remove('active');
         
+        isWaitingForServer = true; // Block further plays
         if (socket && socket.connected) {
             socket.emit('playCard', {
                 roomId: roomId,
@@ -1771,7 +1783,9 @@
 
     function drawCard() {
         if (!gameState || !gameState.isYourTurn) return;
+        if (isWaitingForServer) return; // Prevent rapid clicking
         
+        isWaitingForServer = true; // Block further actions
         if (socket && socket.connected) {
             socket.emit('drawCard', { roomId: roomId });
         }
