@@ -2353,6 +2353,8 @@
     }
 
     // Animation helper function: Animate a card-back from draw pile to hand
+    // Note: targetArea parameter is kept for API consistency with offline.html but not used
+    // in online mode since we only animate to the local player's hand
     function animateCardToHand(targetArea, onComplete) {
         const drawPile = document.getElementById('drawPile');
         const startRect = drawPile.getBoundingClientRect();
