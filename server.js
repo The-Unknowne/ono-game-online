@@ -434,7 +434,8 @@ class GameRoom {
             return { penaltyApplied: true, playerName: player.name };
         }
         
-        // Reset calledUno flag for next round
+        // Reset calledUno flag when hand length is no longer 1
+        // (player has won with 0 cards or has more than 1 card)
         if (player.hand.length !== 1) {
             player.calledUno = false;
         }

@@ -2140,7 +2140,7 @@
                     
                     // Add catch button if opponent has 1 card
                     const catchButton = opponent.cardCount === 1 
-                        ? `<button onclick="catchOpponent('${opponent.id}')" style="margin-top: 10px; padding: 5px 15px; background: #e74c3c; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">Catch!</button>`
+                        ? `<button class="catch-button" data-opponent-id="${opponent.id}" style="margin-top: 10px; padding: 5px 15px; background: #e74c3c; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">Catch!</button>`
                         : '';
                     
                     oppBox.innerHTML = `
@@ -2149,6 +2149,14 @@
                         ${isTheirTurn ? '<div style="margin-top: 5px; color: #2ecc71; font-weight: bold;">⏰ Their Turn</div>' : ''}
                         ${catchButton}
                     `;
+                    
+                    // Add event listener for catch button if it exists
+                    if (opponent.cardCount === 1) {
+                        const btn = oppBox.querySelector('.catch-button');
+                        if (btn) {
+                            btn.addEventListener('click', () => catchOpponent(opponent.id));
+                        }
+                    }
                     
                     opponentsDiv.appendChild(oppBox);
                 });

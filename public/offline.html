@@ -947,6 +947,10 @@
     
     // Constants
     const MAX_DRAW_ATTEMPTS = 50; // Safety limit for "draw until match" to prevent infinite loops
+    const EASY_CATCH_PROBABILITY = 0.3; // 30% chance for easy difficulty
+    const MEDIUM_CATCH_PROBABILITY = 0.5; // 50% chance for medium difficulty
+    const HARD_CATCH_PROBABILITY = 0.8; // 80% chance for hard difficulty
+    const PENALTY_DISPLAY_DELAY_MS = 1500; // Delay before continuing after penalty
     
     // Settings
     let settings = {
@@ -1660,14 +1664,20 @@
         // Computer has a chance to catch player if they have 1 card and didn't call O,no
         if (playerHand.length === 1 && !playerCalledUno) {
             // Random chance based on difficulty
-            const catchChance = settings.difficulty === 'easy' ? 0.3 : settings.difficulty === 'hard' ? 0.8 : 0.5;
+            let catchChance = MEDIUM_CATCH_PROBABILITY;
+            if (settings.difficulty === 'easy') {
+                catchChance = EASY_CATCH_PROBABILITY;
+            } else if (settings.difficulty === 'hard') {
+                catchChance = HARD_CATCH_PROBABILITY;
+            }
+            
             if (Math.random() < catchChance) {
                 showMessage('Computer caught you! You draw 2 penalty cards!');
                 drawCardsForPlayer('player', 2, () => {
                     playerCalledUno = false;
                     updateGameInfo();
                     // Computer continues their turn
-                    setTimeout(() => continueComputerPlay(), 1500);
+                    setTimeout(() => continueComputerPlay(), PENALTY_DISPLAY_DELAY_MS);
                 });
                 return;
             }
