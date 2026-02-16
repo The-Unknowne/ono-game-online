@@ -96,6 +96,8 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
+        min-height: 100vh;
+        width: 100%;
     }
 
     .menu-container {
@@ -326,6 +328,7 @@
         padding: 20px;
         width: 100%;
         max-width: 1000px;
+        margin: 0 auto;
     }
 
     .game-header {
@@ -1581,22 +1584,50 @@
         });
 
         socket.on('gameState', (state) => {
-            gameState = state;
-            isWaitingForServer = false; // Reset flag when server responds
-            
-            // Show message if cards were drawn
-            if (state.lastDrawInfo && state.lastDrawInfo.cardsDrawn) {
+            // Show animation if cards were drawn by the current player
+            if (state.lastDrawInfo && state.lastDrawInfo.cardsDrawn && state.lastDrawInfo.playerId === socket.id) {
                 const count = state.lastDrawInfo.cardsDrawn;
-                const wasYou = state.lastDrawInfo.playerId === socket.id;
-                const message = count === 1 
-                    ? (wasYou ? 'You drew a card!' : 'Opponent drew a card!')
-                    : (wasYou 
-                        ? `You drew ${count} cards until finding a matching color!`
-                        : `Opponent drew ${count} cards!`);
-                showMessage(message);
+                
+                // Animate the cards being drawn
+                if (count === 1) {
+                    // Single card animation
+                    animateCardToHand('player', () => {
+                        // Update game state after animation completes
+                        gameState = state;
+                        isWaitingForServer = false;
+                        
+                        const message = 'You drew a card!';
+                        showMessage(message);
+                        updateGameUI();
+                    });
+                } else {
+                    // Multiple cards with staggered animation
+                    animateMultipleCardsToHand(count, () => {
+                        // Update game state after all animations complete
+                        gameState = state;
+                        isWaitingForServer = false;
+                        
+                        const message = `You drew ${count} cards until finding a matching color!`;
+                        showMessage(message);
+                        updateGameUI();
+                    });
+                }
+            } else {
+                // No animation needed, update immediately
+                gameState = state;
+                isWaitingForServer = false;
+                
+                // Show message if cards were drawn by opponent
+                if (state.lastDrawInfo && state.lastDrawInfo.cardsDrawn && state.lastDrawInfo.playerId !== socket.id) {
+                    const count = state.lastDrawInfo.cardsDrawn;
+                    const message = count === 1 
+                        ? 'Opponent drew a card!'
+                        : `Opponent drew ${count} cards!`;
+                    showMessage(message);
+                }
+                
+                updateGameUI();
             }
-            
-            updateGameUI();
         });
 
         socket.on('unoCalled', (data) => {
@@ -2322,7 +2353,9 @@
     }
 
     // Animation helper function: Animate a card-back from draw pile to hand
-    function animateCardToHand(onComplete) {
+    // Note: targetArea parameter is kept for API consistency with offline.html but not used
+    // in online mode since we only animate to the local player's hand
+    function animateCardToHand(targetArea, onComplete) {
         const drawPile = document.getElementById('drawPile');
         const startRect = drawPile.getBoundingClientRect();
         const playerHand = document.getElementById('playerHand');
@@ -2373,6 +2406,31 @@
             cardBack.remove();
             onComplete();
         }, 600);
+    }
+
+    // Animation helper function: Animate multiple cards with stagger
+    function animateMultipleCardsToHand(count, onComplete) {
+        let completed = 0;
+        
+        function animateNext(index) {
+            if (index >= count) {
+                return;
+            }
+            
+            animateCardToHand('player', () => {
+                completed++;
+                if (completed === count) {
+                    onComplete();
+                }
+            });
+            
+            // Stagger animation by 200ms per card
+            if (index + 1 < count) {
+                setTimeout(() => animateNext(index + 1), 200);
+            }
+        }
+        
+        animateNext(0);
     }
 
     function canPlayCard(card) {
@@ -2457,15 +2515,13 @@
         if (!gameState || !gameState.isYourTurn) return;
         if (isWaitingForServer) return; // Prevent rapid clicking
         
-        // Block further actions before starting animation
+        // Block further actions while waiting for server
         isWaitingForServer = true;
         
-        // Animate card draw
-        animateCardToHand(() => {
-            if (socket && socket.connected) {
-                socket.emit('drawCard', { roomId: roomId });
-            }
-        });
+        // Send draw request to server (no animation yet - wait for response)
+        if (socket && socket.connected) {
+            socket.emit('drawCard', { roomId: roomId });
+        }
     }
 
     function callUno() {
