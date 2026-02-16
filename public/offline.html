@@ -869,7 +869,10 @@
         </div>
 
         <div class="computer-hand">
-            <div>Computer (<span id="computerCardCount">7</span> cards)</div>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 15px;">
+                <span>Computer (<span id="computerCardCount">7</span> cards)</span>
+                <button id="catchButton" onclick="catchComputer()" style="display: none; background: #e74c3c; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-weight: bold;">Catch!</button>
+            </div>
             <div class="computer-cards" id="computerCards"></div>
         </div>
 
@@ -1253,6 +1256,14 @@
             stackIndicator.classList.add('active');
         } else {
             stackIndicator.classList.remove('active');
+        }
+        
+        // Show/hide catch button if computer has 1 card and hasn't called O,no
+        const catchButton = document.getElementById('catchButton');
+        if (computerHand.length === 1 && !computerCalledUno && gameInProgress) {
+            catchButton.style.display = 'inline-block';
+        } else {
+            catchButton.style.display = 'none';
         }
     }
 
@@ -1644,6 +1655,28 @@
     }
 
     function computerPlay() {
+        if (!gameInProgress) return;
+        
+        // Computer has a chance to catch player if they have 1 card and didn't call O,no
+        if (playerHand.length === 1 && !playerCalledUno) {
+            // Random chance based on difficulty
+            const catchChance = settings.difficulty === 'easy' ? 0.3 : settings.difficulty === 'hard' ? 0.8 : 0.5;
+            if (Math.random() < catchChance) {
+                showMessage('Computer caught you! You draw 2 penalty cards!');
+                drawCardsForPlayer('player', 2, () => {
+                    playerCalledUno = false;
+                    updateGameInfo();
+                    // Computer continues their turn
+                    setTimeout(() => continueComputerPlay(), 1500);
+                });
+                return;
+            }
+        }
+        
+        continueComputerPlay();
+    }
+    
+    function continueComputerPlay() {
         if (!gameInProgress) return;
         
         let playableCards = computerHand.filter(card => canPlayCard(card));
@@ -2103,6 +2136,16 @@
             playerCalledUno = true;
             showMessage('O,No!');
             document.getElementById('unoButton').classList.remove('pulse');
+        }
+    }
+    
+    function catchComputer() {
+        if (computerHand.length === 1 && !computerCalledUno && gameInProgress) {
+            showMessage('You caught the computer! Computer draws 2 penalty cards!');
+            drawCardsForPlayer('computer', 2, () => {
+                computerCalledUno = false;
+                updateGameInfo();
+            });
         }
     }
 
