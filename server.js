@@ -170,15 +170,31 @@ class GameRoom {
 
     playCard(playerId, cardIndex, chosenColor) {
         const playerIndex = this.players.findIndex(p => p.id === playerId);
-        if (playerIndex === -1 || playerIndex !== this.currentPlayer) {
-            return { success: false, error: 'Not your turn' };
+        if (playerIndex === -1) {
+            return { success: false, error: 'Player not found' };
         }
-
+        
         const player = this.players[playerIndex];
         const card = player.hand[cardIndex];
         
         if (!card) {
             return { success: false, error: 'Invalid card' };
+        }
+        
+        // Check for jump-in: Allow play if not current player but jump-in is enabled
+        // and card is an exact match (same color AND value, number cards only)
+        if (playerIndex !== this.currentPlayer) {
+            const isJumpIn = this.settings.allowJumpIn && 
+                           card.type === 'number' && 
+                           card.color === this.currentColor && 
+                           card.value === this.currentValue;
+            
+            if (!isJumpIn) {
+                return { success: false, error: 'Not your turn' };
+            }
+            
+            // Valid jump-in: Set current player to this player
+            this.currentPlayer = playerIndex;
         }
 
         if (!this.canPlayCard(card)) {
@@ -261,10 +277,34 @@ class GameRoom {
                 
             case '0':
             case '7':
-                if (this.settings.allowSpecial07 && this.players.length === 2) {
+                if (this.settings.allowSpecial07) {
                     this.swapHands(playerIndex);
                 }
                 this.advanceTurn();
+                break;
+                
+            case '4':
+                if (this.settings.allowSpecial48) {
+                    // 4 skips next player
+                    this.skipNextPlayer();
+                } else {
+                    this.advanceTurn();
+                }
+                break;
+                
+            case '8':
+                if (this.settings.allowSpecial48) {
+                    // 8 reverses direction
+                    this.direction *= -1;
+                    if (this.players.length === 2) {
+                        // In 2-player, Reverse acts like Skip
+                        this.skipNextPlayer();
+                    } else {
+                        this.advanceTurn();
+                    }
+                } else {
+                    this.advanceTurn();
+                }
                 break;
                 
             default:
