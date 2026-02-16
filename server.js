@@ -138,6 +138,7 @@ class GameRoom {
             yourHand: this.players[index].hand,
             yourName: this.players[index].name,
             opponents: this.players.filter((_, i) => i !== index).map(p => ({
+                id: p.id,
                 name: p.name,
                 cardCount: p.hand.length
             })),
@@ -210,8 +211,15 @@ class GameRoom {
 
         // Handle special cards
         this.handleCardEffect(card, playerIndex);
+        
+        // Check for O,no penalty after playing card
+        const unoCheck = this.checkUnoAfterPlay(playerIndex);
 
-        return { success: true, winner: player.hand.length === 0 ? playerIndex : null };
+        return { 
+            success: true, 
+            winner: player.hand.length === 0 ? playerIndex : null,
+            unoPenalty: unoCheck.penaltyApplied ? { playerName: unoCheck.playerName } : null
+        };
     }
 
     handleCardEffect(card, playerIndex) {
@@ -371,6 +379,68 @@ class GameRoom {
             
             return { success: true, canPlayDrawn: canPlay, cardsDrawn: 1 };
         }
+    }
+
+    callUno(playerId) {
+        const playerIndex = this.players.findIndex(p => p.id === playerId);
+        if (playerIndex === -1) {
+            return { success: false, error: 'Player not found' };
+        }
+        
+        const player = this.players[playerIndex];
+        
+        // Can only call O,no when player has 2 or 1 cards
+        if (player.hand.length <= 2 && player.hand.length > 0) {
+            player.calledUno = true;
+            return { success: true, playerName: player.name };
+        }
+        
+        return { success: false, error: 'Can only call O,no with 2 or 1 cards' };
+    }
+    
+    catchUnoViolation(catcherId, caughtPlayerId) {
+        const catcherIndex = this.players.findIndex(p => p.id === catcherId);
+        const caughtIndex = this.players.findIndex(p => p.id === caughtPlayerId);
+        
+        if (catcherIndex === -1 || caughtIndex === -1) {
+            return { success: false, error: 'Player not found' };
+        }
+        
+        const caughtPlayer = this.players[caughtIndex];
+        
+        // Check if the caught player has 1 card and hasn't called O,no
+        if (caughtPlayer.hand.length === 1 && !caughtPlayer.calledUno) {
+            // Apply penalty: draw 2 cards
+            this.drawCards(caughtIndex, 2);
+            caughtPlayer.calledUno = false; // Reset the flag
+            
+            return {
+                success: true,
+                catcherName: this.players[catcherIndex].name,
+                caughtName: caughtPlayer.name,
+                penaltyApplied: true
+            };
+        }
+        
+        return { success: false, error: 'No O,no violation detected' };
+    }
+    
+    checkUnoAfterPlay(playerIndex) {
+        const player = this.players[playerIndex];
+        
+        // If player has exactly 1 card after playing and didn't call O,no, apply penalty
+        if (player.hand.length === 1 && !player.calledUno) {
+            this.drawCards(playerIndex, 2);
+            return { penaltyApplied: true, playerName: player.name };
+        }
+        
+        // Reset calledUno flag when hand length is no longer 1
+        // (player has won with 0 cards or has more than 1 card)
+        if (player.hand.length !== 1) {
+            player.calledUno = false;
+        }
+        
+        return { penaltyApplied: false };
     }
 
     reshuffleDeck() {
@@ -572,6 +642,14 @@ io.on('connection', socket => {
         room.players.forEach(p => {
             io.to(p.id).emit('gameState', room.getGameState(p.id));
         });
+        
+        // Broadcast O,no penalty if applied
+        if (result.unoPenalty) {
+            io.to(roomId).emit('unoPenalty', {
+                playerName: result.unoPenalty.playerName,
+                message: `${result.unoPenalty.playerName} forgot to call O,No! Drawing 2 cards as penalty!`
+            });
+        }
 
         // Check for winner
         if (result.winner !== null) {
@@ -605,6 +683,44 @@ io.on('connection', socket => {
             }
             io.to(p.id).emit('gameState', state);
         });
+    });
+
+    socket.on('callUno', ({ roomId }) => {
+        const room = rooms.get(roomId);
+        if (!room || !room.gameStarted) return;
+
+        const result = room.callUno(socket.id);
+        
+        if (result.success) {
+            // Broadcast to all players that this player called O,no
+            io.to(roomId).emit('playerCalledUno', {
+                playerName: result.playerName,
+                message: `${result.playerName} called O,No!`
+            });
+        }
+    });
+    
+    socket.on('catchUno', ({ roomId, caughtPlayerId }) => {
+        const room = rooms.get(roomId);
+        if (!room || !room.gameStarted) return;
+
+        const result = room.catchUnoViolation(socket.id, caughtPlayerId);
+        
+        if (result.success && result.penaltyApplied) {
+            // Broadcast penalty to all players
+            io.to(roomId).emit('unoPenalty', {
+                catcherName: result.catcherName,
+                caughtName: result.caughtName,
+                message: `${result.catcherName} caught ${result.caughtName}! ${result.caughtName} draws 2 penalty cards!`
+            });
+            
+            // Broadcast updated game state to all players
+            room.players.forEach(p => {
+                io.to(p.id).emit('gameState', room.getGameState(p.id));
+            });
+        } else if (!result.success) {
+            socket.emit('error', result.error);
+        }
     });
 
     // Heartbeat handler - clients send this every 5 seconds

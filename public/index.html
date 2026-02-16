@@ -1221,8 +1221,7 @@
         <div class="setting-item">
             <label>Number of Players</label>
             <select id="maxPlayers">
-                <option value="2" selected>2 Players (1v1)</option>
-                <option value="3">3 Players (1v1v1)</option>
+                <option value="3" selected>3 Players (1v1v1)</option>
                 <option value="4">4 Players (1v1v1v1)</option>
                 <option value="5">5 Players (1v1v1v1v1)</option>
                 <option value="6">6 Players (1v1v1v1v1v1)</option>
@@ -1601,6 +1600,14 @@
 
         socket.on('unoCalled', (data) => {
             showMessage(`${data.playerName} called O,NO!`);
+        });
+        
+        socket.on('playerCalledUno', (data) => {
+            showMessage(data.message);
+        });
+        
+        socket.on('unoPenalty', (data) => {
+            showMessage(data.message);
         });
 
         socket.on('gameOver', (data) => {
@@ -2131,11 +2138,25 @@
                         oppBox.style.boxShadow = '0 0 15px rgba(46, 204, 113, 0.5)';
                     }
                     
+                    // Add catch button if opponent has 1 card
+                    const catchButton = opponent.cardCount === 1 
+                        ? `<button class="catch-button" data-opponent-id="${opponent.id}" style="margin-top: 10px; padding: 5px 15px; background: #e74c3c; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">Catch!</button>`
+                        : '';
+                    
                     oppBox.innerHTML = `
                         <div style="font-weight: bold; margin-bottom: 10px; font-size: 1.1em;">${opponent.name}</div>
                         <div style="font-size: 1.3em; color: #f1c40f;">${opponent.cardCount} 🎴</div>
                         ${isTheirTurn ? '<div style="margin-top: 5px; color: #2ecc71; font-weight: bold;">⏰ Their Turn</div>' : ''}
+                        ${catchButton}
                     `;
+                    
+                    // Add event listener for catch button if it exists
+                    if (opponent.cardCount === 1) {
+                        const btn = oppBox.querySelector('.catch-button');
+                        if (btn) {
+                            btn.addEventListener('click', () => catchOpponent(opponent.id));
+                        }
+                    }
                     
                     opponentsDiv.appendChild(oppBox);
                 });
@@ -2450,6 +2471,12 @@
         if (socket && socket.connected) {
             socket.emit('callUno', { roomId: roomId });
             showMessage('O,NO!');
+        }
+    }
+    
+    function catchOpponent(opponentId) {
+        if (socket && socket.connected) {
+            socket.emit('catchUno', { roomId: roomId, caughtPlayerId: opponentId });
         }
     }
 

@@ -869,7 +869,10 @@
         </div>
 
         <div class="computer-hand">
-            <div>Computer (<span id="computerCardCount">7</span> cards)</div>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 15px;">
+                <span>Computer (<span id="computerCardCount">7</span> cards)</span>
+                <button id="catchButton" onclick="catchComputer()" style="display: none; background: #e74c3c; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-weight: bold;">Catch!</button>
+            </div>
             <div class="computer-cards" id="computerCards"></div>
         </div>
 
@@ -944,6 +947,10 @@
     
     // Constants
     const MAX_DRAW_ATTEMPTS = 50; // Safety limit for "draw until match" to prevent infinite loops
+    const EASY_CATCH_PROBABILITY = 0.3; // 30% chance for easy difficulty
+    const MEDIUM_CATCH_PROBABILITY = 0.5; // 50% chance for medium difficulty
+    const HARD_CATCH_PROBABILITY = 0.8; // 80% chance for hard difficulty
+    const PENALTY_DISPLAY_DELAY_MS = 1500; // Delay before continuing after penalty
     
     // Settings
     let settings = {
@@ -1063,10 +1070,7 @@
 
     function quitGame() {
         if (confirm('Are you sure you want to quit?')) {
-            window.close();
-            setTimeout(() => {
-                alert('Please close this tab/window to quit the game.');
-            }, 100);
+            window.location.href = '/index.html';
         }
     }
 
@@ -1256,6 +1260,14 @@
             stackIndicator.classList.add('active');
         } else {
             stackIndicator.classList.remove('active');
+        }
+        
+        // Show/hide catch button if computer has 1 card and hasn't called O,no
+        const catchButton = document.getElementById('catchButton');
+        if (computerHand.length === 1 && !computerCalledUno && gameInProgress) {
+            catchButton.style.display = 'inline-block';
+        } else {
+            catchButton.style.display = 'none';
         }
     }
 
@@ -1647,6 +1659,34 @@
     }
 
     function computerPlay() {
+        if (!gameInProgress) return;
+        
+        // Computer has a chance to catch player if they have 1 card and didn't call O,no
+        if (playerHand.length === 1 && !playerCalledUno) {
+            // Random chance based on difficulty
+            let catchChance = MEDIUM_CATCH_PROBABILITY;
+            if (settings.difficulty === 'easy') {
+                catchChance = EASY_CATCH_PROBABILITY;
+            } else if (settings.difficulty === 'hard') {
+                catchChance = HARD_CATCH_PROBABILITY;
+            }
+            
+            if (Math.random() < catchChance) {
+                showMessage('Computer caught you! You draw 2 penalty cards!');
+                drawCardsForPlayer('player', 2, () => {
+                    playerCalledUno = false;
+                    updateGameInfo();
+                    // Computer continues their turn
+                    setTimeout(() => continueComputerPlay(), PENALTY_DISPLAY_DELAY_MS);
+                });
+                return;
+            }
+        }
+        
+        continueComputerPlay();
+    }
+    
+    function continueComputerPlay() {
         if (!gameInProgress) return;
         
         let playableCards = computerHand.filter(card => canPlayCard(card));
@@ -2106,6 +2146,16 @@
             playerCalledUno = true;
             showMessage('O,No!');
             document.getElementById('unoButton').classList.remove('pulse');
+        }
+    }
+    
+    function catchComputer() {
+        if (computerHand.length === 1 && !computerCalledUno && gameInProgress) {
+            showMessage('You caught the computer! Computer draws 2 penalty cards!');
+            drawCardsForPlayer('computer', 2, () => {
+                computerCalledUno = false;
+                updateGameInfo();
+            });
         }
     }
 
