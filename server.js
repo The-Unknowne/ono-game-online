@@ -533,9 +533,9 @@ io.on('connection', socket => {
 
     socket.on('createLobby', ({ lobbyName, playerName, settings }) => {
         const id = `lobby_${Date.now()}`;
+        const minPlayers = 2; // minimum is always 2 (supports 1v1 up to 8 players)
         
-        // Create presence manager for lobby (minimum 3 players as per requirements)
-        const presenceManager = new PlayerPresenceManager(3, {
+        const presenceManager = new PlayerPresenceManager(minPlayers, {
             heartbeatInterval: 5000,
             reconnectTimeout: 60000
         });
@@ -548,7 +548,8 @@ io.on('connection', socket => {
             id,
             name: lobbyName,
             settings,
-            players: [{ id: socket.id, name: playerName, ready: false }]
+            players: [{ id: socket.id, name: playerName, ready: false }],
+            minPlayers
         };
         socket.join(id);
         socket.emit('lobbyCreated', {
@@ -556,7 +557,7 @@ io.on('connection', socket => {
             lobbyName: lobbyName,
             settings: settings,
             players: lobbies[id].players,
-            minPlayers: 3
+            minPlayers
         });
         broadcastLobbyList();
     });
@@ -590,7 +591,7 @@ io.on('connection', socket => {
             lobbyName: lobby.name,
             settings: lobby.settings,
             players: lobby.players,
-            minPlayers: 3
+            minPlayers: lobby.minPlayers || 2
         });
         io.to(lobbyId).emit('lobbyUpdate', { roomId: lobbyId, players: lobby.players });
         broadcastLobbyList();
@@ -612,8 +613,10 @@ io.on('connection', socket => {
         // Send lobby update to all players in the lobby
         io.to(roomId).emit('lobbyUpdate', { roomId: roomId, players: lobby.players });
 
-        // Check if can start game (minimum 3 players as per requirements)
-        if (lobby.players.length >= 3 && lobby.players.every(p => p.ready)) {
+        const minPlayers = lobby.minPlayers || 2;
+
+        // Check if can start game
+        if (lobby.players.length >= minPlayers && lobby.players.every(p => p.ready)) {
             // Verify all players are still connected
             const allConnected = lobby.players.every(p => !!io.sockets.sockets.get(p.id));
             
@@ -662,7 +665,7 @@ io.on('connection', socket => {
                         return pm && pm.state !== PlayerState.TIMEOUT && pm.state !== PlayerState.DISCONNECTED;
                     });
                     
-                    if (activePlayers.length < 3) {
+                    if (activePlayers.length < minPlayers) {
                         // Not enough players, end game
                         io.to(roomId).emit('gameEnded', {
                             reason: 'Not enough players remaining',
@@ -688,9 +691,9 @@ io.on('connection', socket => {
 
             delete lobbies[roomId];
             broadcastLobbyList();
-        } else if (lobby.players.length < 3 && lobby.players.every(p => p.ready)) {
+        } else if (lobby.players.length < minPlayers && lobby.players.every(p => p.ready)) {
             // Not enough players
-            io.to(roomId).emit('error', `Need at least 3 players to start (currently ${lobby.players.length})`);
+            io.to(roomId).emit('error', `Need at least ${minPlayers} players to start (currently ${lobby.players.length})`);
         }
     });
 
