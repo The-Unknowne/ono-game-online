@@ -1564,12 +1564,13 @@
         <div class="setting-item">
             <label>Number of Players</label>
             <select id="maxPlayers">
+                <option value="2">2 Players (1v1)</option>
                 <option value="3" selected>3 Players (1v1v1)</option>
-                <option value="4">4 Players (1v1v1v1)</option>
-                <option value="5">5 Players (1v1v1v1v1)</option>
-                <option value="6">6 Players (1v1v1v1v1v1)</option>
-                <option value="7">7 Players (1v1v1v1v1v1v1)</option>
-                <option value="8">8 Players (1v1v1v1v1v1v1v1)</option>
+                <option value="4">4 Players</option>
+                <option value="5">5 Players</option>
+                <option value="6">6 Players</option>
+                <option value="7">7 Players</option>
+                <option value="8">8 Players</option>
             </select>
         </div>
 
@@ -1917,7 +1918,7 @@
             currentLobbyData = data;
             isReady = false;
             startHeartbeat(); // Start heartbeat in lobby
-            showWaitingLobby(data.lobbyName, data.settings, data.players, data.minPlayers || 3);
+            showWaitingLobby(data.lobbyName, data.settings, data.players, data.minPlayers || 2);
         });
 
         socket.on('lobbyJoined', (data) => {
@@ -1925,7 +1926,7 @@
             currentLobbyData = data;
             isReady = false;
             startHeartbeat(); // Start heartbeat in lobby
-            showWaitingLobby(data.lobbyName, data.settings, data.players, data.minPlayers || 3);
+            showWaitingLobby(data.lobbyName, data.settings, data.players, data.minPlayers || 2);
         });
 
         socket.on('lobbyUpdate', (data) => {
@@ -2211,7 +2212,7 @@
         showOnlineMenu();
     }
 
-    function showWaitingLobby(lobbyName, settings, players, minPlayers = 3) {
+    function showWaitingLobby(lobbyName, settings, players, minPlayers = 2) {
         document.getElementById('waitingLobbyName').textContent = lobbyName;
         
         // Display lobby ID
@@ -2277,7 +2278,7 @@
         showScreen('waitingLobby');
     }
 
-    function updateLobbyStatus(players, minPlayers = 3) {
+    function updateLobbyStatus(players, minPlayers = 2) {
         const maxPlayers = currentLobbyData?.settings?.maxPlayers || 2;
         const playerCount = players.length;
         document.getElementById('playerCountText').textContent = `${playerCount} / ${maxPlayers}`;
