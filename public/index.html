@@ -996,8 +996,132 @@
         .ready-badge { min-width: 70px; font-size: 0.8em; }
     }
 
-    /* Card fly animation for playing a card to center */
-    /* Card fly animation for playing/drawing cards */
+    /* ============================================
+       DRAW PENALTY ANIMATION SYSTEM (+2 / +4)
+    ============================================ */
+
+    /* Flying card from deck to opponent/player */
+    .draw-penalty-card {
+        position: fixed;
+        z-index: 9998;
+        width: 55px;
+        height: 82px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        border: 2px solid rgba(255,255,255,0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4em;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5), 0 0 15px rgba(255,200,0,0.3);
+        pointer-events: none;
+        transition:
+            left 0.55s cubic-bezier(0.2, 0.8, 0.2, 1),
+            top 0.55s cubic-bezier(0.2, 0.8, 0.2, 1),
+            transform 0.55s cubic-bezier(0.34, 1.2, 0.64, 1),
+            opacity 0.3s ease;
+        will-change: left, top, transform;
+    }
+
+    /* Burst effect that appears on the victim */
+    @keyframes penaltyBurst {
+        0%   { transform: scale(0.5) rotate(-10deg); opacity: 0; }
+        40%  { transform: scale(1.3) rotate(4deg);  opacity: 1; }
+        70%  { transform: scale(0.95) rotate(-2deg); opacity: 1; }
+        100% { transform: scale(1) rotate(0deg);    opacity: 0; }
+    }
+
+    .penalty-burst {
+        position: fixed;
+        z-index: 9999;
+        pointer-events: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        animation: penaltyBurst 1.1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    .penalty-burst-badge {
+        background: linear-gradient(135deg, #ff416c, #ff4b2b);
+        color: white;
+        font-weight: 900;
+        font-size: 1.5em;
+        padding: 6px 18px;
+        border-radius: 30px;
+        box-shadow: 0 4px 20px rgba(255,65,108,0.7), 0 0 30px rgba(255,75,43,0.4);
+        letter-spacing: 1px;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        white-space: nowrap;
+    }
+
+    .penalty-burst-sub {
+        color: white;
+        font-size: 0.95em;
+        font-weight: 700;
+        text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+        background: rgba(0,0,0,0.5);
+        padding: 3px 12px;
+        border-radius: 12px;
+    }
+
+    /* Victim box shake */
+    @keyframes victimShake {
+        0%   { transform: translateX(0)   rotate(0deg); }
+        15%  { transform: translateX(-8px) rotate(-3deg); }
+        30%  { transform: translateX(8px)  rotate(3deg); }
+        45%  { transform: translateX(-6px) rotate(-2deg); }
+        60%  { transform: translateX(6px)  rotate(2deg); }
+        75%  { transform: translateX(-4px) rotate(-1deg); }
+        90%  { transform: translateX(4px)  rotate(1deg); }
+        100% { transform: translateX(0)   rotate(0deg); }
+    }
+
+    .victim-shaking {
+        animation: victimShake 0.55s ease-in-out;
+        border-color: #ff416c !important;
+        box-shadow: 0 0 25px rgba(255,65,108,0.8) !important;
+    }
+
+    /* Screen flash for the victim player's own view */
+    @keyframes screenFlash {
+        0%   { opacity: 0; }
+        20%  { opacity: 0.45; }
+        60%  { opacity: 0.2; }
+        100% { opacity: 0; }
+    }
+
+    #penaltyFlash {
+        position: fixed;
+        inset: 0;
+        z-index: 9997;
+        background: radial-gradient(ellipse at center, rgba(255,65,108,0.6) 0%, rgba(255,75,43,0.3) 60%, transparent 100%);
+        pointer-events: none;
+        opacity: 0;
+        display: none;
+    }
+
+    #penaltyFlash.flashing {
+        display: block;
+        animation: screenFlash 0.7s ease-out forwards;
+    }
+
+    /* Card trail sparkle */
+    @keyframes sparkle {
+        0%   { transform: scale(0) rotate(0deg); opacity: 1; }
+        100% { transform: scale(1.5) rotate(180deg); opacity: 0; }
+    }
+
+    .card-sparkle {
+        position: fixed;
+        z-index: 9997;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        pointer-events: none;
+        animation: sparkle 0.4s ease-out forwards;
+    }
     .card-fly-to-center,
     .card-fly-to-hand {
         position: fixed;
@@ -1375,6 +1499,8 @@
     </div>
 </div>
 
+<div id="penaltyFlash"></div>
+
 <button class="uno-button" id="unoButton" onclick="callUno()">O,NO!</button>
 
 <div class="overlay" id="overlay"></div>
@@ -1640,6 +1766,19 @@
         
         socket.on('unoPenalty', (data) => {
             showMessage(data.message);
+        });
+
+        // ==========================================
+        // DRAW PENALTY ANIMATION (+2 / +4 / Stack)
+        // ==========================================
+        socket.on('drawAnimation', (data) => {
+            const isVictim = data.victimId === socket.id;
+            // Show flash on victim's own screen
+            if (isVictim) {
+                triggerPenaltyFlash();
+            }
+            // Animate cards flying from deck to target
+            animateDrawPenalty(data, isVictim);
         });
 
         socket.on('gameOver', (data) => {
@@ -2431,6 +2570,156 @@
         }
         
         animateNext(0);
+    }
+
+    // ============================================================
+    //  DRAW PENALTY ANIMATION SYSTEM
+    //  Flies cards from deck → victim (opponent box or player hand)
+    // ============================================================
+
+    function triggerPenaltyFlash() {
+        const flash = document.getElementById('penaltyFlash');
+        if (!flash) return;
+        flash.classList.remove('flashing');
+        // Force reflow to restart animation
+        void flash.offsetWidth;
+        flash.classList.add('flashing');
+        setTimeout(() => flash.classList.remove('flashing'), 800);
+    }
+
+    function spawnSparkle(x, y, color) {
+        const s = document.createElement('div');
+        s.className = 'card-sparkle';
+        s.style.left = x + 'px';
+        s.style.top  = y + 'px';
+        s.style.background = color;
+        s.style.boxShadow  = `0 0 6px ${color}`;
+        document.body.appendChild(s);
+        setTimeout(() => s.remove(), 450);
+    }
+
+    function animateDrawPenalty(data, isVictim) {
+        const { count, cardValue, victimId, victimName } = data;
+        const drawPile = document.getElementById('drawPile');
+        if (!drawPile) return;
+
+        const srcRect = drawPile.getBoundingClientRect();
+
+        // Find target element: player's own hand or opponent's box
+        let targetEl = null;
+        if (isVictim) {
+            targetEl = document.getElementById('playerHand');
+        } else {
+            // Find the opponent box by name text
+            if (victimName) {
+                const boxes = document.querySelectorAll('#opponentsList > div');
+                for (const box of boxes) {
+                    if (box.textContent.includes(victimName)) {
+                        targetEl = box;
+                        break;
+                    }
+                }
+            }
+            if (!targetEl) {
+                targetEl = document.getElementById('opponentsList');
+            }
+        }
+
+        const endRect = targetEl ? targetEl.getBoundingClientRect() : srcRect;
+        const endX = endRect.left + endRect.width / 2;
+        const endY = endRect.top  + endRect.height / 2;
+
+        // Penalty badge colors
+        const isBig  = cardValue === 'Wild+4' || count >= 4;
+        const accent = isBig ? '#ff4b2b' : '#ff416c';
+        const label  = cardValue === 'stack'
+            ? `Draw ${count}!`
+            : cardValue === 'Wild+4' ? '+4 Draw!' : '+2 Draw!';
+
+        // Stagger cards
+        for (let i = 0; i < count; i++) {
+            setTimeout(() => {
+                const card = document.createElement('div');
+                card.className = 'draw-penalty-card';
+                card.innerHTML = '🎴';
+                card.style.left   = srcRect.left + 'px';
+                card.style.top    = srcRect.top  + 'px';
+                card.style.width  = srcRect.width  + 'px';
+                card.style.height = srcRect.height + 'px';
+                card.style.transform = 'scale(0.85) rotate(-8deg)';
+                card.style.opacity = '1';
+                card.style.boxShadow = `0 4px 20px rgba(0,0,0,0.5), 0 0 20px ${accent}88`;
+
+                document.body.appendChild(card);
+
+                // Arc midpoint (raise cards upward for drama)
+                const midX = (srcRect.left + endX) / 2;
+                const midY = Math.min(srcRect.top, endY) - 80 - i * 10;
+
+                requestAnimationFrame(() => {
+                    // Phase 1: Arc to midpoint
+                    setTimeout(() => {
+                        card.style.transition = `left 0.28s ease-out, top 0.28s ease-out, transform 0.28s ease-out, opacity 0.28s ease`;
+                        card.style.left = midX + 'px';
+                        card.style.top  = midY + 'px';
+                        card.style.transform = `scale(1.1) rotate(${i % 2 === 0 ? '5deg' : '-5deg'})`;
+
+                        // Sparkle trail at midpoint
+                        setTimeout(() => {
+                            for (let s = 0; s < 4; s++) {
+                                setTimeout(() => spawnSparkle(
+                                    midX + (Math.random() - 0.5) * 40,
+                                    midY + (Math.random() - 0.5) * 40,
+                                    accent
+                                ), s * 50);
+                            }
+                        }, 140);
+                    }, 30);
+
+                    // Phase 2: Land at target
+                    setTimeout(() => {
+                        card.style.transition = `left 0.28s cubic-bezier(0.34,1.2,0.64,1), top 0.28s cubic-bezier(0.34,1.2,0.64,1), transform 0.28s cubic-bezier(0.34,1.2,0.64,1), opacity 0.2s ease`;
+                        card.style.left = (endX - srcRect.width / 2)  + 'px';
+                        card.style.top  = (endY - srcRect.height / 2) + 'px';
+                        card.style.transform = `scale(0.9) rotate(${(i - count/2) * 5}deg)`;
+
+                        // Shake target element on last card
+                        if (i === count - 1 && targetEl) {
+                            setTimeout(() => {
+                                targetEl.classList.add('victim-shaking');
+                                setTimeout(() => targetEl.classList.remove('victim-shaking'), 600);
+
+                                // Show penalty burst badge
+                                showPenaltyBurst(endX, endY, label, victimName, isVictim, accent);
+                            }, 100);
+                        }
+                    }, 310);
+
+                    // Remove flying card
+                    setTimeout(() => {
+                        card.style.opacity = '0';
+                        setTimeout(() => card.remove(), 200);
+                    }, 550);
+                });
+            }, i * 140);
+        }
+    }
+
+    function showPenaltyBurst(x, y, label, name, isVictim, color) {
+        const burst = document.createElement('div');
+        burst.className = 'penalty-burst';
+        burst.style.left = (x - 80) + 'px';
+        burst.style.top  = (y - 55) + 'px';
+
+        const who = isVictim ? 'You draw!' : `${name} draws!`;
+        burst.innerHTML = `
+            <div class="penalty-burst-badge" style="background: linear-gradient(135deg, ${color}, ${color}cc);">
+                ${label}
+            </div>
+            <div class="penalty-burst-sub">${who}</div>
+        `;
+        document.body.appendChild(burst);
+        setTimeout(() => burst.remove(), 1300);
     }
 
     function canPlayCard(card) {
