@@ -3,142 +3,272 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UNO Card Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>O,No Online</title>
+    <script src="/socket.io/socket.io.js"></script>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-        
+            -webkit-tap-highlight-color: transparent;
+        }
 
 ```
     body {
-        font-family: 'Arial', sans-serif;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+        background-color: #667eea;
+        background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background-attachment: fixed;
         min-height: 100vh;
+        min-height: -webkit-fill-available;
         display: flex;
         justify-content: center;
         align-items: center;
-        padding: 20px;
+        padding: 10px;
+        overflow-x: hidden;
+        touch-action: pan-y;
+        margin: 0;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
     }
 
-    /* Screen Management */
+    /* Background Animation Classes */
+    body.bg-static {
+        background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background-attachment: fixed;
+    }
+
+    body.bg-color-cycle {
+        background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background-attachment: fixed;
+        animation: colorCycle 15s ease-in-out infinite;
+    }
+
+    body.bg-pulsing {
+        background-image: linear-gradient(-45deg, #667eea, #764ba2, #667eea, #764ba2);
+        background-size: 400% 400%;
+        background-attachment: fixed;
+        animation: pulsing 10s ease infinite;
+    }
+
+    /* Keyframe Animations */
+    @keyframes colorCycle {
+        0% {
+            background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        25% {
+            background-image: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        50% {
+            background-image: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        75% {
+            background-image: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+        100% {
+            background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+    }
+
+    @keyframes pulsing {
+        0% {
+            background-position: 0% 50%;
+        }
+        50% {
+            background-position: 100% 50%;
+        }
+        100% {
+            background-position: 0% 50%;
+        }
+    }
+
     .screen {
         display: none;
+        width: 100%;
+        max-width: 1000px;
     }
 
     .screen.active {
-        display: block;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        width: 100%;
     }
 
-    /* Main Menu Styles */
-    .main-menu {
+    .menu-container {
         background: rgba(255, 255, 255, 0.95);
         border-radius: 30px;
-        padding: 60px 80px;
+        padding: 40px;
         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
         text-align: center;
-        max-width: 500px;
+        max-width: 600px;
+        width: 100%;
+        max-height: 90vh;
+        overflow-y: auto;
+        color: #333;
     }
 
-    .main-menu h1 {
-        font-size: 4em;
+    h1 {
+        font-size: 3.5em;
         color: #667eea;
         margin-bottom: 20px;
         text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.2);
     }
 
-    .main-menu p {
-        font-size: 1.2em;
-        color: #666;
-        margin-bottom: 40px;
+    h2 {
+        font-size: 2em;
+        color: #667eea;
+        margin-bottom: 15px;
     }
 
     .menu-button {
         display: block;
         width: 100%;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background-color: #667eea;
+        background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         border: none;
-        padding: 20px 40px;
+        padding: 20px;
         font-size: 1.3em;
+        font-weight: 600;
         border-radius: 15px;
         cursor: pointer;
         margin-bottom: 15px;
         transition: all 0.3s;
         box-shadow: 0 6px 15px rgba(102, 126, 234, 0.4);
+        touch-action: manipulation;
+        -webkit-appearance: none;
     }
 
-    .menu-button:hover {
+    .menu-button:active {
+        transform: translateY(2px);
+        box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+    }
+
+    .menu-button.online {
+        background-color: #2ecc71;
+        background-image: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+    }
+
+    .menu-button.offline {
+        background-color: #3498db;
+        background-image: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    }
+
+    .menu-button.create {
+        background-color: #f39c12;
+        background-image: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+    }
+
+    input[type="text"], select {
+        width: 100%;
+        padding: 15px;
+        font-size: 1.2em;
+        border: 2px solid #667eea;
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+
+    .lobby-list {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        margin: 20px 0;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .lobby-card {
+        background: white;
+        border-radius: 15px;
+        padding: 20px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        text-align: left;
+        cursor: pointer;
+        transition: transform 0.2s;
+        border: 3px solid transparent;
+        color: #333;
+    }
+
+    .lobby-card:hover {
         transform: translateY(-3px);
-        box-shadow: 0 10px 25px rgba(102, 126, 234, 0.6);
+        border-color: #667eea;
     }
 
-    .menu-button.settings {
-        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-        box-shadow: 0 6px 15px rgba(52, 152, 219, 0.4);
+    .lobby-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
     }
 
-    .menu-button.settings:hover {
-        box-shadow: 0 10px 25px rgba(52, 152, 219, 0.6);
-    }
-
-    .menu-button.quit {
-        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-        box-shadow: 0 6px 15px rgba(231, 76, 60, 0.4);
-    }
-
-    .menu-button.quit:hover {
-        box-shadow: 0 10px 25px rgba(231, 76, 60, 0.6);
-    }
-
-    /* Settings Menu Styles */
-    .settings-menu {
-        background: rgba(255, 255, 255, 0.95);
-        border-radius: 30px;
-        padding: 50px 60px;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-        max-width: 600px;
-    }
-
-    .settings-menu h2 {
-        font-size: 2.5em;
+    .lobby-name {
+        font-size: 1.3em;
+        font-weight: bold;
         color: #667eea;
-        margin-bottom: 30px;
-        text-align: center;
+    }
+
+    .lobby-players {
+        background: #2ecc71;
+        color: white;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.9em;
+        font-weight: bold;
+    }
+
+    .lobby-info {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+    }
+
+    .lobby-tag {
+        background: #ecf0f1;
+        background-color: #ecf0f1;
+        color: #34495e;
+        padding: 5px 10px;
+        border-radius: 8px;
+        font-size: 0.85em;
+    }
+
+    .lobby-tag.active {
+        background: #3498db;
+        background-color: #3498db;
+        color: white;
     }
 
     .setting-item {
-        margin-bottom: 30px;
-        background: rgba(102, 126, 234, 0.1);
-        padding: 20px;
-        border-radius: 15px;
+        margin-bottom: 20px;
+        text-align: left;
     }
 
     .setting-item label {
         display: block;
-        font-size: 1.3em;
+        font-size: 1.1em;
         color: #333;
-        margin-bottom: 15px;
-        font-weight: bold;
+        margin-bottom: 8px;
+        font-weight: 600;
     }
 
-    .setting-item select {
-        width: 100%;
-        padding: 12px;
-        font-size: 1.1em;
-        border: 2px solid #667eea;
-        border-radius: 10px;
-        background: white;
-        cursor: pointer;
+    .toggle-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
     }
 
     .toggle-switch {
         position: relative;
         display: inline-block;
-        width: 80px;
-        height: 40px;
+        width: 60px;
+        height: 34px;
     }
 
     .toggle-switch input {
@@ -147,7 +277,7 @@
         height: 0;
     }
 
-    .slider {
+    .slider-toggle {
         position: absolute;
         cursor: pointer;
         top: 0;
@@ -155,151 +285,219 @@
         right: 0;
         bottom: 0;
         background-color: #ccc;
-        transition: 0.4s;
-        border-radius: 40px;
+        transition: .4s;
+        border-radius: 34px;
     }
 
-    .slider:before {
+    .slider-toggle:before {
         position: absolute;
         content: "";
-        height: 32px;
-        width: 32px;
+        height: 26px;
+        width: 26px;
         left: 4px;
         bottom: 4px;
         background-color: white;
-        transition: 0.4s;
+        transition: .4s;
         border-radius: 50%;
     }
 
-    input:checked + .slider {
-        background-color: #667eea;
+    input:checked + .slider-toggle {
+        background-color: #2ecc71;
     }
 
-    input:checked + .slider:before {
-        transform: translateX(40px);
+    input:checked + .slider-toggle:before {
+        transform: translateX(26px);
     }
 
-    .settings-buttons {
-        display: flex;
-        gap: 15px;
-        margin-top: 40px;
+    .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: #7f8c8d;
     }
 
-    .settings-buttons button {
-        flex: 1;
+    .empty-state-icon {
+        font-size: 4em;
+        margin-bottom: 15px;
     }
 
-    /* Game Container Styles */
+    /* Game styles (keep existing game styles) */
     .game-container {
         background: rgba(255, 255, 255, 0.1);
         backdrop-filter: blur(10px);
         border-radius: 20px;
-        padding: 30px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        max-width: 1200px;
+        padding: 20px;
         width: 100%;
+        max-width: 1000px;
+        margin: 0 auto;
     }
 
     .game-header {
-        text-align: center;
         color: white;
-        margin-bottom: 30px;
-    }
-
-    .game-header h1 {
-        font-size: 3em;
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-        margin-bottom: 10px;
+        text-align: center;
+        margin-bottom: 20px;
     }
 
     .game-info {
         display: flex;
         justify-content: space-around;
+        flex-wrap: wrap;
         color: white;
-        margin-bottom: 20px;
-        font-size: 1.2em;
+        margin-bottom: 15px;
+        font-size: 1em;
+        gap: 10px;
     }
 
     .game-info div {
         background: rgba(255, 255, 255, 0.2);
-        padding: 10px 20px;
+        padding: 8px 15px;
         border-radius: 10px;
+    }
+
+    .opponent-area {
+        text-align: center;
+        color: white;
+        margin-bottom: 20px;
+    }
+
+    .opponent-cards {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin-top: 10px;
+    }
+
+    .card-back-small {
+        width: 50px;
+        height: 75px;
+        background: linear-gradient(135deg, #2c3e50, #34495e);
+        border-radius: 8px;
+        border: 2px solid white;
     }
 
     .play-area {
         display: flex;
         justify-content: center;
         align-items: center;
-        gap: 40px;
-        margin: 40px 0;
-        min-height: 180px;
+        gap: 20px;
+        margin: 20px 0;
+        min-height: 140px;
+        position: relative;
     }
 
     .card {
-        width: 120px;
-        height: 180px;
-        border-radius: 15px;
+        width: 100px;
+        height: 150px;
+        border-radius: 12px;
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
         cursor: pointer;
-        transition: transform 0.3s, box-shadow 0.3s;
-        position: relative;
+        transition: 
+            transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), 
+            box-shadow 0.25s ease,
+            filter 0.25s ease;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
         border: 4px solid white;
+        touch-action: manipulation;
+        position: relative;
     }
 
-    .card:hover {
-        transform: translateY(-10px) scale(1.05);
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    .card:active {
+        transform: scale(0.95);
+        transition: transform 0.1s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @media (hover: hover) {
+        .card:hover {
+            filter: brightness(1.1);
+        }
     }
 
     .card-inner {
         width: 80%;
         height: 80%;
         background: white;
-        border-radius: 10px;
+        border-radius: 8px;
         display: flex;
         justify-content: center;
         align-items: center;
-        font-size: 2.5em;
+        font-size: 2em;
         font-weight: bold;
+        color: #000;
     }
 
-    .card.red { background-color: #e74c3c; }
-    .card.blue { background-color: #3498db; }
-    .card.green { background-color: #2ecc71; }
-    .card.yellow { background-color: #f1c40f; }
+    .card.red { 
+        background-color: #e74c3c;
+        background: #e74c3c;
+    }
+    .card.blue { 
+        background-color: #3498db;
+        background: #3498db;
+    }
+    .card.green { 
+        background-color: #2ecc71;
+        background: #2ecc71;
+    }
+    .card.yellow { 
+        background-color: #f1c40f;
+        background: #f1c40f;
+    }
     .card.wild { 
-        background: linear-gradient(135deg, #e74c3c 0%, #3498db 33%, #2ecc71 66%, #f1c40f 100%);
+        background-color: #e74c3c;
+        background-image: linear-gradient(135deg, #e74c3c 0%, #3498db 33%, #2ecc71 66%, #f1c40f 100%);
     }
 
-    .card-back {
-        background: linear-gradient(135deg, #2c3e50, #34495e);
-        cursor: pointer;
-    }
-
-    .card-back:hover {
-        transform: scale(1.05);
+    .wild-color-indicator {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 25px;
+        height: 25px;
+        border-radius: 50%;
+        border: 2px solid white;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     }
 
     .player-hand {
         display: flex;
         justify-content: center;
         flex-wrap: wrap;
-        gap: 10px;
-        min-height: 200px;
-        margin-top: 30px;
+        gap: 8px;
+        min-height: 160px;
+        padding: 10px;
+        border-radius: 15px;
+        transition: all 0.3s;
+    }
+
+    .player-hand.your-turn {
+        animation: glowPulse 2s ease-in-out infinite;
+        box-shadow: 0 0 20px rgba(46, 204, 113, 0.6),
+                    0 0 40px rgba(46, 204, 113, 0.4),
+                    0 0 60px rgba(46, 204, 113, 0.2);
+    }
+
+    @keyframes glowPulse {
+        0%, 100% {
+            box-shadow: 0 0 20px rgba(46, 204, 113, 0.6),
+                        0 0 40px rgba(46, 204, 113, 0.4),
+                        0 0 60px rgba(46, 204, 113, 0.2);
+        }
+        50% {
+            box-shadow: 0 0 30px rgba(46, 204, 113, 0.8),
+                        0 0 60px rgba(46, 204, 113, 0.6),
+                        0 0 90px rgba(46, 204, 113, 0.4);
+        }
     }
 
     .player-hand .card {
-        width: 100px;
-        height: 150px;
+        width: 80px;
+        height: 120px;
     }
 
     .player-hand .card-inner {
-        font-size: 2em;
+        font-size: 1.6em;
     }
 
     .card.disabled {
@@ -307,8 +505,14 @@
         cursor: not-allowed;
     }
 
-    .card.disabled:hover {
-        transform: none;
+    .message {
+        text-align: center;
+        color: white;
+        font-size: 1.3em;
+        margin: 15px 0;
+        min-height: 35px;
+        font-weight: bold;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
     }
 
     .color-picker {
@@ -322,6 +526,7 @@
         border-radius: 20px;
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
         z-index: 1000;
+        color: #333;
     }
 
     .color-picker.active {
@@ -329,14 +534,14 @@
     }
 
     .color-picker h3 {
-        margin-bottom: 20px;
-        text-align: center;
+        color: #333;
     }
 
     .color-options {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
         gap: 15px;
+        margin-top: 15px;
     }
 
     .color-option {
@@ -344,13 +549,31 @@
         height: 80px;
         border-radius: 10px;
         cursor: pointer;
-        border: 4px solid transparent;
+        border: 4px solid #fff;
         transition: transform 0.2s;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        touch-action: manipulation;
     }
 
-    .color-option:hover {
-        transform: scale(1.1);
-        border-color: #333;
+    .color-option:active {
+        transform: scale(0.9);
+    }
+
+    .color-option.red { 
+        background-color: #e74c3c !important;
+        background: #e74c3c !important;
+    }
+    .color-option.blue { 
+        background-color: #3498db !important;
+        background: #3498db !important;
+    }
+    .color-option.green { 
+        background-color: #2ecc71 !important;
+        background: #2ecc71 !important;
+    }
+    .color-option.yellow { 
+        background-color: #f1c40f !important;
+        background: #f1c40f !important;
     }
 
     .overlay {
@@ -368,45 +591,8 @@
         display: block;
     }
 
-    .message {
-        text-align: center;
-        color: white;
-        font-size: 1.5em;
-        margin: 20px 0;
-        min-height: 40px;
-        font-weight: bold;
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-    }
-
-    .controls {
-        display: flex;
-        justify-content: center;
-        gap: 20px;
-        margin-top: 20px;
-    }
-
-    button {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        padding: 15px 30px;
-        font-size: 1.1em;
-        border-radius: 10px;
-        cursor: pointer;
-        transition: transform 0.2s;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    }
-
-    button:hover {
-        transform: scale(1.05);
-    }
-
-    button:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-
-    .game-over {
+    /* Custom Popup Styles */
+    .custom-popup {
         display: none;
         position: fixed;
         top: 50%;
@@ -418,129 +604,633 @@
         text-align: center;
         z-index: 1001;
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        max-width: 90%;
+        min-width: 300px;
+        color: #333;
+        animation: popupFadeIn 0.3s ease-out;
     }
 
-    .game-over.active {
+    .custom-popup.active {
         display: block;
     }
 
-    .game-over h2 {
-        font-size: 2.5em;
+    @keyframes popupFadeIn {
+        from {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.9);
+        }
+        to {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+    }
+
+    .custom-popup h2 {
+        font-size: 2em;
         margin-bottom: 20px;
         color: #667eea;
     }
 
-    .computer-hand {
+    .custom-popup p {
+        font-size: 1.2em;
+        margin-bottom: 30px;
+        color: #555;
+        line-height: 1.5;
+    }
+
+    .popup-buttons {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .popup-button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 15px 40px;
+        font-size: 1.1em;
+        font-weight: 600;
+        border-radius: 15px;
+        cursor: pointer;
+        transition: all 0.3s;
+        box-shadow: 0 6px 15px rgba(102, 126, 234, 0.4);
+        touch-action: manipulation;
+        min-width: 120px;
+    }
+
+    .popup-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.5);
+    }
+
+    .popup-button:active {
+        transform: translateY(0);
+        box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+    }
+
+    .popup-button.secondary {
+        background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+        box-shadow: 0 6px 15px rgba(149, 165, 166, 0.4);
+    }
+
+    .popup-button.secondary:hover {
+        box-shadow: 0 8px 20px rgba(149, 165, 166, 0.5);
+    }
+
+    .loading {
         text-align: center;
         color: white;
-        font-size: 1.3em;
-        margin-bottom: 20px;
+        font-size: 1.5em;
+        padding: 20px;
     }
 
-    .computer-cards {
-        display: flex;
-        justify-content: center;
-        gap: -40px;
+    .spinner {
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-top: 4px solid white;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+        margin: 20px auto;
     }
 
-    .computer-cards .card {
-        width: 80px;
-        height: 120px;
-        margin: 0 -30px;
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
     }
 
     .uno-button {
         position: fixed;
-        bottom: 30px;
-        right: 30px;
+        bottom: 20px;
+        right: 20px;
         background: #e74c3c;
         color: white;
         border: none;
-        padding: 20px 40px;
-        font-size: 1.5em;
+        padding: 15px 30px;
+        font-size: 1.3em;
         font-weight: bold;
         border-radius: 50px;
         cursor: pointer;
         box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
-        transition: all 0.3s;
         display: none;
+        z-index: 100;
+        touch-action: manipulation;
     }
 
     .uno-button.active {
         display: block;
     }
 
-    .uno-button:hover {
-        transform: scale(1.1);
-        box-shadow: 0 8px 25px rgba(231, 76, 60, 0.6);
+    .controls {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 15px;
+        flex-wrap: wrap;
+    }
+
+    .controls button {
+        padding: 12px 25px;
+        font-size: 1em;
+        background-color: #667eea;
+        background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        touch-action: manipulation;
+        font-weight: 600;
+        -webkit-appearance: none;
+    }
+
+    .controls button:active {
+        transform: translateY(2px);
+    }
+
+    /* Waiting Lobby Enhancements */
+    .lobby-header {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        padding: 15px 20px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        text-align: center;
+        color: #333;
+    }
+
+    .lobby-id {
+        font-size: 0.9em;
+        color: rgba(0, 0, 0, 0.7);
+        font-family: monospace;
+        margin-top: 5px;
+    }
+
+    .player-slot {
+        padding: 12px 15px;
+        background: rgba(255, 255, 255, 0.12);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+        color: #333;
+    }
+
+    .player-slot.you {
+        background: rgba(102, 126, 234, 0.25);
+        border: 2px solid rgba(102, 126, 234, 0.5);
+        box-shadow: 0 0 15px rgba(102, 126, 234, 0.3);
+        color: #333;
+    }
+
+    .player-slot.empty {
+        background: rgba(255, 255, 255, 0.05);
+        border: 2px dashed rgba(255, 255, 255, 0.2);
+        color: #333;
+    }
+
+    .player-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3em;
+        flex-shrink: 0;
+    }
+
+    .player-avatar.empty {
+        background: rgba(255, 255, 255, 0.1);
+        opacity: 0.5;
+    }
+
+    .player-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+    }
+
+    .player-name {
+        font-weight: 600;
+        font-size: 1.05em;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .host-badge {
+        background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+        padding: 2px 8px;
+        border-radius: 5px;
+        font-size: 0.75em;
+        font-weight: bold;
+    }
+
+    .player-ready-status {
+        font-size: 0.9em;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .ready-badge {
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.85em;
+        font-weight: bold;
+        text-align: center;
+        min-width: 80px;
+    }
+
+    .ready-badge.ready {
+        background: rgba(46, 204, 113, 0.25);
+        color: #2ecc71;
+        border: 1px solid rgba(46, 204, 113, 0.4);
+    }
+
+    .ready-badge.not-ready {
+        background: rgba(243, 156, 18, 0.25);
+        color: #f39c12;
+        border: 1px solid rgba(243, 156, 18, 0.4);
+    }
+
+    .ready-badge.empty {
+        background: rgba(255, 255, 255, 0.05);
+        color: #95a5a6;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .rules-container {
+        background: rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(10px);
+        padding: 18px;
+        border-radius: 12px;
+        margin: 20px 0;
+        color: #333;
+    }
+
+    .rules-section {
+        margin-bottom: 15px;
+    }
+
+    .rules-section:last-child {
+        margin-bottom: 0;
+    }
+
+    .rules-title {
+        font-weight: 700;
+        font-size: 1.05em;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #333;
+    }
+
+    .rule-item {
+        background: rgba(255, 255, 255, 0.08);
+        padding: 8px 12px;
+        border-radius: 8px;
+        margin: 6px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.95em;
+        color: #333;
+    }
+
+    .ready-status-bar {
+        background: rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(10px);
+        padding: 12px 18px;
+        border-radius: 10px;
+        margin: 15px 0;
+        text-align: center;
+        font-size: 1em;
+        font-weight: 600;
+    }
+
+    .ready-status-bar.all-ready {
+        background: rgba(46, 204, 113, 0.25);
+        color: #2ecc71;
+        border: 2px solid rgba(46, 204, 113, 0.4);
+        animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    .ready-status-bar.waiting {
+        background: rgba(243, 156, 18, 0.25);
+        color: #f39c12;
+        border: 2px solid rgba(243, 156, 18, 0.4);
     }
 
     @keyframes pulse {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.1); }
+        0%, 100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+        50% {
+            transform: scale(1.02);
+            opacity: 0.9;
+        }
     }
 
-    .uno-button.pulse {
-        animation: pulse 0.5s ease-in-out infinite;
+    @keyframes readyPulse {
+        0%, 100% {
+            box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4);
+        }
+        50% {
+            box-shadow: 0 4px 25px rgba(46, 204, 113, 0.7);
+        }
     }
 
-    .pause-menu {
-        display: none;
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: white;
-        padding: 40px;
-        border-radius: 20px;
+    #readyButton {
+        animation: readyPulse 2s ease-in-out infinite;
+        font-size: 1.1em;
+        padding: 15px 30px;
+        font-weight: 700;
+    }
+
+    #readyButton.is-ready {
+        animation: none;
+    }
+
+    .waiting-message {
+        font-size: 0.95em;
+        color: rgba(0, 0, 0, 0.8);
         text-align: center;
-        z-index: 1001;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-        min-width: 300px;
+        margin: 10px 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
     }
 
-    .pause-menu.active {
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .spinner {
+        display: inline-block;
+        animation: spin 1s linear infinite;
+    }
+
+    @media (max-width: 768px) {
+        h1 { font-size: 2.5em; }
+        h2 { font-size: 1.5em; }
+        .menu-container { padding: 30px 20px; }
+        .card { width: 80px; height: 120px; }
+        .card-inner { font-size: 1.6em; }
+        .player-hand .card { width: 65px; height: 100px; }
+        .player-hand .card-inner { font-size: 1.3em; }
+        .player-avatar { width: 35px; height: 35px; font-size: 1.1em; }
+        .player-name { font-size: 0.95em; }
+        .ready-badge { min-width: 70px; font-size: 0.8em; }
+    }
+
+    /* Card fly animation for playing a card to center */
+    /* Card fly animation for playing/drawing cards */
+    .card-fly-to-center,
+    .card-fly-to-hand {
+        position: fixed;
+        z-index: 9999;
+        transition: 
+            left 0.6s cubic-bezier(0.2, 0.8, 0.2, 1),
+            top 0.6s cubic-bezier(0.2, 0.8, 0.2, 1),
+            transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
+            opacity 0.6s ease-out;
+        pointer-events: none;
+    }
+
+    /* Landing bounce animation */
+    @keyframes cardLand {
+        0% {
+            transform: scale(1.1) rotate(0deg);
+        }
+        50% {
+            transform: scale(1.15) rotate(0deg);
+        }
+        100% {
+            transform: scale(1) rotate(0deg);
+        }
+    }
+
+    /* Discard pile pulse animation */
+    @keyframes discardLand {
+        0% {
+            transform: scale(1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        50% {
+            transform: scale(1.05);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+        100% {
+            transform: scale(1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+    }
+
+    /* Card just played impact effect */
+    @keyframes cardJustPlayed {
+        0% {
+            transform: scale(1.05);
+        }
+        100% {
+            transform: scale(1);
+        }
+    }
+
+    .card-just-played {
+        animation: cardJustPlayed 0.3s ease-out;
+    }
+
+    .discard-pile-pulse {
+        animation: discardLand 0.3s ease-out;
+    }
+
+    .stack-indicator {
+        display: none;
+        position: absolute;
+        top: -20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: linear-gradient(135deg, #ff416c, #ff4b2b);
+        color: white;
+        padding: 8px 20px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 1.1em;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(255, 65, 108, 0.5);
+        z-index: 10;
+        animation: stackPulse 1.5s ease-in-out infinite;
+        white-space: nowrap;
+    }
+
+    .stack-indicator.active {
         display: block;
     }
 
-    .pause-menu h2 {
-        font-size: 2em;
-        color: #667eea;
-        margin-bottom: 30px;
+    @keyframes stackPulse {
+        0%, 100% { transform: translateX(-50%) scale(1); box-shadow: 0 4px 15px rgba(255, 65, 108, 0.5); }
+        50% { transform: translateX(-50%) scale(1.05); box-shadow: 0 6px 25px rgba(255, 65, 108, 0.8); }
     }
 
-    .pause-menu button {
-        width: 100%;
-        margin-bottom: 15px;
+    /* Disconnect Notification Styles */
+    .disconnect-notification {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+        color: white;
+        padding: 15px 25px;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 1em;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        z-index: 10000;
+        display: none;
+        animation: slideDown 0.3s ease-out;
+        max-width: 90%;
+        text-align: center;
+    }
+
+    .disconnect-notification.active {
+        display: block;
+    }
+
+    .disconnect-notification.reconnected {
+        background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
+    }
+
+    @keyframes slideDown {
+        from {
+            transform: translateX(-50%) translateY(-100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .disconnect-notification .reconnect-timer {
+        display: block;
+        font-size: 0.9em;
+        margin-top: 5px;
+        opacity: 0.9;
+    }
+
+    /* Player connection status indicator */
+    .player-connection-status {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 5px;
+        background: #51cf66;
+    }
+
+    .player-connection-status.disconnected {
+        background: #ff6b6b;
+        animation: blink 1s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.3; }
+    }
+
+    /* Minimum players warning */
+    .min-players-warning {
+        background: rgba(255, 152, 0, 0.15);
+        border: 2px solid #ff9800;
+        border-radius: 10px;
+        padding: 12px;
+        margin: 10px 0;
+        color: #f57c00;
+        font-weight: 600;
+        text-align: center;
     }
 </style>
 ```
 
 </head>
 <body>
-    <!-- Main Menu Screen -->
-    <div id="mainMenuScreen" class="screen active">
-        <div class="main-menu">
-            <h1>🎴 UNO 🎴</h1>
-            <p>Classic Card Game</p>
-            <button class="menu-button" onclick="startGame()">Play Game</button>
-            <button class="menu-button settings" onclick="showSettings()">Settings</button>
-            <button class="menu-button quit" onclick="quitGame()">Quit</button>
+    <!-- Disconnect Notification -->
+    <div id="disconnectNotification" class="disconnect-notification"></div>
+
+    <!-- Main Menu -->
+    <div id="mainMenu" class="screen active">
+        <div class="menu-container">
+            <h1>🎴 O,No 🎴</h1>
+            <p style="margin-bottom: 30px; color: #666;">Choose Game Mode</p>
+            <button class="menu-button online" onclick="showOnlineMenu()">🌐 Play Online</button>
+            <button class="menu-button offline" onclick="playOffline()">🤖 Play vs Computer</button>
         </div>
     </div>
 
 ```
-<!-- Settings Screen -->
-<div id="settingsScreen" class="screen">
-    <div class="settings-menu">
-        <h2>⚙️ Settings</h2>
+<!-- Online Menu -->
+<div id="onlineMenu" class="screen">
+    <div class="menu-container">
+        <h2>🌐 Online Multiplayer</h2>
+        <p style="margin-bottom: 30px; color: #666;">Choose an option</p>
+        <button class="menu-button create" onclick="showCreateLobby()">➕ Create Lobby</button>
+        <button class="menu-button online" onclick="showLobbyList()">🎮 Join Lobby</button>
+        <button class="menu-button offline" onclick="showMainMenu()">Back to Menu</button>
+    </div>
+</div>
+
+<!-- Lobby List -->
+<div id="lobbyList" class="screen">
+    <div class="menu-container">
+        <h2>🎮 Available Lobbies</h2>
+        <p style="margin-bottom: 20px; color: #666;">Select a lobby to join</p>
+        
+        <div class="lobby-list" id="lobbyListContainer">
+            <!-- Lobbies will be dynamically added here -->
+        </div>
+
+        <button class="menu-button" onclick="refreshLobbies()" style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);">🔄 Refresh</button>
+        <button class="menu-button offline" onclick="showOnlineMenu()">Back</button>
+    </div>
+</div>
+
+<!-- Create Lobby -->
+<div id="createLobby" class="screen">
+    <div class="menu-container">
+        <h2>Create Lobby</h2>
         
         <div class="setting-item">
-            <label>Difficulty Level</label>
-            <select id="difficulty">
-                <option value="easy">Easy</option>
-                <option value="medium" selected>Medium</option>
-                <option value="hard">Hard</option>
+            <label>Your Name</label>
+            <input type="text" id="playerName" placeholder="Enter your name" maxlength="20">
+        </div>
+
+        <div class="setting-item">
+            <label>Lobby Name</label>
+            <input type="text" id="lobbyName" placeholder="Enter lobby name" maxlength="30">
+        </div>
+
+        <div class="setting-item">
+            <label>Number of Players</label>
+            <select id="maxPlayers">
+                <option value="3" selected>3 Players (1v1v1)</option>
+                <option value="4">4 Players (1v1v1v1)</option>
+                <option value="5">5 Players (1v1v1v1v1)</option>
+                <option value="6">6 Players (1v1v1v1v1v1)</option>
+                <option value="7">7 Players (1v1v1v1v1v1v1)</option>
+                <option value="8">8 Players (1v1v1v1v1v1v1v1)</option>
             </select>
         </div>
 
@@ -548,35 +1238,102 @@
             <label>Starting Cards</label>
             <select id="startingCards">
                 <option value="5">5 Cards</option>
-                <option value="7" selected>7 Cards (Classic)</option>
+                <option value="7" selected>7 Cards</option>
                 <option value="10">10 Cards</option>
             </select>
         </div>
 
         <div class="setting-item">
-            <label>
-                Sound Effects
-                <label class="toggle-switch" style="float: right;">
-                    <input type="checkbox" id="soundToggle" checked>
-                    <span class="slider"></span>
+            <label style="margin-bottom: 15px;">Game Rules</label>
+            
+            <div class="toggle-container">
+                <label style="margin: 0;">Allow +2/+4 Stacking</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="allowStacking">
+                    <span class="slider-toggle"></span>
                 </label>
-            </label>
+            </div>
+            <p style="font-size: 0.9em; color: #666; margin-bottom: 10px;">Stack draw cards to pass the penalty</p>
+            
+            <div class="toggle-container">
+                <label style="margin: 0;">Allow 0 & 7 Special Rules</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="allowSpecial07">
+                    <span class="slider-toggle"></span>
+                </label>
+            </div>
+            <p style="font-size: 0.9em; color: #666; margin-bottom: 10px;">Playing 0 or 7 swaps hands with opponent</p>
+            
+            <div class="toggle-container">
+                <label style="margin: 0;">Allow 4 & 8 Special Rules</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="allowSpecial48">
+                    <span class="slider-toggle"></span>
+                </label>
+            </div>
+            <p style="font-size: 0.9em; color: #666; margin-bottom: 10px;">4 skips opponent, 8 reverses direction</p>
+            
+            <div class="toggle-container">
+                <label style="margin: 0;">Allow Jump-In</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="allowJumpIn">
+                    <span class="slider-toggle"></span>
+                </label>
+            </div>
+            <p style="font-size: 0.9em; color: #666; margin-bottom: 10px;">Play out of turn with exact match</p>
+            
+            <div class="toggle-container">
+                <label style="margin: 0;">Draw Until Match</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="drawUntilMatch" checked>
+                    <span class="slider-toggle"></span>
+                </label>
+            </div>
+            <p style="font-size: 0.9em; color: #666;">Keep drawing cards until a playable card is found. When off, draw only one card per turn.</p>
         </div>
 
-        <div class="setting-item">
-            <label>
-                Auto UNO Call
-                <label class="toggle-switch" style="float: right;">
-                    <input type="checkbox" id="autoUno">
-                    <span class="slider"></span>
-                </label>
-            </label>
-        </div>
+        <button class="menu-button online" onclick="createLobby()">Create Lobby</button>
+        <button class="menu-button offline" onclick="showOnlineMenu()">Back</button>
+    </div>
+</div>
 
-        <div class="settings-buttons">
-            <button class="menu-button" onclick="saveSettings()">Save & Return</button>
-            <button class="menu-button quit" onclick="cancelSettings()">Cancel</button>
+<!-- Waiting in Lobby -->
+<div id="waitingLobby" class="screen">
+    <div class="menu-container">
+        <h2>⏳ Waiting in Lobby</h2>
+        <div class="loading">
+            <!-- Lobby Header with Name and ID -->
+            <div class="lobby-header">
+                <p id="waitingLobbyName" style="font-size: 1.4em; font-weight: 700; margin-bottom: 5px; color: #333;">Lobby Name</p>
+                <p class="lobby-id" id="lobbyIdDisplay">Lobby ID: ••••••</p>
+                <p style="font-size: 1.05em; margin-top: 10px; color: rgba(0, 0, 0, 0.9);">
+                    <span id="playerCountText">1 / 2</span> Players
+                </p>
+            </div>
+
+            <!-- Ready Status Bar -->
+            <div id="readyStatusBar" class="ready-status-bar waiting" style="display: none;">
+                <!-- Dynamic ready status message -->
+            </div>
+
+            <!-- Waiting Message -->
+            <div id="waitingMessage" class="waiting-message" style="display: none;">
+                <span class="spinner">⏳</span>
+                <span>Waiting for more players to join...</span>
+            </div>
+            
+            <!-- Players Status -->
+            <div id="playersStatus" style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); padding: 15px; border-radius: 12px; margin-bottom: 20px; max-height: 350px; overflow-y: auto; color: #333;">
+                <!-- Player status will be dynamically added here -->
+            </div>
+
+            <!-- Rules Display -->
+            <div id="waitingRules">
+                <!-- Rules will be displayed here -->
+            </div>
         </div>
+        <button class="menu-button online" id="readyButton" onclick="toggleReady()" style="display: none;">✓ Ready Up!</button>
+        <button class="menu-button offline" onclick="leaveLobby()">Leave Lobby</button>
     </div>
 </div>
 
@@ -584,25 +1341,28 @@
 <div id="gameScreen" class="screen">
     <div class="game-container">
         <div class="game-header">
-            <h1>🎴 UNO 🎴</h1>
+            <h1 style="font-size: 2em;">🎴 O,No 🎴</h1>
         </div>
 
         <div class="game-info">
-            <div>Current Player: <span id="currentPlayer">You</span></div>
-            <div>Current Color: <span id="currentColor">-</span></div>
-            <div>Cards in Deck: <span id="deckCount">108</span></div>
+            <div>You: <span id="yourName">-</span></div>
+            <div>Color: <span id="currentColor">-</span></div>
+            <div>Deck: <span id="deckCount">-</span></div>
         </div>
 
-        <div class="computer-hand">
-            <div>Computer Hand (<span id="computerCardCount">7</span> cards)</div>
-            <div class="computer-cards" id="computerCards"></div>
+        <div class="opponent-area">
+            <div style="margin-bottom: 15px;"><strong>Other Players:</strong></div>
+            <div id="opponentsList" style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center;">
+                <!-- Opponents will be dynamically added here -->
+            </div>
         </div>
 
-        <div class="message" id="message">Game started! Your turn.</div>
+        <div class="message" id="message">Waiting for game to start...</div>
 
         <div class="play-area">
-            <div class="card card-back" id="drawPile" onclick="drawCard()">
-                <div style="color: white; font-size: 3em;">🎴</div>
+            <div id="stackIndicator" class="stack-indicator"></div>
+            <div class="card card-back" id="drawPile" onclick="drawCard()" style="cursor: pointer;">
+                <div style="color: white; font-size: 2.5em;">🎴</div>
             </div>
             <div id="discardPile"></div>
         </div>
@@ -610,13 +1370,12 @@
         <div class="player-hand" id="playerHand"></div>
 
         <div class="controls">
-            <button onclick="pauseGame()">Pause</button>
-            <button onclick="startNewGame()">New Game</button>
+            <button onclick="leaveGame()">Leave Game</button>
         </div>
     </div>
 </div>
 
-<button class="uno-button" id="unoButton" onclick="callUno()">UNO!</button>
+<button class="uno-button" id="unoButton" onclick="callUno()">O,NO!</button>
 
 <div class="overlay" id="overlay"></div>
 
@@ -630,491 +1389,1096 @@
     </div>
 </div>
 
-<div class="game-over" id="gameOver">
-    <h2 id="winnerText">You Win!</h2>
-    <p id="winnerMessage"></p>
-    <button onclick="returnToMenu()" style="margin-top: 20px;">Main Menu</button>
-    <button onclick="startNewGame()" style="margin-top: 10px;">Play Again</button>
+<div class="custom-popup" id="customPopup">
+    <h2 id="popupTitle"></h2>
+    <p id="popupMessage"></p>
+    <div class="popup-buttons" id="popupButtons"></div>
 </div>
 
-<div class="pause-menu" id="pauseMenu">
-    <h2>⏸️ Paused</h2>
-    <button onclick="resumeGame()">Resume Game</button>
-    <button onclick="returnToMenu()">Main Menu</button>
-    <button class="menu-button quit" onclick="quitGame()">Quit</button>
-</div>
-
+<script src="/js/playerPresence.js"></script>
 <script>
-    const COLORS = ['red', 'blue', 'green', 'yellow'];
-    const NUMBERS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
-    const ACTIONS = ['Skip', 'Reverse', '+2'];
-    const WILDS = ['Wild', 'Wild+4'];
+    let socket;
+    let gameState = null;
+    let roomId = null;
+    let pendingCardIndex = null;
+    let reconnectAttempts = 0;
+    const MAX_RECONNECT_ATTEMPTS = 5;
+    let currentLobbies = [];
+    let isReady = false;
+    let currentLobbyData = null;
+    let isWaitingForServer = false;
+    let heartbeatInterval = null;
+    let disconnectNotificationTimeout = null;
 
-    let deck = [];
-    let playerHand = [];
-    let computerHand = [];
-    let discardPile = [];
-    let currentColor = null;
-    let currentValue = null;
-    let currentPlayer = 'player';
-    let direction = 1;
-    let playerCalledUno = false;
-    let computerCalledUno = false;
-    let pendingWildCard = null;
-    
-    // Settings
-    let settings = {
-        difficulty: 'medium',
-        startingCards: 7,
-        soundEffects: true,
-        autoUno: false
-    };
+    // Background animation settings
+    function loadBackgroundAnimation() {
+        const savedAnimation = localStorage.getItem('onoBackgroundAnimation');
+        const validAnimations = ['static', 'color-cycle', 'pulsing'];
+        const animation = validAnimations.includes(savedAnimation) ? savedAnimation : 'static';
+        applyBackgroundAnimation(animation);
+    }
 
-    // Screen Management
-    function showScreen(screenId) {
-        document.querySelectorAll('.screen').forEach(screen => {
-            screen.classList.remove('active');
+    function applyBackgroundAnimation(animation) {
+        const classMap = {
+            'static': 'bg-static',
+            'color-cycle': 'bg-color-cycle',
+            'pulsing': 'bg-pulsing'
+        };
+        
+        const className = classMap[animation] || 'bg-static';
+        
+        const body = document.body;
+        body.classList.remove('bg-static', 'bg-color-cycle', 'bg-pulsing');
+        body.classList.add(className);
+    }
+
+    // Custom Popup Functions
+    function showPopup(message, title = '') {
+        const popup = document.getElementById('customPopup');
+        const overlay = document.getElementById('overlay');
+        const popupTitle = document.getElementById('popupTitle');
+        const popupMessage = document.getElementById('popupMessage');
+        const popupButtons = document.getElementById('popupButtons');
+
+        // Set title and message
+        if (title) {
+            popupTitle.textContent = title;
+            popupTitle.style.display = 'block';
+        } else {
+            popupTitle.style.display = 'none';
+        }
+        popupMessage.textContent = message;
+
+        // Clear and create OK button
+        popupButtons.innerHTML = '';
+        const okButton = document.createElement('button');
+        okButton.className = 'popup-button';
+        okButton.textContent = 'OK';
+        okButton.onclick = () => {
+            popup.classList.remove('active');
+            overlay.classList.remove('active');
+        };
+        popupButtons.appendChild(okButton);
+
+        // Show popup and overlay
+        overlay.classList.add('active');
+        popup.classList.add('active');
+    }
+
+    function showConfirm(message, callback, title = 'Confirm') {
+        const popup = document.getElementById('customPopup');
+        const overlay = document.getElementById('overlay');
+        const popupTitle = document.getElementById('popupTitle');
+        const popupMessage = document.getElementById('popupMessage');
+        const popupButtons = document.getElementById('popupButtons');
+
+        // Set title and message
+        popupTitle.textContent = title;
+        popupTitle.style.display = 'block';
+        popupMessage.textContent = message;
+
+        // Clear and create Yes/No buttons
+        popupButtons.innerHTML = '';
+        
+        const noButton = document.createElement('button');
+        noButton.className = 'popup-button secondary';
+        noButton.textContent = 'No';
+        noButton.onclick = () => {
+            popup.classList.remove('active');
+            overlay.classList.remove('active');
+            if (callback) callback(false);
+        };
+
+        const yesButton = document.createElement('button');
+        yesButton.className = 'popup-button';
+        yesButton.textContent = 'Yes';
+        yesButton.onclick = () => {
+            popup.classList.remove('active');
+            overlay.classList.remove('active');
+            if (callback) callback(true);
+        };
+
+        popupButtons.appendChild(noButton);
+        popupButtons.appendChild(yesButton);
+
+        // Show popup and overlay
+        overlay.classList.add('active');
+        popup.classList.add('active');
+    }
+
+    // Initialize socket connection with error handling
+    function initializeSocket() {
+        try {
+            socket = io({
+                reconnection: true,
+                reconnectionDelay: 1000,
+                reconnectionDelayMax: 5000,
+                reconnectionAttempts: MAX_RECONNECT_ATTEMPTS
+            });
+
+            setupSocketListeners();
+        } catch (error) {
+            console.error('Socket initialization error:', error);
+            showPopup('Failed to connect to server. Please refresh the page.');
+        }
+    }
+
+    function setupSocketListeners() {
+        socket.on('connect', () => {
+            console.log('Connected to server');
+            reconnectAttempts = 0;
         });
+
+        socket.on('disconnect', () => {
+            console.log('Disconnected from server');
+        });
+
+        socket.on('connect_error', (error) => {
+            console.error('Connection error:', error);
+            reconnectAttempts++;
+            if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+                showPopup('Unable to connect to server. Please check your internet connection and refresh the page.');
+            }
+        });
+
+        socket.on('lobbyList', (lobbies) => {
+            currentLobbies = lobbies;
+            renderLobbyList();
+        });
+
+        socket.on('lobbyCreated', (data) => {
+            roomId = data.roomId;
+            currentLobbyData = data;
+            isReady = false;
+            startHeartbeat(); // Start heartbeat in lobby
+            showWaitingLobby(data.lobbyName, data.settings, data.players, data.minPlayers || 3);
+        });
+
+        socket.on('lobbyJoined', (data) => {
+            roomId = data.roomId;
+            currentLobbyData = data;
+            isReady = false;
+            startHeartbeat(); // Start heartbeat in lobby
+            showWaitingLobby(data.lobbyName, data.settings, data.players, data.minPlayers || 3);
+        });
+
+        socket.on('lobbyUpdate', (data) => {
+            if (roomId === data.roomId) {
+                currentLobbyData = data;
+                updateLobbyStatus(data.players);
+            }
+        });
+
+        socket.on('gameStarted', (state) => {
+            gameState = state;
+            showScreen('gameScreen');
+            // Start heartbeat monitoring for in-game presence
+            startHeartbeat();
+            // Explicitly set the initial game message based on whose turn it is
+            if (gameState.isYourTurn) {
+                showMessage('Your turn!');
+            } else {
+                showMessage(gameState.currentPlayerName ? `${gameState.currentPlayerName}'s turn...` : "Opponent's turn...");
+            }
+            updateGameUI();
+        });
+
+        socket.on('gameState', (state) => {
+            // Show animation if cards were drawn by the current player
+            if (state.lastDrawInfo && state.lastDrawInfo.cardsDrawn && state.lastDrawInfo.playerId === socket.id) {
+                const count = state.lastDrawInfo.cardsDrawn;
+                
+                // Animate the cards being drawn
+                if (count === 1) {
+                    // Single card animation
+                    animateCardToHand('player', () => {
+                        // Update game state after animation completes
+                        gameState = state;
+                        isWaitingForServer = false;
+                        
+                        const message = 'You drew a card!';
+                        showMessage(message);
+                        updateGameUI();
+                    });
+                } else {
+                    // Multiple cards with staggered animation
+                    animateMultipleCardsToHand(count, () => {
+                        // Update game state after all animations complete
+                        gameState = state;
+                        isWaitingForServer = false;
+                        
+                        const message = `You drew ${count} cards until finding a matching color!`;
+                        showMessage(message);
+                        updateGameUI();
+                    });
+                }
+            } else {
+                // No animation needed, update immediately
+                gameState = state;
+                isWaitingForServer = false;
+                
+                // Show message if cards were drawn by opponent
+                if (state.lastDrawInfo && state.lastDrawInfo.cardsDrawn && state.lastDrawInfo.playerId !== socket.id) {
+                    const count = state.lastDrawInfo.cardsDrawn;
+                    const message = count === 1 
+                        ? 'Opponent drew a card!'
+                        : `Opponent drew ${count} cards!`;
+                    showMessage(message);
+                }
+                
+                updateGameUI();
+            }
+        });
+
+        socket.on('unoCalled', (data) => {
+            showMessage(`${data.playerName} called O,NO!`);
+        });
+        
+        socket.on('playerCalledUno', (data) => {
+            showMessage(data.message);
+        });
+        
+        socket.on('unoPenalty', (data) => {
+            showMessage(data.message);
+        });
+
+        socket.on('gameOver', (data) => {
+            const isWinner = data.winnerId === socket.id;
+            setTimeout(() => {
+                showPopup(
+                    isWinner ? 'You Won!' : 'You Lost!',
+                    isWinner ? '🎉 Congratulations!' : '😢 Game Over'
+                );
+                showMainMenu();
+            }, 500);
+        });
+
+        socket.on('opponentDisconnected', () => {
+            showPopup('Opponent disconnected');
+            showMainMenu();
+        });
+
+        socket.on('error', (message) => {
+            isWaitingForServer = false; // Reset flag on error
+            showPopup(message);
+        });
+
+        // Player presence events
+        socket.on('playerDisconnected', (data) => {
+            showDisconnectNotification(
+                `${data.playerName} disconnected. Waiting for reconnection...`,
+                data.reconnectTimeout
+            );
+        });
+
+        socket.on('playerTimeout', (data) => {
+            showDisconnectNotification(
+                `${data.playerName} has been removed from the game.`,
+                0,
+                'reconnected'
+            );
+            setTimeout(() => hideDisconnectNotification(), 5000);
+        });
+
+        socket.on('gameEnded', (data) => {
+            showPopup(data.reason, data.message);
+            setTimeout(() => showMainMenu(), 2000);
+        });
+    }
+
+    // Initialize on page load
+    window.addEventListener('DOMContentLoaded', () => {
+        loadBackgroundAnimation();
+        initializeSocket();
+    });
+
+    function showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.getElementById(screenId).classList.add('active');
     }
 
-    function showSettings() {
-        document.getElementById('difficulty').value = settings.difficulty;
-        document.getElementById('startingCards').value = settings.startingCards;
-        document.getElementById('soundToggle').checked = settings.soundEffects;
-        document.getElementById('autoUno').checked = settings.autoUno;
-        
-        showScreen('settingsScreen');
+    function showMainMenu() {
+        const tempRoomId = roomId;
+        roomId = null;  // Clear roomId first to prevent race condition
+        isReady = false;
+        stopHeartbeat();
+        hideDisconnectNotification();
+        showScreen('mainMenu');
     }
 
-    function saveSettings() {
-        settings.difficulty = document.getElementById('difficulty').value;
-        settings.startingCards = parseInt(document.getElementById('startingCards').value);
-        settings.soundEffects = document.getElementById('soundToggle').checked;
-        settings.autoUno = document.getElementById('autoUno').checked;
-        
-        showScreen('mainMenuScreen');
+    function showOnlineMenu() {
+        showScreen('onlineMenu');
     }
 
-    function cancelSettings() {
-        showScreen('mainMenuScreen');
-    }
-
-    function startGame() {
-        showScreen('gameScreen');
-        startNewGame();
-    }
-
-    function pauseGame() {
-        document.getElementById('overlay').classList.add('active');
-        document.getElementById('pauseMenu').classList.add('active');
-    }
-
-    function resumeGame() {
-        document.getElementById('overlay').classList.remove('active');
-        document.getElementById('pauseMenu').classList.remove('active');
-    }
-
-    function returnToMenu() {
-        document.getElementById('overlay').classList.remove('active');
-        document.getElementById('pauseMenu').classList.remove('active');
-        document.getElementById('gameOver').classList.remove('active');
-        showScreen('mainMenuScreen');
-    }
-
-    function quitGame() {
-        if (confirm('Are you sure you want to quit?')) {
-            window.close();
-            setTimeout(() => {
-                alert('Please close this tab/window to quit the game.');
-            }, 100);
+    function showLobbyList() {
+        showScreen('lobbyList');
+        if (socket && socket.connected) {
+            socket.emit('requestLobbies');
         }
     }
 
-    function createDeck() {
-        deck = [];
+    function refreshLobbies() {
+        if (socket && socket.connected) {
+            socket.emit('requestLobbies');
+        }
+    }
+
+    function showCreateLobby() {
+        showScreen('createLobby');
+    }
+
+    function playOffline() {
+        window.location.href = '/offline.html';
+    }
+
+    function renderLobbyList() {
+        const container = document.getElementById('lobbyListContainer');
+        container.innerHTML = '';
+
+        if (currentLobbies.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">🎮</div>
+                    <p style="font-size: 1.2em; margin-bottom: 10px;">No lobbies available</p>
+                    <p style="font-size: 0.9em; color: #95a5a6;">No one is hosting a game right now</p>
+                    <p style="font-size: 0.9em; color: #95a5a6; margin-top: 5px;">Go back and create a lobby to get started!</p>
+                </div>
+            `;
+            return;
+        }
+
+        currentLobbies.forEach(lobby => {
+            const card = document.createElement('div');
+            card.className = 'lobby-card';
+            card.onclick = () => joinLobby(lobby.id);
+
+            const rules = [];
+            if (lobby.settings.allowStacking) rules.push('<span class="lobby-tag active">+2/+4 Stack</span>');
+            if (lobby.settings.allowSpecial07) rules.push('<span class="lobby-tag active">0 & 7 Swap</span>');
+            if (lobby.settings.allowSpecial48) rules.push('<span class="lobby-tag active">4 & 8 Special</span>');
+            if (lobby.settings.allowJumpIn) rules.push('<span class="lobby-tag active">Jump-In</span>');
+            if (lobby.settings.drawUntilMatch !== false) rules.push('<span class="lobby-tag active">Draw Until Match</span>');
+            if (rules.length === 0) rules.push('<span class="lobby-tag">Classic Rules</span>');
+
+            card.innerHTML = `
+                <div class="lobby-card-header">
+                    <div class="lobby-name">${lobby.name}</div>
+                    <div class="lobby-players">${lobby.players} / ${lobby.settings.maxPlayers || 2}</div>
+                </div>
+                <div class="lobby-info">
+                    <span class="lobby-tag">${lobby.settings.startingCards} Cards</span>
+                    ${rules.join('')}
+                </div>
+            `;
+
+            container.appendChild(card);
+        });
+    }
+
+    function createLobby() {
+        const name = document.getElementById('playerName').value.trim();
+        const lobbyName = document.getElementById('lobbyName').value.trim();
+
+        if (!name) {
+            showPopup('Please enter your name');
+            return;
+        }
+
+        if (!lobbyName) {
+            showPopup('Please enter a lobby name');
+            return;
+        }
+
+        if (!socket || !socket.connected) {
+            showPopup('Not connected to server. Please refresh the page.');
+            return;
+        }
+
+        const settings = {
+            maxPlayers: parseInt(document.getElementById('maxPlayers').value),
+            startingCards: parseInt(document.getElementById('startingCards').value),
+            allowStacking: document.getElementById('allowStacking').checked,
+            allowSpecial07: document.getElementById('allowSpecial07').checked,
+            allowSpecial48: document.getElementById('allowSpecial48').checked,
+            allowJumpIn: document.getElementById('allowJumpIn').checked,
+            drawUntilMatch: document.getElementById('drawUntilMatch').checked
+        };
+
+        socket.emit('createLobby', { playerName: name, lobbyName: lobbyName, settings: settings });
+    }
+
+    function joinLobby(lobbyId) {
+        const name = prompt('Enter your name:');
+        if (!name || !name.trim()) {
+            return;
+        }
+
+        if (!socket || !socket.connected) {
+            showPopup('Not connected to server. Please refresh the page.');
+            return;
+        }
+
+        socket.emit('joinLobby', { lobbyId: lobbyId, playerName: name.trim() });
+    }
+
+    function leaveLobby() {
+        const tempRoomId = roomId;
+        roomId = null;  // Clear roomId first to prevent race condition
+        isReady = false;
+        stopHeartbeat();
+        if (socket && socket.connected && tempRoomId) {
+            socket.emit('leaveLobby', { roomId: tempRoomId });
+        }
+        showOnlineMenu();
+    }
+
+    function showWaitingLobby(lobbyName, settings, players, minPlayers = 3) {
+        document.getElementById('waitingLobbyName').textContent = lobbyName;
         
-        COLORS.forEach(color => {
-            deck.push({ color, value: '0', type: 'number' });
+        // Display lobby ID
+        if (roomId) {
+            document.getElementById('lobbyIdDisplay').textContent = `Lobby ID: ${roomId}`;
+        }
+        
+        const rulesDiv = document.getElementById('waitingRules');
+        
+        // Categorize rules
+        const gameSettings = [];
+        const activeRules = [];
+        
+        gameSettings.push(`<div class="rule-item">🎴 <strong>Starting Cards:</strong> ${settings.startingCards}</div>`);
+        gameSettings.push(`<div class="rule-item">👥 <strong>Max Players:</strong> ${settings.maxPlayers}</div>`);
+        gameSettings.push(`<div class="rule-item">⚠️ <strong>Min Players:</strong> ${minPlayers}</div>`);
+        
+        if (settings.allowStacking) {
+            activeRules.push(`<div class="rule-item">✅ +2/+4 Stacking Enabled</div>`);
+        }
+        if (settings.allowSpecial07) {
+            activeRules.push(`<div class="rule-item">✅ 0 & 7 Swap Enabled</div>`);
+        }
+        if (settings.allowSpecial48) {
+            activeRules.push(`<div class="rule-item">✅ 4 & 8 Special Rules Enabled</div>`);
+        }
+        if (settings.allowJumpIn) {
+            activeRules.push(`<div class="rule-item">✅ Jump-In Enabled</div>`);
+        }
+        if (settings.drawUntilMatch !== false) {
+            activeRules.push(`<div class="rule-item">✅ Draw Until Match Enabled</div>`);
+        }
+        
+        const hasActiveRules = settings.allowStacking || settings.allowSpecial07 || 
+                               settings.allowSpecial48 || settings.allowJumpIn || settings.drawUntilMatch !== false;
+        
+        let rulesHTML = '<div class="rules-container">';
+        
+        // Game Settings Section
+        rulesHTML += '<div class="rules-section">';
+        rulesHTML += '<div class="rules-title">⚙️ Game Settings</div>';
+        rulesHTML += gameSettings.join('');
+        rulesHTML += '</div>';
+        
+        // Active Rules or Classic Rules Section
+        if (hasActiveRules) {
+            rulesHTML += '<div class="rules-section">';
+            rulesHTML += '<div class="rules-title">🎮 Active Rules</div>';
+            rulesHTML += activeRules.join('');
+            rulesHTML += '</div>';
+        } else {
+            rulesHTML += '<div class="rules-section">';
+            rulesHTML += '<div class="rules-title">📋 Classic Rules</div>';
+            rulesHTML += '<div class="rule-item">🎯 Playing with standard O,No rules</div>';
+            rulesHTML += '</div>';
+        }
+        
+        rulesHTML += '</div>';
+        rulesDiv.innerHTML = rulesHTML;
+
+        updateLobbyStatus(players || [{ id: socket.id, name: 'You', ready: false }], minPlayers);
+        
+        showScreen('waitingLobby');
+    }
+
+    function updateLobbyStatus(players, minPlayers = 3) {
+        const maxPlayers = currentLobbyData?.settings?.maxPlayers || 2;
+        const playerCount = players.length;
+        document.getElementById('playerCountText').textContent = `${playerCount} / ${maxPlayers}`;
+
+        const statusDiv = document.getElementById('playersStatus');
+        statusDiv.innerHTML = '<div style="display: flex; flex-direction: column; gap: 12px;"></div>';
+        const container = statusDiv.firstChild;
+
+        // Show minimum players warning if needed
+        if (playerCount < minPlayers) {
+            const warning = document.createElement('div');
+            warning.className = 'min-players-warning';
+            warning.innerHTML = `⚠️ Need at least ${minPlayers} players to start the game!<br><span style="font-size: 0.9em;">(Currently ${playerCount} / ${minPlayers})</span>`;
+            container.appendChild(warning);
+        }
+
+        // Player avatars/emojis for variety
+        const avatars = ['👤', '🎮', '🎯', '🎲', '🃏', '🎪', '🎭', '🎨'];
+
+        // Show all current players
+        players.forEach((player, index) => {
+            const isYou = player.id === socket.id;
+            const isHost = index === 0; // First player is host
             
-            for (let i = 0; i < 2; i++) {
-                NUMBERS.slice(1).forEach(num => {
-                    deck.push({ color, value: num, type: 'number' });
-                });
-                
-                ACTIONS.forEach(action => {
-                    deck.push({ color, value: action, type: 'action' });
-                });
+            const playerDiv = document.createElement('div');
+            playerDiv.className = `player-slot${isYou ? ' you' : ''}`;
+            
+            // Player Avatar
+            const avatar = document.createElement('div');
+            avatar.className = 'player-avatar';
+            avatar.textContent = avatars[index % avatars.length];
+            
+            // Player Info
+            const info = document.createElement('div');
+            info.className = 'player-info';
+            
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'player-name';
+            
+            const nameText = document.createElement('span');
+            nameText.textContent = isYou ? '👋 You' : player.name;
+            nameDiv.appendChild(nameText);
+            
+            // Host badge
+            if (isHost) {
+                const hostBadge = document.createElement('span');
+                hostBadge.className = 'host-badge';
+                hostBadge.textContent = '👑 Host';
+                nameDiv.appendChild(hostBadge);
+            }
+            
+            info.appendChild(nameDiv);
+            
+            // Ready Badge
+            const readyBadge = document.createElement('div');
+            readyBadge.className = `ready-badge ${player.ready ? 'ready' : 'not-ready'}`;
+            if (player.ready) {
+                readyBadge.textContent = '✓ Ready';
+            } else {
+                readyBadge.textContent = '⏳ Not Ready';
+            }
+            
+            playerDiv.appendChild(avatar);
+            playerDiv.appendChild(info);
+            playerDiv.appendChild(readyBadge);
+            container.appendChild(playerDiv);
+        });
+
+        // Show empty slots
+        for (let i = playerCount; i < maxPlayers; i++) {
+            const emptyDiv = document.createElement('div');
+            emptyDiv.className = 'player-slot empty';
+            
+            const avatar = document.createElement('div');
+            avatar.className = 'player-avatar empty';
+            avatar.textContent = '👤';
+            
+            const info = document.createElement('div');
+            info.className = 'player-info';
+            
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'player-name';
+            nameDiv.style.color = '#95a5a6';
+            nameDiv.textContent = 'Waiting for player...';
+            
+            info.appendChild(nameDiv);
+            
+            const readyBadge = document.createElement('div');
+            readyBadge.className = 'ready-badge empty';
+            readyBadge.textContent = '-';
+            
+            emptyDiv.appendChild(avatar);
+            emptyDiv.appendChild(info);
+            emptyDiv.appendChild(readyBadge);
+            container.appendChild(emptyDiv);
+        }
+
+        // Update ready status bar
+        const readyCount = players.filter(p => p.ready).length;
+        const readyStatusBar = document.getElementById('readyStatusBar');
+        
+        if (playerCount >= minPlayers) {
+            readyStatusBar.style.display = 'block';
+            
+            if (readyCount === playerCount) {
+                readyStatusBar.className = 'ready-status-bar all-ready';
+                readyStatusBar.innerHTML = '🎉 All players ready! Starting game...';
+            } else {
+                readyStatusBar.className = 'ready-status-bar waiting';
+                readyStatusBar.innerHTML = `⏳ Waiting for players to ready up... (${readyCount}/${playerCount} ready)`;
+            }
+        } else {
+            readyStatusBar.style.display = 'none';
+        }
+
+        // Show/hide waiting message
+        const waitingMessage = document.getElementById('waitingMessage');
+        if (playerCount < minPlayers) {
+            waitingMessage.style.display = 'flex';
+            const messageSpan = waitingMessage.querySelector('span:last-child');
+            if (messageSpan) {
+                messageSpan.textContent = `Waiting for more players to join... (${playerCount}/${minPlayers})`;
+            }
+        } else {
+            waitingMessage.style.display = 'none';
+        }
+
+        // Show ready button if lobby has at least minimum players
+        const readyButton = document.getElementById('readyButton');
+        if (playerCount >= minPlayers) {
+            readyButton.style.display = 'block';
+            // Update button state based on current ready status
+            const currentPlayer = players.find(p => p.id === socket.id);
+            if (currentPlayer && currentPlayer.ready) {
+                readyButton.classList.add('is-ready');
+            } else {
+                readyButton.classList.remove('is-ready');
+            }
+        } else {
+            readyButton.style.display = 'none';
+        }
+    }
+
+    function toggleReady() {
+        if (!socket || !socket.connected || !roomId) return;
+        
+        isReady = !isReady;
+        const btn = document.getElementById('readyButton');
+        
+        if (isReady) {
+            btn.textContent = '✓ Ready!';
+            btn.classList.add('is-ready');
+            btn.style.background = 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)';
+        } else {
+            btn.textContent = '⏳ Ready Up!';
+            btn.classList.remove('is-ready');
+            btn.style.background = 'linear-gradient(135deg, #f39c12 0%, #e67e22 100%)';
+        }
+        
+        socket.emit('playerReady', { roomId: roomId, ready: isReady });
+    }
+
+    // Heartbeat management
+    function startHeartbeat() {
+        if (heartbeatInterval) {
+            clearInterval(heartbeatInterval);
+        }
+        
+        console.log('[Client] Starting heartbeat');
+        heartbeatInterval = setInterval(() => {
+            if (socket && socket.connected && roomId) {
+                socket.emit('heartbeat', { roomId: roomId });
+            }
+        }, 5000); // Send heartbeat every 5 seconds
+    }
+
+    function stopHeartbeat() {
+        if (heartbeatInterval) {
+            console.log('[Client] Stopping heartbeat');
+            clearInterval(heartbeatInterval);
+            heartbeatInterval = null;
+        }
+    }
+
+    // Disconnect notification management
+    function showDisconnectNotification(message, timeout = 0, type = 'disconnected') {
+        const notification = document.getElementById('disconnectNotification');
+        
+        if (type === 'reconnected') {
+            notification.className = 'disconnect-notification active reconnected';
+        } else {
+            notification.className = 'disconnect-notification active';
+        }
+        
+        if (timeout > 0) {
+            const seconds = Math.ceil(timeout / 1000);
+            notification.innerHTML = `
+                ${message}
+                <span class="reconnect-timer">Grace period: ${seconds} seconds</span>
+            `;
+            
+            // Update timer countdown
+            let remaining = seconds;
+            if (disconnectNotificationTimeout) {
+                clearInterval(disconnectNotificationTimeout);
+            }
+            
+            disconnectNotificationTimeout = setInterval(() => {
+                remaining--;
+                if (remaining <= 0) {
+                    clearInterval(disconnectNotificationTimeout);
+                    hideDisconnectNotification();
+                } else {
+                    const timerSpan = notification.querySelector('.reconnect-timer');
+                    if (timerSpan) {
+                        timerSpan.textContent = `Grace period: ${remaining} seconds`;
+                    }
+                }
+            }, 1000);
+        } else {
+            notification.textContent = message;
+        }
+    }
+
+    function hideDisconnectNotification() {
+        const notification = document.getElementById('disconnectNotification');
+        notification.classList.remove('active');
+        
+        if (disconnectNotificationTimeout) {
+            clearInterval(disconnectNotificationTimeout);
+            disconnectNotificationTimeout = null;
+        }
+    }
+
+    function leaveGame() {
+        showConfirm('Are you sure you want to leave?', (confirmed) => {
+            if (confirmed) {
+                if (socket) {
+                    socket.disconnect();
+                    socket.connect();
+                }
+                showMainMenu();
             }
         });
-        
-        for (let i = 0; i < 4; i++) {
-            deck.push({ color: 'wild', value: 'Wild', type: 'wild' });
-            deck.push({ color: 'wild', value: 'Wild+4', type: 'wild' });
-        }
-        
-        shuffleDeck();
     }
 
-    function shuffleDeck() {
-        for (let i = deck.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [deck[i], deck[j]] = [deck[j], deck[i]];
-        }
-    }
+    // Game functions (keep existing game logic)
+    function updateGameUI() {
+        if (!gameState) return;
 
-    function dealCards() {
-        playerHand = [];
-        computerHand = [];
-        
-        const cardsToDeal = settings.startingCards;
-        
-        for (let i = 0; i < cardsToDeal; i++) {
-            playerHand.push(deck.pop());
-            computerHand.push(deck.pop());
-        }
-        
-        let startCard;
-        do {
-            startCard = deck.pop();
-        } while (startCard.type !== 'number');
-        
-        discardPile.push(startCard);
-        currentColor = startCard.color;
-        currentValue = startCard.value;
-    }
+        try {
+            document.getElementById('yourName').textContent = gameState.yourName;
+            document.getElementById('currentColor').textContent = gameState.currentColor || '-';
+            document.getElementById('deckCount').textContent = gameState.deckCount;
 
-    function renderCard(card, clickHandler = null, isDisabled = false) {
-        const cardDiv = document.createElement('div');
-        cardDiv.className = `card ${card.color}`;
-        if (isDisabled) cardDiv.classList.add('disabled');
-        
-        const cardInner = document.createElement('div');
-        cardInner.className = 'card-inner';
-        cardInner.style.color = card.color === 'yellow' ? '#000' : card.color;
-        
-        if (card.color === 'wild') {
-            cardInner.style.color = '#333';
-        }
-        
-        cardInner.textContent = card.value;
-        cardDiv.appendChild(cardInner);
-        
-        if (clickHandler && !isDisabled) {
-            cardDiv.onclick = clickHandler;
-        }
-        
-        return cardDiv;
-    }
+            // Render all opponents
+            const opponentsDiv = document.getElementById('opponentsList');
+            opponentsDiv.innerHTML = '';
+            
+            if (gameState.opponents) {
+                gameState.opponents.forEach(opponent => {
+                    const oppBox = document.createElement('div');
+                    oppBox.style.cssText = 'background: rgba(255,255,255,0.15); padding: 15px; border-radius: 12px; min-width: 150px; text-align: center;';
+                    
+                    // Check if it's this opponent's turn
+                    const isTheirTurn = gameState.currentPlayerName === opponent.name;
+                    if (isTheirTurn) {
+                        oppBox.style.border = '3px solid #2ecc71';
+                        oppBox.style.boxShadow = '0 0 15px rgba(46, 204, 113, 0.5)';
+                    }
+                    
+                    // Add catch button if opponent has 1 card
+                    const catchButton = opponent.cardCount === 1 
+                        ? `<button class="catch-button" data-opponent-id="${opponent.id}" style="margin-top: 10px; padding: 5px 15px; background: #e74c3c; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">Catch!</button>`
+                        : '';
+                    
+                    oppBox.innerHTML = `
+                        <div style="font-weight: bold; margin-bottom: 10px; font-size: 1.1em;">${opponent.name}</div>
+                        <div style="font-size: 1.3em; color: #f1c40f;">${opponent.cardCount} 🎴</div>
+                        ${isTheirTurn ? '<div style="margin-top: 5px; color: #2ecc71; font-weight: bold;">⏰ Their Turn</div>' : ''}
+                        ${catchButton}
+                    `;
+                    
+                    // Add event listener for catch button if it exists
+                    if (opponent.cardCount === 1) {
+                        const btn = oppBox.querySelector('.catch-button');
+                        if (btn) {
+                            btn.addEventListener('click', () => catchOpponent(opponent.id));
+                        }
+                    }
+                    
+                    opponentsDiv.appendChild(oppBox);
+                });
+            }
 
-    function renderPlayerHand() {
-        const handDiv = document.getElementById('playerHand');
-        handDiv.innerHTML = '';
-        
-        playerHand.forEach((card, index) => {
-            const isPlayable = canPlayCard(card);
-            const cardDiv = renderCard(card, () => playCard(index), !isPlayable || currentPlayer !== 'player');
-            handDiv.appendChild(cardDiv);
-        });
+            renderDiscardPile();
+            renderPlayerHand();
 
-        const unoButton = document.getElementById('unoButton');
-        if (playerHand.length === 2 && currentPlayer === 'player' && !settings.autoUno) {
-            unoButton.classList.add('active', 'pulse');
-        } else {
-            unoButton.classList.remove('active', 'pulse');
-        }
-        
-        if (settings.autoUno && playerHand.length === 2) {
-            playerCalledUno = true;
-        }
-    }
+            // Update stack indicator
+            const stackIndicator = document.getElementById('stackIndicator');
+            if (gameState.stackedDrawCount > 0 && gameState.stackStartedBy) {
+                const cardType = gameState.currentValue === '+2' ? '+2' : '+4';
+                stackIndicator.innerHTML = `
+                    <div style="font-size: 1.2em; margin-bottom: 2px;">${cardType} Stack: Draw ${gameState.stackedDrawCount}</div>
+                    <div style="font-size: 0.85em; opacity: 0.9;">Started by: ${gameState.stackStartedBy}</div>
+                `;
+                stackIndicator.classList.add('active');
+            } else {
+                stackIndicator.classList.remove('active');
+            }
 
-    function renderComputerHand() {
-        const computerCardsDiv = document.getElementById('computerCards');
-        computerCardsDiv.innerHTML = '';
-        
-        for (let i = 0; i < Math.min(computerHand.length, 10); i++) {
-            const cardBack = document.createElement('div');
-            cardBack.className = 'card card-back';
-            cardBack.innerHTML = '<div style="color: white; font-size: 2em;">🎴</div>';
-            computerCardsDiv.appendChild(cardBack);
+            if (gameState.isYourTurn) {
+                showMessage('Your turn!');
+            } else {
+                showMessage(`${gameState.currentPlayerName}'s turn...`);
+            }
+
+            const unoBtn = document.getElementById('unoButton');
+            if (gameState.yourHand && (gameState.yourHand.length === 2 || gameState.yourHand.length === 1)) {
+                unoBtn.classList.add('active');
+            } else {
+                unoBtn.classList.remove('active');
+            }
+        } catch (error) {
+            console.error('Error updating UI:', error);
         }
-        
-        document.getElementById('computerCardCount').textContent = computerHand.length;
     }
 
     function renderDiscardPile() {
         const discardDiv = document.getElementById('discardPile');
         discardDiv.innerHTML = '';
         
-        if (discardPile.length > 0) {
-            const topCard = discardPile[discardPile.length - 1];
-            const cardDiv = renderCard(topCard);
+        if (gameState.discardPile) {
+            const card = gameState.discardPile;
+            const cardDiv = createCardElement(card);
+            
+            if (card.type === 'wild' && gameState.currentColor) {
+                cardDiv.style.borderColor = getColorHex(gameState.currentColor);
+                cardDiv.style.borderWidth = '6px';
+                
+                const indicator = document.createElement('div');
+                indicator.className = 'wild-color-indicator';
+                indicator.style.backgroundColor = getColorHex(gameState.currentColor);
+                cardDiv.appendChild(indicator);
+            }
+            
             discardDiv.appendChild(cardDiv);
         }
     }
 
-    function updateGameInfo() {
-        document.getElementById('currentPlayer').textContent = currentPlayer === 'player' ? 'You' : 'Computer';
-        document.getElementById('currentColor').textContent = currentColor || '-';
-        document.getElementById('deckCount').textContent = deck.length;
+    function renderPlayerHand() {
+        const handDiv = document.getElementById('playerHand');
+        handDiv.innerHTML = '';
+        
+        if (!gameState.yourHand) return;
+        
+        // Add glowing effect if it's your turn
+        if (gameState.isYourTurn) {
+            handDiv.classList.add('your-turn');
+        } else {
+            handDiv.classList.remove('your-turn');
+        }
+        
+        gameState.yourHand.forEach((card, index) => {
+            const isPlayable = canPlayCard(card);
+            const cardDiv = createCardElement(card);
+            
+            // Disable cards if not playable, not your turn, or waiting for server
+            if (!isPlayable || !gameState.isYourTurn || isWaitingForServer) {
+                cardDiv.classList.add('disabled');
+            } else {
+                cardDiv.onclick = () => playCard(index);
+            }
+            
+            handDiv.appendChild(cardDiv);
+        });
+    }
+
+    function createCardElement(card) {
+        const cardDiv = document.createElement('div');
+        cardDiv.className = `card ${card.color}`;
+        
+        const cardInner = document.createElement('div');
+        cardInner.className = 'card-inner';
+        cardInner.style.color = card.color === 'yellow' ? '#000' : card.color;
+        if (card.color === 'wild') cardInner.style.color = '#333';
+        
+        cardInner.textContent = card.value;
+        cardDiv.appendChild(cardInner);
+        
+        return cardDiv;
+    }
+
+    // Animation helper function: Animate a card from source element to target element
+    function animateCardToCenter(cardElement, card, onComplete) {
+        if (!cardElement) {
+            onComplete();
+            return;
+        }
+        
+        // Get positions
+        const startRect = cardElement.getBoundingClientRect();
+        const discardPileElement = document.getElementById('discardPile');
+        const endRect = discardPileElement.getBoundingClientRect();
+        
+        // Clone the card for animation
+        const clone = cardElement.cloneNode(true);
+        clone.className = `card ${card.color} card-fly-to-center`;
+        clone.style.left = startRect.left + 'px';
+        clone.style.top = startRect.top + 'px';
+        clone.style.width = startRect.width + 'px';
+        clone.style.height = startRect.height + 'px';
+        clone.style.transform = 'scale(1) rotate(5deg)';
+        clone.style.opacity = '0.9';
+        
+        document.body.appendChild(clone);
+        
+        // Calculate arc motion - card goes up first, then down
+        const midY = Math.min(startRect.top, endRect.top) - 50;
+        
+        // Trigger animation with arc motion
+        requestAnimationFrame(() => {
+            // First animate to arc peak
+            setTimeout(() => {
+                clone.style.left = (startRect.left + endRect.left) / 2 + 'px';
+                clone.style.top = midY + 'px';
+                clone.style.transform = 'scale(1.05) rotate(-3deg)';
+            }, 50);
+            
+            // Then animate to final position
+            setTimeout(() => {
+                clone.style.left = endRect.left + 'px';
+                clone.style.top = endRect.top + 'px';
+                clone.style.transform = 'scale(1.1) rotate(0deg)';
+                clone.style.opacity = '1';
+            }, 300);
+        });
+        
+        // Add landing animation to discard pile
+        setTimeout(() => {
+            discardPileElement.classList.add('discard-pile-pulse');
+            setTimeout(() => {
+                discardPileElement.classList.remove('discard-pile-pulse');
+            }, 300);
+        }, 600);
+        
+        // Clean up after animation
+        setTimeout(() => {
+            clone.remove();
+            onComplete();
+        }, 600);
+    }
+
+    // Animation helper function: Animate a card-back from draw pile to hand
+    // Note: targetArea parameter is kept for API consistency with offline.html but not used
+    // in online mode since we only animate to the local player's hand
+    function animateCardToHand(targetArea, onComplete) {
+        const drawPile = document.getElementById('drawPile');
+        const startRect = drawPile.getBoundingClientRect();
+        const playerHand = document.getElementById('playerHand');
+        const endRect = playerHand.getBoundingClientRect();
+        
+        // Create card-back element
+        const cardBack = document.createElement('div');
+        cardBack.className = 'card card-back card-fly-to-hand';
+        cardBack.innerHTML = '<div style="color: white; font-size: 3em;">🎴</div>';
+        cardBack.style.left = startRect.left + 'px';
+        cardBack.style.top = startRect.top + 'px';
+        cardBack.style.width = startRect.width + 'px';
+        cardBack.style.height = startRect.height + 'px';
+        cardBack.style.transform = 'scale(0.8) rotateY(0deg) rotate(-5deg)';
+        cardBack.style.opacity = '0.5';
+        
+        document.body.appendChild(cardBack);
+        
+        // Calculate arc motion
+        const midY = Math.min(startRect.top, endRect.top) - 40;
+        
+        // Trigger animation with arc and flip
+        requestAnimationFrame(() => {
+            // Animate to arc peak with rotation
+            setTimeout(() => {
+                cardBack.style.left = (startRect.left + endRect.left) / 2 + 'px';
+                cardBack.style.top = midY + 'px';
+                cardBack.style.transform = 'scale(0.9) rotateY(90deg) rotate(0deg)';
+                cardBack.style.opacity = '0.7';
+            }, 50);
+            
+            // Animate to final position with flip completion
+            setTimeout(() => {
+                cardBack.style.left = endRect.left + 'px';
+                cardBack.style.top = endRect.top + 'px';
+                cardBack.style.transform = 'scale(1) rotateY(180deg) rotate(5deg)';
+                cardBack.style.opacity = '1';
+            }, 300);
+            
+            // Final settle
+            setTimeout(() => {
+                cardBack.style.transform = 'scale(1) rotateY(180deg) rotate(0deg)';
+            }, 500);
+        });
+        
+        // Clean up after animation
+        setTimeout(() => {
+            cardBack.remove();
+            onComplete();
+        }, 600);
+    }
+
+    // Animation helper function: Animate multiple cards with stagger
+    function animateMultipleCardsToHand(count, onComplete) {
+        let completed = 0;
+        
+        function animateNext(index) {
+            if (index >= count) {
+                return;
+            }
+            
+            animateCardToHand('player', () => {
+                completed++;
+                if (completed === count) {
+                    onComplete();
+                }
+            });
+            
+            // Stagger animation by 200ms per card
+            if (index + 1 < count) {
+                setTimeout(() => animateNext(index + 1), 200);
+            }
+        }
+        
+        animateNext(0);
     }
 
     function canPlayCard(card) {
+        if (!gameState || !card) return false;
         if (card.type === 'wild') return true;
-        return card.color === currentColor || card.value === currentValue;
+        
+        if (gameState.settings.allowStacking && gameState.stackedDrawCount > 0) {
+            if (gameState.currentValue === '+2' && card.value === '+2') return true;
+            if (gameState.currentValue === 'Wild+4' && card.value === 'Wild+4') return true;
+            return false;
+        }
+        
+        return card.color === gameState.currentColor || card.value === gameState.currentValue;
     }
 
     function playCard(index) {
-        if (currentPlayer !== 'player') return;
+        if (!gameState || !gameState.yourHand) return;
+        if (!gameState.isYourTurn) return;
+        if (isWaitingForServer) return; // Prevent rapid clicking
         
-        const card = playerHand[index];
-        if (!canPlayCard(card)) {
-            showMessage("Can't play that card!");
-            return;
-        }
-
-        playerCalledUno = false;
+        const card = gameState.yourHand[index];
+        if (!card) return;
         
-        playerHand.splice(index, 1);
-        discardPile.push(card);
+        // Validate card can be played
+        if (!canPlayCard(card)) return;
+        
+        // Get the card element before emitting to server
+        const yourHandDiv = document.getElementById('playerHand');
+        const cardElement = yourHandDiv.children[index];
         
         if (card.type === 'wild') {
-            pendingWildCard = card;
+            pendingCardIndex = index;
             showColorPicker();
         } else {
-            currentColor = card.color;
-            currentValue = card.value;
-            handleCardEffect(card);
-        }
-        
-        renderPlayerHand();
-        renderDiscardPile();
-        updateGameInfo();
-        
-        if (playerHand.length === 0) {
-            endGame('player');
-        }
-    }
-
-    function handleCardEffect(card) {
-        switch(card.value) {
-            case 'Skip':
-                showMessage('Computer skipped!');
-                setTimeout(() => checkTurnEnd(), 1000);
-                break;
-                
-            case 'Reverse':
-                direction *= -1;
-                showMessage('Direction reversed!');
-                setTimeout(() => checkTurnEnd(), 1000);
-                break;
-                
-            case '+2':
-                for (let i = 0; i < 2; i++) {
-                    if (deck.length > 0) computerHand.push(deck.pop());
+            // Block further plays before starting animation
+            isWaitingForServer = true;
+            
+            // Animate card to center, then emit to server
+            animateCardToCenter(cardElement, card, () => {
+                if (socket && socket.connected) {
+                    socket.emit('playCard', {
+                        roomId: roomId,
+                        cardIndex: index,
+                        chosenColor: null
+                    });
                 }
-                showMessage('Computer draws 2 cards!');
-                renderComputerHand();
-                setTimeout(() => checkTurnEnd(), 1500);
-                break;
-                
-            case 'Wild+4':
-                for (let i = 0; i < 4; i++) {
-                    if (deck.length > 0) computerHand.push(deck.pop());
-                }
-                showMessage('Computer draws 4 cards!');
-                renderComputerHand();
-                setTimeout(() => checkTurnEnd(), 1500);
-                break;
-                
-            default:
-                checkTurnEnd();
-        }
-    }
-
-    function checkTurnEnd() {
-        if (playerHand.length === 1 && !playerCalledUno && currentPlayer === 'player' && !settings.autoUno) {
-            showMessage('You forgot to call UNO! Draw 2 cards!');
-            drawCardsPenalty('player', 2);
-            renderPlayerHand();
-            setTimeout(() => switchTurn(), 1500);
-        } else {
-            switchTurn();
-        }
-    }
-
-    function switchTurn() {
-        currentPlayer = currentPlayer === 'player' ? 'computer' : 'player';
-        updateGameInfo();
-        
-        if (currentPlayer === 'computer') {
-            showMessage("Computer's turn...");
-            setTimeout(computerPlay, 1500);
-        } else {
-            showMessage("Your turn!");
-        }
-    }
-
-    function computerPlay() {
-        let playableCards = computerHand.filter(card => canPlayCard(card));
-        
-        if (settings.difficulty === 'easy') {
-            if (playableCards.length > 0) {
-                playableCards = [playableCards[Math.floor(Math.random() * playableCards.length)]];
-            }
-        } else if (settings.difficulty === 'hard') {
-            playableCards.sort((a, b) => {
-                const aScore = (a.type === 'wild' ? 3 : 0) + (a.value === 'Wild+4' ? 2 : 0) + (a.type === 'action' ? 1 : 0);
-                const bScore = (b.type === 'wild' ? 3 : 0) + (b.value === 'Wild+4' ? 2 : 0) + (b.type === 'action' ? 1 : 0);
-                return bScore - aScore;
-            });
-        } else {
-            playableCards.sort((a, b) => {
-                if (a.type === 'wild') return -1;
-                if (b.type === 'wild') return 1;
-                if (a.type === 'action') return -1;
-                if (b.type === 'action') return 1;
-                return 0;
             });
         }
-        
-        if (computerHand.length === 2) {
-            computerCalledUno = true;
-            showMessage('Computer says UNO!');
-            setTimeout(() => computerPlayContinue(playableCards), 1000);
-        } else {
-            computerCalledUno = false;
-            computerPlayContinue(playableCards);
-        }
-    }
-
-    function computerPlayContinue(playableCards) {
-        if (playableCards.length > 0) {
-            const cardToPlay = playableCards[0];
-            const index = computerHand.indexOf(cardToPlay);
-            computerHand.splice(index, 1);
-            discardPile.push(cardToPlay);
-            
-            if (cardToPlay.type === 'wild') {
-                const colorCounts = { red: 0, blue: 0, green: 0, yellow: 0 };
-                computerHand.forEach(c => {
-                    if (c.color !== 'wild') colorCounts[c.color]++;
-                });
-                currentColor = Object.keys(colorCounts).reduce((a, b) => 
-                    colorCounts[a] > colorCounts[b] ? a : b
-                );
-                currentValue = cardToPlay.value;
-                showMessage(`Computer played ${cardToPlay.value} and chose ${currentColor}!`);
-                
-                renderComputerHand();
-                renderDiscardPile();
-                updateGameInfo();
-                
-                if (computerHand.length === 0) {
-                    endGame('computer');
-                    return;
-                }
-                
-                setTimeout(() => handleComputerCardEffect(cardToPlay), 1500);
-            } else {
-                currentColor = cardToPlay.color;
-                currentValue = cardToPlay.value;
-                showMessage(`Computer played ${cardToPlay.value} ${cardToPlay.color}!`);
-                
-                renderComputerHand();
-                renderDiscardPile();
-                updateGameInfo();
-                
-                if (computerHand.length === 0) {
-                    endGame('computer');
-                    return;
-                }
-                
-                setTimeout(() => handleComputerCardEffect(cardToPlay), 1500);
-            }
-        } else {
-            if (deck.length > 0) {
-                computerHand.push(deck.pop());
-                showMessage('Computer drew a card!');
-                renderComputerHand();
-                updateGameInfo();
-            }
-            
-            setTimeout(() => {
-                if (computerHand.length === 1 && !computerCalledUno) {
-                    showMessage('Computer forgot to call UNO! Draws 2 cards!');
-                    drawCardsPenalty('computer', 2);
-                    renderComputerHand();
-                }
-                switchTurn();
-            }, 1500);
-        }
-    }
-
-    function handleComputerCardEffect(card) {
-        switch(card.value) {
-            case 'Skip':
-                showMessage('You are skipped!');
-                setTimeout(() => switchTurn(), 1000);
-                break;
-                
-            case 'Reverse':
-                direction *= -1;
-                showMessage('Direction reversed!');
-                setTimeout(() => switchTurn(), 1000);
-                break;
-                
-            case '+2':
-                for (let i = 0; i < 2; i++) {
-                    if (deck.length > 0) playerHand.push(deck.pop());
-                }
-                showMessage('You draw 2 cards!');
-                renderPlayerHand();
-                setTimeout(() => switchTurn(), 1500);
-                break;
-                
-            case 'Wild+4':
-                for (let i = 0; i < 4; i++) {
-                    if (deck.length > 0) playerHand.push(deck.pop());
-                }
-                showMessage('You draw 4 cards!');
-                renderPlayerHand();
-                setTimeout(() => switchTurn(), 1500);
-                break;
-                
-            default:
-                switchTurn();
-        }
-    }
-
-    function drawCard() {
-        if (currentPlayer !== 'player') return;
-        
-        if (deck.length > 0) {
-            const drawnCard = deck.pop();
-            playerHand.push(drawnCard);
-            showMessage('You drew a card!');
-            renderPlayerHand();
-            updateGameInfo();
-            
-            setTimeout(() => switchTurn(), 1000);
-        } else {
-            showMessage('No cards left in deck!');
-        }
-    }
-
-    function drawCardsPenalty(player, count) {
-        for (let i = 0; i < count; i++) {
-            if (deck.length > 0) {
-                if (player === 'player') {
-                    playerHand.push(deck.pop());
-                } else {
-                    computerHand.push(deck.pop());
-                }
-            }
-        }
-        updateGameInfo();
     }
 
     function showColorPicker() {
@@ -1123,24 +2487,53 @@
     }
 
     function chooseColor(color) {
-        currentColor = color;
-        currentValue = pendingWildCard.value;
-        
         document.getElementById('overlay').classList.remove('active');
         document.getElementById('colorPicker').classList.remove('active');
         
-        showMessage(`You chose ${color}!`);
-        updateGameInfo();
+        // Get the card element and animate it
+        const card = gameState.yourHand[pendingCardIndex];
+        const yourHandDiv = document.getElementById('playerHand');
+        const cardElement = yourHandDiv.children[pendingCardIndex];
         
-        setTimeout(() => handleCardEffect(pendingWildCard), 1000);
-        pendingWildCard = null;
+        // Block further plays before starting animation
+        isWaitingForServer = true;
+        
+        animateCardToCenter(cardElement, card, () => {
+            if (socket && socket.connected) {
+                socket.emit('playCard', {
+                    roomId: roomId,
+                    cardIndex: pendingCardIndex,
+                    chosenColor: color
+                });
+            }
+            
+            pendingCardIndex = null;
+        });
+    }
+
+    function drawCard() {
+        if (!gameState || !gameState.isYourTurn) return;
+        if (isWaitingForServer) return; // Prevent rapid clicking
+        
+        // Block further actions while waiting for server
+        isWaitingForServer = true;
+        
+        // Send draw request to server (no animation yet - wait for response)
+        if (socket && socket.connected) {
+            socket.emit('drawCard', { roomId: roomId });
+        }
     }
 
     function callUno() {
-        if (playerHand.length === 2 || playerHand.length === 1) {
-            playerCalledUno = true;
-            showMessage('UNO!');
-            document.getElementById('unoButton').classList.remove('pulse');
+        if (socket && socket.connected) {
+            socket.emit('callUno', { roomId: roomId });
+            showMessage('O,NO!');
+        }
+    }
+    
+    function catchOpponent(opponentId) {
+        if (socket && socket.connected) {
+            socket.emit('catchUno', { roomId: roomId, caughtPlayerId: opponentId });
         }
     }
 
@@ -1148,40 +2541,14 @@
         document.getElementById('message').textContent = msg;
     }
 
-    function endGame(winner) {
-        const gameOverDiv = document.getElementById('gameOver');
-        const overlay = document.getElementById('overlay');
-        
-        if (winner === 'player') {
-            document.getElementById('winnerText').textContent = '🎉 You Win! 🎉';
-            document.getElementById('winnerMessage').textContent = 'Congratulations! You beat the computer!';
-        } else {
-            document.getElementById('winnerText').textContent = '💻 Computer Wins! 💻';
-            document.getElementById('winnerMessage').textContent = 'Better luck next time!';
-        }
-        
-        overlay.classList.add('active');
-        gameOverDiv.classList.add('active');
-    }
-
-    function startNewGame() {
-        document.getElementById('gameOver').classList.remove('active');
-        document.getElementById('overlay').classList.remove('active');
-        
-        currentPlayer = 'player';
-        direction = 1;
-        playerCalledUno = false;
-        computerCalledUno = false;
-        pendingWildCard = null;
-        
-        createDeck();
-        dealCards();
-        
-        renderPlayerHand();
-        renderComputerHand();
-        renderDiscardPile();
-        updateGameInfo();
-        showMessage('New game started! Your turn.');
+    function getColorHex(color) {
+        const map = {
+            'red': '#e74c3c',
+            'blue': '#3498db',
+            'green': '#2ecc71',
+            'yellow': '#f1c40f'
+        };
+        return map[color] || '#ffffff';
     }
 </script>
 ```
