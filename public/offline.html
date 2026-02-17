@@ -5,17 +5,58 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>O,No Card Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
     <style>
+        /* =============================================
+           CSS VARIABLE THEME SYSTEM (Light / Dark)
+        ============================================= */
+        :root {
+            --bg-grad-a: #667eea; --bg-grad-b: #764ba2;
+            --surface: rgba(255,255,255,0.97);
+            --surface-glass: rgba(255,255,255,0.15);
+            --text-primary: #333; --text-secondary: #555;
+            --text-muted: #666; --text-on-glass: #fff;
+            --menu-h1: #667eea;
+            --card-border: rgba(255,255,255,0.65);
+            --card-inner-bg: rgba(255,255,255,0.92);
+            --card-shadow: 0 6px 20px rgba(0,0,0,0.32);
+            --card-hover-shadow: 0 14px 36px rgba(0,0,0,0.45);
+            --draw-pile-bg: linear-gradient(145deg,#1a1a2e,#16213e,#0f3460);
+            --draw-pile-border: rgba(255,255,255,0.22);
+            --draw-pile-glow: rgba(100,130,255,0.3);
+            --menu-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            --input-border: #667eea; --input-bg: #fff; --input-text: #333;
+            --slider-bg: #ccc; --slider-knob: #fff;
+            --popup-bg: #fff; --popup-text: #333; --popup-sub: #555;
+        }
+        html[data-theme="dark"] {
+            --bg-grad-a: #0d0d1a; --bg-grad-b: #1a0a2e;
+            --surface: rgba(18,18,32,0.98);
+            --surface-glass: rgba(255,255,255,0.06);
+            --text-primary: #e0e0ff; --text-secondary: #a0a0cc;
+            --text-muted: #8888aa; --text-on-glass: #e0e0ff;
+            --menu-h1: #a78bfa;
+            --card-border: rgba(255,255,255,0.16);
+            --card-inner-bg: rgba(10,10,22,0.78);
+            --card-shadow: 0 6px 24px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05);
+            --card-hover-shadow: 0 14px 40px rgba(0,0,0,0.85), 0 0 22px rgba(140,100,255,0.3);
+            --draw-pile-bg: linear-gradient(145deg,#07070f,#0b0b1c,#0a0820);
+            --draw-pile-border: rgba(140,100,255,0.4);
+            --draw-pile-glow: rgba(140,100,255,0.35);
+            --menu-shadow: 0 20px 80px rgba(0,0,0,0.85), 0 0 0 1px rgba(255,255,255,0.04);
+            --input-border: #7c3aed; --input-bg: rgba(20,20,40,0.9); --input-text: #e0e0ff;
+            --slider-bg: #3a3a60; --slider-knob: #e0e0ff;
+            --popup-bg: rgba(18,18,34,0.98); --popup-text: #e0e0ff; --popup-sub: #a0a0cc;
+        }
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
-```
     body {
-        font-family: 'Arial', sans-serif;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        font-family: 'Nunito', sans-serif;
+        background: linear-gradient(135deg, var(--bg-grad-a) 0%, var(--bg-grad-b) 100%);
         background-attachment: fixed;
         min-height: 100vh;
         display: flex;
@@ -90,7 +131,7 @@
 
     /* Main Menu Styles */
     .main-menu {
-        background: rgba(255, 255, 255, 0.95);
+        background: var(--surface);
         border-radius: 30px;
         padding: 60px 80px;
         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
@@ -100,14 +141,14 @@
 
     .main-menu h1 {
         font-size: 4em;
-        color: #667eea;
+        color: var(--menu-h1);
         margin-bottom: 20px;
         text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.2);
     }
 
     .main-menu p {
         font-size: 1.2em;
-        color: #666;
+        color: var(--text-muted);
         margin-bottom: 40px;
     }
 
@@ -151,7 +192,7 @@
 
     /* Settings Menu Styles */
     .settings-menu {
-        background: rgba(255, 255, 255, 0.95);
+        background: var(--surface);
         border-radius: 30px;
         padding: 50px 60px;
         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
@@ -175,7 +216,7 @@
     .setting-item label {
         display: block;
         font-size: 1.3em;
-        color: #333;
+        color: var(--text-primary);
         margin-bottom: 15px;
         font-weight: bold;
     }
@@ -184,7 +225,7 @@
         width: 100%;
         padding: 12px;
         font-size: 1.1em;
-        border: 2px solid #667eea;
+        border: 2px solid var(--input-border);
         border-radius: 10px;
         background: white;
         cursor: pointer;
@@ -216,7 +257,7 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background-color: #ccc;
+        background-color: var(--slider-bg);
         transition: 0.4s;
         border-radius: 40px;
     }
@@ -302,74 +343,108 @@
         position: relative;
     }
 
+    /* =============================================
+       PREMIUM CARD DESIGN
+    ============================================= */
     .card {
         width: 120px;
         height: 180px;
-        border-radius: 15px;
+        border-radius: 14px;
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
         cursor: pointer;
-        transition: 
-            transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), 
+        transition:
+            transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
             box-shadow 0.25s ease,
             filter 0.25s ease;
         position: relative;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-        border: 4px solid white;
+        overflow: hidden;
+        box-shadow: var(--card-shadow);
+        border: 3px solid var(--card-border);
     }
-
+    .card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 11px;
+        background: linear-gradient(145deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.06) 40%, transparent 60%);
+        pointer-events: none;
+    }
     .card:hover {
-        transform: translateY(-10px) scale(1.05);
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
-        filter: brightness(1.1);
+        transform: translateY(-10px) scale(1.06);
+        box-shadow: var(--card-hover-shadow);
+        filter: brightness(1.08);
     }
-
     .card:active {
         transform: scale(0.95);
         transition: transform 0.1s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-
     .card-inner {
-        width: 80%;
-        height: 80%;
-        background: white;
-        border-radius: 10px;
+        width: 78%;
+        height: 78%;
+        background: var(--card-inner-bg);
+        border-radius: 50%;
         display: flex;
         justify-content: center;
         align-items: center;
-        font-size: 2.5em;
-        font-weight: bold;
-        color: #000;
+        font-size: 2.2em;
+        font-weight: 900;
+        font-family: 'Orbitron', sans-serif;
+        letter-spacing: -1px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+        border: 2px solid rgba(255,255,255,0.2);
     }
-
-    .card.red { background-color: #e74c3c; }
-    .card.blue { background-color: #3498db; }
-    .card.green { background-color: #2ecc71; }
-    .card.yellow { background-color: #f1c40f; }
-    .card.wild { 
-        background: linear-gradient(135deg, #e74c3c 0%, #3498db 33%, #2ecc71 66%, #f1c40f 100%);
+    .card.red  { background: linear-gradient(145deg,#e74c3c,#c0392b,#96281b); }
+    .card.red  .card-inner { color: #e74c3c; }
+    .card.blue { background: linear-gradient(145deg,#3498db,#2471a3,#1a5276); }
+    .card.blue .card-inner { color: #2471a3; }
+    .card.green{ background: linear-gradient(145deg,#2ecc71,#27ae60,#1e8449); }
+    .card.green .card-inner { color: #1e8449; }
+    .card.yellow{ background: linear-gradient(145deg,#f1c40f,#d4ac0d,#b7950b); }
+    .card.yellow .card-inner { color: #9a7d0a; }
+    .card.wild {
+        background: conic-gradient(from 0deg,#e74c3c 0deg 90deg,#3498db 90deg 180deg,#2ecc71 180deg 270deg,#f1c40f 270deg 360deg);
     }
-    
+    .card.wild .card-inner { color: #1a1a2e; background: rgba(255,255,255,0.92); font-size: 1.6em; }
+    html[data-theme="dark"] .card.red    .card-inner { color: #ff6b6b; }
+    html[data-theme="dark"] .card.blue   .card-inner { color: #5dade2; }
+    html[data-theme="dark"] .card.green  .card-inner { color: #58d68d; }
+    html[data-theme="dark"] .card.yellow .card-inner { color: #f9ca24; }
+    html[data-theme="dark"] .card.wild   .card-inner { color: #fff; background: rgba(15,10,30,0.85); }
     .wild-color-indicator {
         position: absolute;
         top: 10px;
         right: 10px;
-        width: 30px;
-        height: 30px;
+        width: 26px;
+        height: 26px;
         border-radius: 50%;
-        border: 3px solid white;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        border: 2px solid rgba(255,255,255,0.7);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.4);
     }
-
     .card-back {
-        background: linear-gradient(135deg, #2c3e50, #34495e);
+        background: var(--draw-pile-bg);
+        border-color: var(--draw-pile-border);
+        box-shadow: var(--card-shadow), 0 0 18px var(--draw-pile-glow);
         cursor: pointer;
     }
-
+    .card-back::after {
+        content:'';
+        position:absolute;
+        inset:8px;
+        border-radius:8px;
+        border:1.5px solid rgba(255,255,255,0.12);
+        pointer-events:none;
+    }
+    .card-back .card-inner {
+        font-size: 0.65em;
+        color: rgba(255,255,255,0.65);
+        background: rgba(255,255,255,0.08);
+        letter-spacing: 1px;
+    }
     .card-back:hover {
-        transform: scale(1.05);
+        transform: scale(1.06);
     }
 
     .player-hand {
@@ -410,7 +485,7 @@
         border-radius: 20px;
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
         z-index: 1000;
-        color: #333;
+        color: var(--text-primary);
     }
 
     .color-picker.active {
@@ -420,7 +495,7 @@
     .color-picker h3 {
         margin-bottom: 20px;
         text-align: center;
-        color: #333;
+        color: var(--text-primary);
     }
 
     .color-options {
@@ -528,7 +603,7 @@
         z-index: 1001;
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
         max-width: 90%;
-        color: #333;
+        color: var(--text-primary);
     }
 
     .game-over.active {
@@ -751,8 +826,46 @@
         0%, 100% { transform: translateX(-50%) scale(1); box-shadow: 0 4px 15px rgba(255, 65, 108, 0.5); }
         50% { transform: translateX(-50%) scale(1.05); box-shadow: 0 6px 25px rgba(255, 65, 108, 0.8); }
     }
+    /* Dark Mode Toggle */
+    #darkModeToggle {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 9000;
+        width: 48px;
+        height: 28px;
+        border-radius: 14px;
+        border: 1.5px solid rgba(255,255,255,0.25);
+        cursor: pointer;
+        background: rgba(255,255,255,0.2);
+        display: flex;
+        align-items: center;
+        padding: 3px;
+        transition: background 0.3s;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+    }
+    #darkModeToggle:hover { opacity: 0.85; }
+    #darkModeToggle .toggle-knob {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: white;
+        transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), background 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        box-shadow: 0 1px 6px rgba(0,0,0,0.35);
+    }
+    html[data-theme="dark"] #darkModeToggle {
+        background: rgba(140,100,255,0.25);
+        border-color: rgba(140,100,255,0.4);
+    }
+    html[data-theme="dark"] #darkModeToggle .toggle-knob {
+        transform: translateX(20px);
+        background: #a78bfa;
+    }
 </style>
-```
 
 </head>
 <body>
@@ -767,7 +880,7 @@
         </div>
     </div>
 
-```
+
 <!-- Settings Screen -->
 <div id="settingsScreen" class="screen">
     <div class="settings-menu">
@@ -821,7 +934,7 @@
         </div>
 
         <div class="setting-item">
-            <label style="margin-bottom: 20px; font-size: 1.4em; color: #667eea;">Game Rules</label>
+            <label style="margin-bottom: 20px; font-size: 1.4em; color: var(--menu-h1);">Game Rules</label>
             
             <div class="toggle-container" style="margin-bottom: 15px;">
                 <label style="margin-bottom: 0;">Allow +2/+4 Stacking</label>
@@ -830,7 +943,7 @@
                     <span class="slider-toggle"></span>
                 </label>
             </div>
-            <p style="font-size: 0.9em; color: #666; margin-bottom: 15px;">Stack +2 on +2 and +4 on +4 to pass the draw to opponent</p>
+            <p style="font-size: 0.9em; color: var(--text-muted); margin-bottom: 15px;">Stack +2 on +2 and +4 on +4 to pass the draw to opponent</p>
             
             <div class="toggle-container" style="margin-bottom: 15px;">
                 <label style="margin-bottom: 0;">Allow 0 & 7 Special Rules</label>
@@ -839,7 +952,7 @@
                     <span class="slider-toggle"></span>
                 </label>
             </div>
-            <p style="font-size: 0.9em; color: #666; margin-bottom: 15px;">Playing 0 swaps hands with opponent. Playing 7 allows you to swap hands</p>
+            <p style="font-size: 0.9em; color: var(--text-muted); margin-bottom: 15px;">Playing 0 swaps hands with opponent. Playing 7 allows you to swap hands</p>
             
             <div class="toggle-container" style="margin-bottom: 15px;">
                 <label style="margin-bottom: 0;">Allow Jump-In</label>
@@ -848,7 +961,7 @@
                     <span class="slider-toggle"></span>
                 </label>
             </div>
-            <p style="font-size: 0.9em; color: #666;">Play out of turn if you have an exact match (same color AND number)</p>
+            <p style="font-size: 0.9em; color: var(--text-muted);">Play out of turn if you have an exact match (same color AND number)</p>
         </div>
 
         <div class="settings-buttons">
@@ -1141,10 +1254,10 @@
         
         const cardInner = document.createElement('div');
         cardInner.className = 'card-inner';
-        cardInner.style.color = card.color === 'yellow' ? '#000' : card.color;
+        // Color handled by CSS (.card.color .card-inner)
         
         if (card.color === 'wild') {
-            cardInner.style.color = '#333';
+            // wild color handled by CSS
         }
         
         cardInner.textContent = card.value;
@@ -2219,8 +2332,29 @@
 
     // Initialize settings on page load
     loadSettings();
+    // =============================================
+    //  DARK MODE
+    // =============================================
+    (function initTheme() {
+        const saved = localStorage.getItem('ono-theme') || 'light';
+        applyTheme(saved);
+    })();
+    function applyTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        const knob = document.querySelector('#darkModeToggle .toggle-knob');
+        if (knob) knob.textContent = theme === 'dark' ? '\u{1F319}' : '\u2600\uFE0F';
+    }
+    function toggleDarkMode() {
+        const current = document.documentElement.getAttribute('data-theme') || 'light';
+        const next = current === 'dark' ? 'light' : 'dark';
+        localStorage.setItem('ono-theme', next);
+        applyTheme(next);
+    }
 </script>
-```
 
+<!-- Dark Mode Toggle -->
+<button id="darkModeToggle" onclick="toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
+    <div class="toggle-knob">☀️</div>
+</button>
 </body>
 </html>
