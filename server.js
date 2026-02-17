@@ -231,10 +231,36 @@ class GameRoom {
         // Check for O,no penalty after playing card
         const unoCheck = this.checkUnoAfterPlay(playerIndex);
 
+        // Build draw animation payload if cards were forcibly drawn (non-stacking +2/+4)
+        let drawAnimation = null;
+        if (!this.settings.allowStacking) {
+            const nextIdx = this.getNextPlayerIndex(playerIndex);
+            if (card.value === '+2') {
+                drawAnimation = {
+                    victimId: this.players[nextIdx]?.id,
+                    victimName: this.players[nextIdx]?.name,
+                    playerId: this.players[playerIndex].id,
+                    playerName: this.players[playerIndex].name,
+                    count: 2,
+                    cardValue: '+2'
+                };
+            } else if (card.value === 'Wild+4') {
+                drawAnimation = {
+                    victimId: this.players[nextIdx]?.id,
+                    victimName: this.players[nextIdx]?.name,
+                    playerId: this.players[playerIndex].id,
+                    playerName: this.players[playerIndex].name,
+                    count: 4,
+                    cardValue: 'Wild+4'
+                };
+            }
+        }
+
         return { 
             success: true, 
             winner: player.hand.length === 0 ? playerIndex : null,
-            unoPenalty: unoCheck.penaltyApplied ? { playerName: unoCheck.playerName } : null
+            unoPenalty: unoCheck.penaltyApplied ? { playerName: unoCheck.playerName } : null,
+            drawAnimation
         };
     }
 
@@ -371,11 +397,12 @@ class GameRoom {
         }
 
         if (this.stackedDrawCount > 0) {
+            const count = this.stackedDrawCount;
             this.drawCards(playerIndex, this.stackedDrawCount);
             this.stackedDrawCount = 0;
             this.stackStartedBy = null;
             this.advanceTurn();
-            return { success: true, drewStacked: true };
+            return { success: true, drewStacked: true, stackCount: count };
         }
 
         const playerHand = this.players[playerIndex].hand;
@@ -678,6 +705,11 @@ io.on('connection', socket => {
             return;
         }
 
+        // Broadcast draw animation if a +2 or +4 card was played (non-stacking, immediate draw)
+        if (result.drawAnimation) {
+            io.to(roomId).emit('drawAnimation', result.drawAnimation);
+        }
+
         // Broadcast updated game state to all players
         room.players.forEach(p => {
             io.to(p.id).emit('gameState', room.getGameState(p.id));
@@ -709,6 +741,18 @@ io.on('connection', socket => {
         if (!result.success) {
             socket.emit('error', result.error);
             return;
+        }
+
+        // Emit draw animation if player absorbed a stacked draw
+        if (result.drewStacked) {
+            const playerData = room.players.find(p => p.id === socket.id);
+            io.to(roomId).emit('drawAnimation', {
+                victimId: socket.id,
+                victimName: playerData?.name,
+                playerId: null,
+                count: result.stackCount || 2,
+                cardValue: 'stack'
+            });
         }
 
         // Broadcast updated game state to all players
