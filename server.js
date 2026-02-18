@@ -138,6 +138,14 @@ class GameRoom {
             roomId: this.roomId,
             yourHand: this.players[index].hand,
             yourName: this.players[index].name,
+            yourIndex: index,
+            allPlayers: this.players.map((p, i) => ({
+                id: p.id,
+                name: p.name,
+                cardCount: p.hand.length,
+                isYou: i === index,
+                isCurrent: i === currentPlayerIndex
+            })),
             opponents: this.players.filter((_, i) => i !== index).map(p => ({
                 id: p.id,
                 name: p.name,
@@ -150,6 +158,7 @@ class GameRoom {
             currentColor: this.currentColor,
             currentValue: this.currentValue,
             deckCount: this.deck.length,
+            direction: this.direction,
             settings: this.settings,
             stackedDrawCount: this.stackedDrawCount,
             stackStartedBy: this.stackStartedBy,
