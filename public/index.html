@@ -2879,7 +2879,7 @@ html[data-theme="dark"] #darkModeToggle .toggle-knob {
     }
 
     function animateDrawPenalty(data, isVictim) {
-        const { count, cardValue, victimId, victimName } = data;
+        const { count, cardValue, victimId, victimName, stacking } = data;
         const drawPile = document.getElementById('drawPile');
         if (!drawPile) return;
 
@@ -2914,7 +2914,9 @@ html[data-theme="dark"] #darkModeToggle .toggle-knob {
         const accent = isBig ? '#ff4b2b' : '#ff416c';
         const label  = cardValue === 'stack'
             ? `Draw ${count}!`
-            : cardValue === 'Wild+4' ? '+4 Draw!' : '+2 Draw!';
+            : stacking
+                ? cardValue === 'Wild+4' ? '+4 Stacked!' : '+2 Stacked!'
+                : cardValue === 'Wild+4' ? '+4 Draw!' : '+2 Draw!';
 
         // Stagger cards
         for (let i = 0; i < count; i++) {
