@@ -73,6 +73,7 @@ class GameRoom {
         this.hasDrawnThisTurn = false;
         this.settings = settings || {};
         this.gameStarted = false;
+        this.pendingSwap7 = null; // { playerId } waiting for swap target
     }
 
     createDeck() {
@@ -179,6 +180,7 @@ class GameRoom {
     }
 
     playCard(playerId, cardIndex, chosenColor) {
+        this._lastSwapEvent = null; // reset each call
         const playerIndex = this.players.findIndex(p => p.id === playerId);
         if (playerIndex === -1) {
             return { success: false, error: 'Player not found' };
@@ -236,8 +238,14 @@ class GameRoom {
         }
 
         // Handle special cards
-        this.handleCardEffect(card, playerIndex);
+        const effectResult = this.handleCardEffect(card, playerIndex);
         
+        // 7-swap: need player to choose target before completing the turn
+        if (effectResult === 'needSwapTarget') {
+            // Card is already removed from hand and on discard pile — just wait for chooseSwapTarget
+            return { success: true, needSwapTarget: true, winner: null, unoPenalty: null, drawAnimation: null };
+        }
+
         // Check for O,no penalty after playing card
         const unoCheck = this.checkUnoAfterPlay(playerIndex);
 
@@ -272,6 +280,7 @@ class GameRoom {
             success: true, 
             winner: player.hand.length === 0 ? playerIndex : null,
             unoPenalty: unoCheck.penaltyApplied ? { playerName: unoCheck.playerName } : null,
+            swapHappened: this._lastSwapEvent || null,
             drawAnimation
         };
     }
@@ -317,9 +326,27 @@ class GameRoom {
                 break;
                 
             case '0':
+                if (this.settings.allowSpecial07) {
+                    // 0: swap with the next player in the current direction
+                    const nextIdx0 = this.getNextPlayerIndex(playerIndex);
+                    this.swapHands(playerIndex, nextIdx0);
+                    this._lastSwapEvent = {
+                        swapperName: this.players[playerIndex].name,
+                        targetName: this.players[nextIdx0].name,
+                        type: '0'
+                    };
+                } else {
+                    this._lastSwapEvent = null;
+                }
+                this.advanceTurn();
+                break;
+
             case '7':
                 if (this.settings.allowSpecial07) {
-                    this.swapHands(playerIndex);
+                    // 7: caller chooses who to swap with — handled via pendingSwap7
+                    // Don't advance turn yet; wait for chooseSwapTarget event
+                    this.pendingSwap7 = { playerId: this.players[playerIndex].id };
+                    return 'needSwapTarget';
                 }
                 this.advanceTurn();
                 break;
@@ -360,12 +387,25 @@ class GameRoom {
         this.advanceTurn();
     }
 
-    swapHands(playerIndex) {
-        // Swap hands with next player (respecting direction)
-        const nextPlayerIndex = this.getNextPlayerIndex(playerIndex);
+    swapHands(playerIndex, targetIndex) {
         const temp = this.players[playerIndex].hand;
-        this.players[playerIndex].hand = this.players[nextPlayerIndex].hand;
-        this.players[nextPlayerIndex].hand = temp;
+        this.players[playerIndex].hand = this.players[targetIndex].hand;
+        this.players[targetIndex].hand = temp;
+    }
+
+    chooseSwapTarget(playerId, targetId) {
+        if (!this.pendingSwap7) return { success: false, error: 'No swap pending' };
+        if (this.pendingSwap7.playerId !== playerId) return { success: false, error: 'Not your swap' };
+
+        const playerIndex = this.players.findIndex(p => p.id === playerId);
+        const targetIndex = this.players.findIndex(p => p.id === targetId);
+        if (playerIndex === -1 || targetIndex === -1) return { success: false, error: 'Player not found' };
+        if (playerIndex === targetIndex) return { success: false, error: 'Cannot swap with yourself' };
+
+        this.swapHands(playerIndex, targetIndex);
+        this.pendingSwap7 = null;
+        this.advanceTurn();
+        return { success: true, swapperName: this.players[playerIndex].name, targetName: this.players[targetIndex].name };
     }
 
     getNextPlayerIndex(fromIndex = null) {
@@ -695,6 +735,19 @@ io.on('connection', socket => {
             return;
         }
 
+        // 7-swap: tell the player to choose a target, send updated state so discard shows the 7
+        if (result.needSwapTarget) {
+            const opponents = room.players
+                .filter(p => p.id !== socket.id)
+                .map(p => ({ id: p.id, name: p.name }));
+            socket.emit('chooseSwapTarget', { opponents });
+            // Still broadcast state so everyone sees the 7 on the discard
+            room.players.forEach(p => {
+                io.to(p.id).emit('gameState', room.getGameState(p.id));
+            });
+            return;
+        }
+
         // Broadcast draw animation if a +2 or +4 card was played (non-stacking, immediate draw)
         if (result.drawAnimation) {
             io.to(roomId).emit('drawAnimation', result.drawAnimation);
@@ -705,6 +758,11 @@ io.on('connection', socket => {
             io.to(p.id).emit('gameState', room.getGameState(p.id));
         });
         
+        // Broadcast swap notification for 0-card
+        if (result.swapHappened) {
+            io.to(roomId).emit('swapHappened', result.swapHappened);
+        }
+
         // Broadcast O,no penalty if applied
         if (result.unoPenalty) {
             io.to(roomId).emit('unoPenalty', {
@@ -756,6 +814,29 @@ io.on('connection', socket => {
                 };
             }
             io.to(p.id).emit('gameState', state);
+        });
+    });
+
+    socket.on('chooseSwapTarget', ({ roomId, targetId }) => {
+        const room = rooms.get(roomId);
+        if (!room || !room.gameStarted) return;
+
+        const result = room.chooseSwapTarget(socket.id, targetId);
+        if (!result.success) {
+            socket.emit('error', result.error);
+            return;
+        }
+
+        // Tell everyone about the swap
+        io.to(roomId).emit('swapHappened', {
+            swapperName: result.swapperName,
+            targetName: result.targetName,
+            type: '7'
+        });
+
+        // Broadcast updated game state to all
+        room.players.forEach(p => {
+            io.to(p.id).emit('gameState', room.getGameState(p.id));
         });
     });
 
