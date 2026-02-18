@@ -1962,13 +1962,14 @@
             </div>
             <p style="font-size: 0.9em; color: var(--text-muted); margin-bottom: 10px;">Playing 0 or 7 swaps hands with opponent</p>
             
-            <div style="background: rgba(255,140,0,0.12); border: 1px solid rgba(255,140,0,0.35); border-radius: 10px; padding: 10px 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
-                <span style="font-size: 1.5em;">💀</span>
-                <div>
-                    <div style="font-weight: 800; color: var(--text-primary); font-size: 0.95em;">+12 Card is always in the deck</div>
-                    <div style="font-size: 0.82em; color: var(--text-muted);">Only 2 copies in the whole deck — rare but devastating</div>
-                </div>
+            <div class="toggle-container">
+                <label style="margin: 0;">💀 Allow +12 Card</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="allowPlus12">
+                    <span class="slider-toggle"></span>
+                </label>
             </div>
+            <p style="font-size: 0.9em; color: var(--text-muted); margin-bottom: 10px;">Adds 2 rare +12 wild cards to the deck — low chance, devastating effect</p>
             
             <div class="toggle-container">
                 <label style="margin: 0;">Allow Jump-In</label>
@@ -2580,7 +2581,7 @@
             const rules = [];
             if (lobby.settings.allowStacking) rules.push('<span class="lobby-tag active">+2/+4 Stack</span>');
             if (lobby.settings.allowSpecial07) rules.push('<span class="lobby-tag active">0 & 7 Swap</span>');
-            rules.push('<span class="lobby-tag" style="background:rgba(255,140,0,0.2);color:#ff8c00;border:1px solid rgba(255,140,0,0.4);">💀 +12 In Deck</span>');
+            if (lobby.settings.allowPlus12) rules.push('<span class="lobby-tag" style="background:rgba(255,140,0,0.2);color:#ff8c00;border:1px solid rgba(255,140,0,0.4);">💀 +12 Card</span>');
             if (lobby.settings.allowJumpIn) rules.push('<span class="lobby-tag active">Jump-In</span>');
             if (rules.length === 0) rules.push('<span class="lobby-tag">Classic Rules</span>');
 
@@ -2642,7 +2643,7 @@
             startingCards: parseInt(document.getElementById('startingCards').value),
             allowStacking: document.getElementById('allowStacking').checked,
             allowSpecial07: document.getElementById('allowSpecial07').checked,
-            allowSpecial48: false, // replaced by +12 card
+            allowPlus12: document.getElementById('allowPlus12').checked,
             allowJumpIn: document.getElementById('allowJumpIn').checked,
             drawUntilMatch: document.getElementById('drawUntilMatch').checked
         };
@@ -2710,7 +2711,7 @@
         if (settings.allowSpecial07) {
             activeRules.push(`<div class="rule-item">✅ 0 & 7 Swap Enabled</div>`);
         }
-        activeRules.push(`<div class="rule-item">💀 +12 Card is in the deck (rare)</div>`);
+        if (settings.allowPlus12) activeRules.push(`<div class="rule-item">💀 +12 Card Enabled (rare wild)</div>`);
         if (settings.allowJumpIn) {
             activeRules.push(`<div class="rule-item">✅ Jump-In Enabled</div>`);
         }
@@ -2719,7 +2720,7 @@
         }
         
         const hasActiveRules = settings.allowStacking || settings.allowSpecial07 || 
-                               settings.allowJumpIn || settings.drawUntilMatch !== false;
+                               settings.allowJumpIn || settings.allowPlus12 || settings.drawUntilMatch !== false;
         
         let rulesHTML = '<div class="rules-container">';
         
