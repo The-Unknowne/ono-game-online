@@ -2828,28 +2828,24 @@
             const stackJustStarted = newStackCount > 0 && prevStackCount === 0;
             const increment = newStackCount - prevStackCount;
 
-            if (newStackCount > 0 && gameState.stackStartedBy) {
+            if (newStackCount > 0) {
                 const cardType = gameState.currentValue === '+2' ? '+2' : '+4';
 
                 stackIndicator.innerHTML = `
-                    <div style="font-size: 0.78em; opacity: 0.85; margin-bottom: 1px;">Draw stack — ${cardType}</div>
-                    <span class="stack-count-num" id="stackCountNum">${newStackCount}</span>
-                    <div style="font-size: 0.72em; opacity: 0.8; margin-top: 1px;">Started by ${gameState.stackStartedBy}</div>
+                    <div style="font-size: 0.78em; opacity: 0.85; margin-bottom: 1px;">${cardType} Stack</div>
+                    <span class="stack-count-num" id="stackCountNum">Draw ${newStackCount}</span>
                 `;
                 stackIndicator.classList.add('active');
 
                 if (stackJustStarted) {
-                    // Fresh stack — do a big entrance bump
                     stackIndicator.classList.remove('stack-bump');
                     void stackIndicator.offsetWidth;
                     stackIndicator.classList.add('stack-bump');
                 } else if (stackIncreased) {
-                    // Another card stacked — bump and show +N badge
                     stackIndicator.classList.remove('stack-bump');
                     void stackIndicator.offsetWidth;
                     stackIndicator.classList.add('stack-bump');
 
-                    // Animate the number
                     const numEl = document.getElementById('stackCountNum');
                     if (numEl) {
                         numEl.classList.remove('num-change');
@@ -2857,7 +2853,6 @@
                         numEl.classList.add('num-change');
                     }
 
-                    // Show floating +N badge
                     const badge = document.createElement('div');
                     badge.className = 'stack-increment-badge';
                     badge.textContent = `+${increment}`;
