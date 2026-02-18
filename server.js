@@ -70,7 +70,6 @@ class GameRoom {
         this.currentValue = null;
         this.direction = 1;
         this.stackedDrawCount = 0;
-        this.stackStartedBy = null;
         this.hasDrawnThisTurn = false;
         this.settings = settings || {};
         this.gameStarted = false;
@@ -161,21 +160,21 @@ class GameRoom {
             direction: this.direction,
             settings: this.settings,
             stackedDrawCount: this.stackedDrawCount,
-            stackStartedBy: this.stackStartedBy,
             hasDrawnThisTurn: this.hasDrawnThisTurn
         };
     }
 
     canPlayCard(card) {
         if (!card) return false;
-        if (card.type === 'wild') return true;
-        
+
+        // When there's an active draw stack, only matching draw cards can be played
         if (this.settings.allowStacking && this.stackedDrawCount > 0) {
-            if (this.currentValue === '+2' && card.value === '+2') return true;
+            if (this.currentValue === '+2'     && card.value === '+2')     return true;
             if (this.currentValue === 'Wild+4' && card.value === 'Wild+4') return true;
             return false;
         }
-        
+
+        if (card.type === 'wild') return true;
         return card.color === this.currentColor || card.value === this.currentValue;
     }
 
@@ -220,16 +219,7 @@ class GameRoom {
         if (card.type === 'wild') {
             this.currentColor = chosenColor || 'red';
             this.currentValue = card.value;
-            
-            if (card.value === 'Wild+4') {
-                if (this.settings.allowStacking) {
-                    if (this.stackedDrawCount === 0) {
-                        this.stackStartedBy = this.players[playerIndex].name;
-                    }
-                    this.stackedDrawCount += 4;
-                }
-                // Non-stacking draw is handled in handleCardEffect
-            }
+            // stacking increment for Wild+4 is handled inside handleCardEffect
         } else {
             this.currentColor = card.color;
             this.currentValue = card.value;
@@ -295,7 +285,6 @@ class GameRoom {
             case '+2':
                 if (this.settings.allowStacking) {
                     if (this.stackedDrawCount === 0) {
-                        this.stackStartedBy = this.players[playerIndex].name;
                     }
                     this.stackedDrawCount += 2;
                     this.advanceTurn();
@@ -308,7 +297,6 @@ class GameRoom {
             case 'Wild+4':
                 if (this.settings.allowStacking) {
                     if (this.stackedDrawCount === 0) {
-                        this.stackStartedBy = this.players[playerIndex].name;
                     }
                     this.stackedDrawCount += 4;
                     this.advanceTurn();
@@ -378,22 +366,6 @@ class GameRoom {
     advanceTurn() {
         this.currentPlayer = this.getNextPlayerIndex();
         this.hasDrawnThisTurn = false; // reset draw flag for the new player's turn
-        
-        // Handle stacked draws
-        if (this.stackedDrawCount > 0) {
-            const stackableCard = this.players[this.currentPlayer].hand.find(card => 
-                (this.currentValue === '+2' && card.value === '+2') ||
-                (this.currentValue === 'Wild+4' && card.value === 'Wild+4')
-            );
-            
-            if (!stackableCard) {
-                // Player can't stack, must draw
-                this.drawCards(this.currentPlayer, this.stackedDrawCount);
-                this.stackedDrawCount = 0;
-                this.stackStartedBy = null;
-                this.advanceTurn();
-            }
-        }
     }
 
     drawCards(playerIndex, count) {
@@ -423,7 +395,6 @@ class GameRoom {
             const count = this.stackedDrawCount;
             this.drawCards(playerIndex, this.stackedDrawCount);
             this.stackedDrawCount = 0;
-            this.stackStartedBy = null;
             this.advanceTurn();
             return { success: true, drewStacked: true, stackCount: count };
         }
