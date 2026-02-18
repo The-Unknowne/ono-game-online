@@ -1555,15 +1555,69 @@
         box-shadow: 0 4px 15px rgba(255, 65, 108, 0.5);
         animation: stackPulse 1.5s ease-in-out infinite;
         white-space: nowrap;
+        position: relative;
+        overflow: visible;
     }
 
     .stack-indicator.active {
         display: block;
     }
 
+    .stack-indicator.stack-bump {
+        animation: stackBump 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), stackPulse 1.5s ease-in-out infinite 0.4s;
+    }
+
     @keyframes stackPulse {
         0%, 100% { transform: scale(1); box-shadow: 0 4px 15px rgba(255, 65, 108, 0.5); }
-        50% { transform: scale(1.06); box-shadow: 0 6px 25px rgba(255, 65, 108, 0.8); }
+        50%       { transform: scale(1.06); box-shadow: 0 6px 25px rgba(255, 65, 108, 0.8); }
+    }
+
+    @keyframes stackBump {
+        0%   { transform: scale(1); }
+        40%  { transform: scale(1.35); box-shadow: 0 8px 35px rgba(255, 65, 108, 1); }
+        100% { transform: scale(1); }
+    }
+
+    .stack-count-num {
+        display: inline-block;
+        font-size: 1.6em;
+        font-weight: 900;
+        font-family: 'Orbitron', sans-serif;
+        line-height: 1;
+        transition: color 0.15s;
+    }
+
+    .stack-count-num.num-change {
+        animation: numPop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes numPop {
+        0%   { transform: scale(1) translateY(0); color: white; }
+        50%  { transform: scale(1.5) translateY(-4px); color: #ffe082; }
+        100% { transform: scale(1) translateY(0); color: white; }
+    }
+
+    .stack-increment-badge {
+        position: absolute;
+        top: -28px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(255, 255, 255, 0.25);
+        color: white;
+        font-size: 1em;
+        font-weight: 900;
+        font-family: 'Orbitron', sans-serif;
+        border-radius: 10px;
+        padding: 2px 10px;
+        pointer-events: none;
+        animation: incrementFloat 0.9s ease-out forwards;
+        white-space: nowrap;
+    }
+
+    @keyframes incrementFloat {
+        0%   { opacity: 1; transform: translateX(-50%) translateY(0) scale(0.8); }
+        60%  { opacity: 1; transform: translateX(-50%) translateY(-20px) scale(1.1); }
+        100% { opacity: 0; transform: translateX(-50%) translateY(-36px) scale(0.9); }
     }
 
     /* Disconnect Notification Styles */
@@ -1935,6 +1989,7 @@
 <script>
     let socket;
     let gameState = null;
+    let prevStackCount = 0;
     let roomId = null;
     let pendingCardIndex = null;
     let reconnectAttempts = 0;
@@ -2742,6 +2797,7 @@
     function leaveGame() {
         showConfirm('Are you sure you want to leave?', (confirmed) => {
             if (confirmed) {
+                prevStackCount = 0;
                 if (socket) {
                     socket.disconnect();
                     socket.connect();
@@ -2765,19 +2821,54 @@
             renderDiscardPile();
             renderPlayerHand();
 
-            // Update stack indicator
+            // Update stack indicator with animation when count increases
             const stackIndicator = document.getElementById('stackIndicator');
-            if (gameState.stackedDrawCount > 0 && gameState.stackStartedBy) {
+            const newStackCount = gameState.stackedDrawCount || 0;
+            const stackIncreased = newStackCount > prevStackCount && prevStackCount > 0;
+            const stackJustStarted = newStackCount > 0 && prevStackCount === 0;
+            const increment = newStackCount - prevStackCount;
+
+            if (newStackCount > 0 && gameState.stackStartedBy) {
                 const cardType = gameState.currentValue === '+2' ? '+2' : '+4';
+
                 stackIndicator.innerHTML = `
-                    <div style="font-size: 1.1em; margin-bottom: 2px;">${cardType} Stack: Draw ${gameState.stackedDrawCount}</div>
-                    <div style="font-size: 0.82em; opacity: 0.9;">Started by: ${gameState.stackStartedBy}</div>
+                    <div style="font-size: 0.78em; opacity: 0.85; margin-bottom: 1px;">Draw stack — ${cardType}</div>
+                    <span class="stack-count-num" id="stackCountNum">${newStackCount}</span>
+                    <div style="font-size: 0.72em; opacity: 0.8; margin-top: 1px;">Started by ${gameState.stackStartedBy}</div>
                 `;
                 stackIndicator.classList.add('active');
+
+                if (stackJustStarted) {
+                    // Fresh stack — do a big entrance bump
+                    stackIndicator.classList.remove('stack-bump');
+                    void stackIndicator.offsetWidth;
+                    stackIndicator.classList.add('stack-bump');
+                } else if (stackIncreased) {
+                    // Another card stacked — bump and show +N badge
+                    stackIndicator.classList.remove('stack-bump');
+                    void stackIndicator.offsetWidth;
+                    stackIndicator.classList.add('stack-bump');
+
+                    // Animate the number
+                    const numEl = document.getElementById('stackCountNum');
+                    if (numEl) {
+                        numEl.classList.remove('num-change');
+                        void numEl.offsetWidth;
+                        numEl.classList.add('num-change');
+                    }
+
+                    // Show floating +N badge
+                    const badge = document.createElement('div');
+                    badge.className = 'stack-increment-badge';
+                    badge.textContent = `+${increment}`;
+                    stackIndicator.appendChild(badge);
+                    setTimeout(() => badge.remove(), 950);
+                }
             } else {
                 stackIndicator.innerHTML = '';
-                stackIndicator.classList.remove('active');
+                stackIndicator.classList.remove('active', 'stack-bump');
             }
+            prevStackCount = newStackCount;
 
             // Direction arrows
             updateDirectionArrows();
