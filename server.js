@@ -192,18 +192,28 @@ class GameRoom {
         }
         
         // Check for jump-in: Allow play if not current player but jump-in is enabled
-        // and card is an exact match (same color AND value, number cards only)
         if (playerIndex !== this.currentPlayer) {
-            const isJumpIn = this.settings.allowJumpIn && 
-                           card.type === 'number' && 
-                           card.color === this.currentColor && 
-                           card.value === this.currentValue;
-            
+            let isJumpIn = false;
+            if (this.settings.allowJumpIn) {
+                if (card.value === 'Wild+4') {
+                    // Wild+4 can always jump in
+                    isJumpIn = true;
+                } else if (card.value === '+2' && card.color === this.currentColor) {
+                    // +2 can jump in only when same color
+                    isJumpIn = true;
+                } else if (card.type === 'number' &&
+                           card.color === this.currentColor &&
+                           card.value === this.currentValue) {
+                    // Number card: exact match (same color AND value)
+                    isJumpIn = true;
+                }
+            }
+
             if (!isJumpIn) {
                 return { success: false, error: 'Not your turn' };
             }
-            
-            // Valid jump-in: Set current player to this player
+
+            // Valid jump-in: set current player to this player
             this.currentPlayer = playerIndex;
         }
 
