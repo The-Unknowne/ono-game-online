@@ -744,6 +744,36 @@
     html[data-theme="dark"] .card.yellow .card-inner { color: #f9ca24; }
     html[data-theme="dark"] .card.wild   .card-inner { color: #fff; background: rgba(15,10,30,0.85); }
 
+    /* +12 rare wild card — black with gold */
+    .card.plus12 {
+        background: linear-gradient(145deg, #0a0a0a 0%, #1a1a1a 40%, #2a1a00 100%);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.7),
+                    0 0 20px rgba(255,180,0,0.4),
+                    0 0 40px rgba(255,100,0,0.2),
+                    inset 0 1px 0 rgba(255,180,0,0.2);
+        border: 2px solid rgba(255,180,0,0.5) !important;
+    }
+    .card.plus12 .card-inner {
+        color: #0a0a0a;
+        background: linear-gradient(135deg, #ffd700, #ff8c00);
+        font-size: 1.1em;
+        font-weight: 900;
+        box-shadow: 0 0 12px rgba(255,180,0,0.6);
+    }
+    html[data-theme="dark"] .card.plus12 .card-inner {
+        color: #0a0a0a;
+        background: linear-gradient(135deg, #ffd700, #ff6a00);
+    }
+
+    /* Pulse glow on +12 card in hand */
+    .player-hand .card.plus12 {
+        animation: plus12Glow 2s ease-in-out infinite;
+    }
+    @keyframes plus12Glow {
+        0%, 100% { box-shadow: 0 6px 20px rgba(0,0,0,0.7), 0 0 18px rgba(255,160,0,0.5); }
+        50%       { box-shadow: 0 8px 28px rgba(0,0,0,0.8), 0 0 36px rgba(255,100,0,0.8), 0 0 60px rgba(255,60,0,0.3); }
+    }
+
     /* Card-back: the draw pile card */
     .card.card-back {
         background: var(--draw-pile-bg);
@@ -1932,14 +1962,13 @@
             </div>
             <p style="font-size: 0.9em; color: var(--text-muted); margin-bottom: 10px;">Playing 0 or 7 swaps hands with opponent</p>
             
-            <div class="toggle-container">
-                <label style="margin: 0;">Allow 4 & 8 Special Rules</label>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="allowSpecial48">
-                    <span class="slider-toggle"></span>
-                </label>
+            <div style="background: rgba(255,140,0,0.12); border: 1px solid rgba(255,140,0,0.35); border-radius: 10px; padding: 10px 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 1.5em;">💀</span>
+                <div>
+                    <div style="font-weight: 800; color: var(--text-primary); font-size: 0.95em;">+12 Card is always in the deck</div>
+                    <div style="font-size: 0.82em; color: var(--text-muted);">Only 2 copies in the whole deck — rare but devastating</div>
+                </div>
             </div>
-            <p style="font-size: 0.9em; color: var(--text-muted); margin-bottom: 10px;">4 skips opponent, 8 reverses direction</p>
             
             <div class="toggle-container">
                 <label style="margin: 0;">Allow Jump-In</label>
@@ -2551,7 +2580,7 @@
             const rules = [];
             if (lobby.settings.allowStacking) rules.push('<span class="lobby-tag active">+2/+4 Stack</span>');
             if (lobby.settings.allowSpecial07) rules.push('<span class="lobby-tag active">0 & 7 Swap</span>');
-            if (lobby.settings.allowSpecial48) rules.push('<span class="lobby-tag active">4 & 8 Special</span>');
+            rules.push('<span class="lobby-tag" style="background:rgba(255,140,0,0.2);color:#ff8c00;border:1px solid rgba(255,140,0,0.4);">💀 +12 In Deck</span>');
             if (lobby.settings.allowJumpIn) rules.push('<span class="lobby-tag active">Jump-In</span>');
             if (rules.length === 0) rules.push('<span class="lobby-tag">Classic Rules</span>');
 
@@ -2613,7 +2642,7 @@
             startingCards: parseInt(document.getElementById('startingCards').value),
             allowStacking: document.getElementById('allowStacking').checked,
             allowSpecial07: document.getElementById('allowSpecial07').checked,
-            allowSpecial48: document.getElementById('allowSpecial48').checked,
+            allowSpecial48: false, // replaced by +12 card
             allowJumpIn: document.getElementById('allowJumpIn').checked,
             drawUntilMatch: document.getElementById('drawUntilMatch').checked
         };
@@ -2681,9 +2710,7 @@
         if (settings.allowSpecial07) {
             activeRules.push(`<div class="rule-item">✅ 0 & 7 Swap Enabled</div>`);
         }
-        if (settings.allowSpecial48) {
-            activeRules.push(`<div class="rule-item">✅ 4 & 8 Special Rules Enabled</div>`);
-        }
+        activeRules.push(`<div class="rule-item">💀 +12 Card is in the deck (rare)</div>`);
         if (settings.allowJumpIn) {
             activeRules.push(`<div class="rule-item">✅ Jump-In Enabled</div>`);
         }
@@ -2692,7 +2719,7 @@
         }
         
         const hasActiveRules = settings.allowStacking || settings.allowSpecial07 || 
-                               settings.allowSpecial48 || settings.allowJumpIn || settings.drawUntilMatch !== false;
+                               settings.allowJumpIn || settings.drawUntilMatch !== false;
         
         let rulesHTML = '<div class="rules-container">';
         
@@ -3238,13 +3265,12 @@
 
     function createCardElement(card) {
         const cardDiv = document.createElement('div');
-        cardDiv.className = `card ${card.color}`;
+        // +12 gets its own CSS class instead of 'wild'
+        const colorClass = card.value === '+12' ? 'plus12' : card.color;
+        cardDiv.className = `card ${colorClass}`;
         
         const cardInner = document.createElement('div');
         cardInner.className = 'card-inner';
-        // Color is now handled fully by CSS (.card.red .card-inner, etc.)
-        // No inline style override needed — dark mode vars work cleanly
-        
         cardInner.textContent = card.value;
         cardDiv.appendChild(cardInner);
         
@@ -3452,13 +3478,15 @@
         const endY = endRect.top  + endRect.height / 2;
 
         // Penalty badge colors
-        const isBig  = cardValue === 'Wild+4' || count >= 4;
-        const accent = isBig ? '#ff4b2b' : '#ff416c';
+        const isBig  = cardValue === 'Wild+4' || cardValue === '+12' || count >= 4;
+        const accent = cardValue === '+12' ? '#ff8c00' : isBig ? '#ff4b2b' : '#ff416c';
         const label  = cardValue === 'stack'
             ? `Draw ${count}!`
-            : stacking
-                ? cardValue === 'Wild+4' ? '+4 Stacked!' : '+2 Stacked!'
-                : cardValue === 'Wild+4' ? '+4 Draw!' : '+2 Draw!';
+            : cardValue === '+12'
+                ? '💀 +12 Draw!'
+                : stacking
+                    ? cardValue === 'Wild+4' ? '+4 Stacked!' : '+2 Stacked!'
+                    : cardValue === 'Wild+4' ? '+4 Draw!' : '+2 Draw!';
 
         // Stagger cards
         for (let i = 0; i < count; i++) {
