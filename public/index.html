@@ -963,6 +963,65 @@
         background: #f1c40f !important;
     }
 
+    /* Swap target picker */
+    .swap-picker {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.85);
+        background: var(--surface);
+        padding: 28px 32px;
+        border-radius: 20px;
+        box-shadow: var(--menu-shadow);
+        z-index: 1001;
+        color: var(--text-primary);
+        min-width: 280px;
+        max-width: 92vw;
+        opacity: 0;
+        transition: opacity 0.2s, transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    }
+
+    .swap-picker.active {
+        display: block;
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+
+    .swap-picker-title {
+        font-size: 1.1em;
+        font-weight: 800;
+        color: var(--text-primary);
+        margin-bottom: 18px;
+        text-align: center;
+    }
+
+    .swap-options {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .swap-option-btn {
+        padding: 13px 20px;
+        border-radius: 12px;
+        border: 2px solid rgba(102,126,234,0.35);
+        background: rgba(102,126,234,0.12);
+        color: var(--text-primary);
+        font-size: 1.05em;
+        font-weight: 700;
+        cursor: pointer;
+        text-align: center;
+        transition: background 0.15s, transform 0.15s, border-color 0.15s;
+        font-family: 'Nunito', sans-serif;
+    }
+
+    .swap-option-btn:hover, .swap-option-btn:active {
+        background: rgba(102,126,234,0.32);
+        border-color: rgba(102,126,234,0.8);
+        transform: scale(1.03);
+    }
+
     .overlay {
         display: none;
         position: fixed;
@@ -2056,6 +2115,12 @@
     </div>
 </div>
 
+<!-- 7-Swap target picker -->
+<div class="swap-picker" id="swapPicker">
+    <div class="swap-picker-title">🔄 Choose who to swap hands with</div>
+    <div class="swap-options" id="swapOptions"></div>
+</div>
+
 <div class="custom-popup" id="customPopup">
     <h2 id="popupTitle"></h2>
     <p id="popupMessage"></p>
@@ -2328,6 +2393,28 @@
         
         socket.on('unoPenalty', (data) => {
             showMessage(data.message);
+        });
+
+        // 7-swap: server asks this player to pick a target
+        socket.on('chooseSwapTarget', ({ opponents }) => {
+            showSwapPicker(opponents);
+        });
+
+        // Broadcast swap notification to all players
+        socket.on('swapHappened', ({ swapperName, targetName, type }) => {
+            const isSwapper = swapperName === (gameState && gameState.yourName);
+            const isTarget  = targetName  === (gameState && gameState.yourName);
+            let msg;
+            if (type === '7') {
+                if (isSwapper)      msg = `You swapped hands with ${targetName}! 🔄`;
+                else if (isTarget)  msg = `${swapperName} swapped hands with you! 🔄`;
+                else                msg = `${swapperName} swapped hands with ${targetName}! 🔄`;
+            } else {
+                if (isSwapper)      msg = `You swapped hands with the next player! 🔄`;
+                else if (isTarget)  msg = `${swapperName} swapped hands with you! 🔄`;
+                else                msg = `${swapperName} swapped hands! 🔄`;
+            }
+            showMessage(msg);
         });
 
         // ==========================================
@@ -3559,6 +3646,29 @@
             
             pendingCardIndex = null;
         });
+    }
+
+    // ── 7-Swap picker ─────────────────────────────────────────────
+    function showSwapPicker(opponents) {
+        const optionsDiv = document.getElementById('swapOptions');
+        optionsDiv.innerHTML = '';
+        opponents.forEach(opp => {
+            const btn = document.createElement('button');
+            btn.className = 'swap-option-btn';
+            btn.textContent = opp.name;
+            btn.onclick = () => confirmSwapTarget(opp.id);
+            optionsDiv.appendChild(btn);
+        });
+        document.getElementById('overlay').classList.add('active');
+        document.getElementById('swapPicker').classList.add('active');
+    }
+
+    function confirmSwapTarget(targetId) {
+        document.getElementById('overlay').classList.remove('active');
+        document.getElementById('swapPicker').classList.remove('active');
+        if (socket && socket.connected) {
+            socket.emit('chooseSwapTarget', { roomId, targetId });
+        }
     }
 
     function drawCard() {
