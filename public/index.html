@@ -309,6 +309,14 @@
         border-color: var(--input-border);
     }
 
+    .lobby-card.is-private {
+        border-color: rgba(231, 76, 60, 0.35);
+    }
+
+    .lobby-card.is-private:hover {
+        border-color: rgba(231, 76, 60, 0.7);
+    }
+
     .lobby-card-header {
         display: flex;
         justify-content: space-between;
@@ -1765,6 +1773,22 @@
             <p style="font-size: 0.9em; color: var(--text-muted);">Keep drawing cards until a playable card is found. When off, draw only one card per turn.</p>
         </div>
 
+        <div class="setting-item">
+            <label>Lobby Visibility</label>
+            <div class="toggle-container">
+                <label style="margin: 0;">🔒 Private Lobby</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="isPrivate" onchange="togglePasscodeField()">
+                    <span class="slider-toggle"></span>
+                </label>
+            </div>
+            <p style="font-size: 0.9em; color: var(--text-muted); margin-bottom: 10px;">Private lobbies require a passcode to join</p>
+
+            <div id="passcodeField" style="display:none; margin-top: 8px;">
+                <input type="text" id="lobbyPasscode" placeholder="Enter passcode (4–12 chars)" maxlength="12" style="margin-bottom:0; letter-spacing: 3px; font-weight: 700;">
+            </div>
+        </div>
+
         <button class="menu-button online" onclick="createLobby()">Create Lobby</button>
         <button class="menu-button offline" onclick="showOnlineMenu()">Back</button>
     </div>
@@ -2302,7 +2326,7 @@
 
         currentLobbies.forEach(lobby => {
             const card = document.createElement('div');
-            card.className = 'lobby-card';
+            card.className = 'lobby-card' + (lobby.isPrivate ? ' is-private' : '');
             card.onclick = () => joinLobby(lobby.id);
 
             const rules = [];
@@ -2310,22 +2334,32 @@
             if (lobby.settings.allowSpecial07) rules.push('<span class="lobby-tag active">0 & 7 Swap</span>');
             if (lobby.settings.allowSpecial48) rules.push('<span class="lobby-tag active">4 & 8 Special</span>');
             if (lobby.settings.allowJumpIn) rules.push('<span class="lobby-tag active">Jump-In</span>');
-            if (lobby.settings.drawUntilMatch !== false) rules.push('<span class="lobby-tag active">Draw Until Match</span>');
             if (rules.length === 0) rules.push('<span class="lobby-tag">Classic Rules</span>');
+
+            const privBadge = lobby.isPrivate
+                ? `<span class="lobby-tag" style="background:rgba(231,76,60,0.25);color:#e74c3c;border:1px solid rgba(231,76,60,0.4);">🔒 Private</span>`
+                : `<span class="lobby-tag" style="background:rgba(46,204,113,0.2);color:#2ecc71;border:1px solid rgba(46,204,113,0.35);">🌐 Public</span>`;
 
             card.innerHTML = `
                 <div class="lobby-card-header">
-                    <div class="lobby-name">${lobby.name}</div>
+                    <div class="lobby-name">${lobby.isPrivate ? '🔒 ' : ''}${lobby.name}</div>
                     <div class="lobby-players">${lobby.players} / ${lobby.settings.maxPlayers || 2}</div>
                 </div>
                 <div class="lobby-info">
                     <span class="lobby-tag">${lobby.settings.startingCards} Cards</span>
+                    ${privBadge}
                     ${rules.join('')}
                 </div>
             `;
 
             container.appendChild(card);
         });
+    }
+
+    function togglePasscodeField() {
+        const isPrivate = document.getElementById('isPrivate').checked;
+        document.getElementById('passcodeField').style.display = isPrivate ? 'block' : 'none';
+        if (!isPrivate) document.getElementById('lobbyPasscode').value = '';
     }
 
     function createLobby() {
@@ -2339,6 +2373,14 @@
 
         if (!lobbyName) {
             showPopup('Please enter a lobby name');
+            return;
+        }
+
+        const isPrivate = document.getElementById('isPrivate').checked;
+        const passcode = document.getElementById('lobbyPasscode').value.trim();
+
+        if (isPrivate && passcode.length < 4) {
+            showPopup('Passcode must be at least 4 characters');
             return;
         }
 
@@ -2357,21 +2399,32 @@
             drawUntilMatch: document.getElementById('drawUntilMatch').checked
         };
 
-        socket.emit('createLobby', { playerName: name, lobbyName: lobbyName, settings: settings });
+        socket.emit('createLobby', {
+            playerName: name,
+            lobbyName: lobbyName,
+            settings: settings,
+            isPrivate: isPrivate,
+            passcode: isPrivate ? passcode : null
+        });
     }
 
     function joinLobby(lobbyId) {
+        const lobby = currentLobbies.find(l => l.id === lobbyId);
         const name = prompt('Enter your name:');
-        if (!name || !name.trim()) {
-            return;
-        }
+        if (!name || !name.trim()) return;
 
         if (!socket || !socket.connected) {
             showPopup('Not connected to server. Please refresh the page.');
             return;
         }
 
-        socket.emit('joinLobby', { lobbyId: lobbyId, playerName: name.trim() });
+        if (lobby && lobby.isPrivate) {
+            const passcode = prompt('🔒 This lobby is private. Enter the passcode:');
+            if (passcode === null) return; // cancelled
+            socket.emit('joinLobby', { lobbyId, playerName: name.trim(), passcode: passcode.trim() });
+        } else {
+            socket.emit('joinLobby', { lobbyId, playerName: name.trim() });
+        }
     }
 
     function leaveLobby() {
