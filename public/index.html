@@ -1954,15 +1954,6 @@
             <p style="font-size: 0.9em; color: var(--text-muted); margin-bottom: 10px;">Stack draw cards to pass the penalty</p>
             
             <div class="toggle-container">
-                <label style="margin: 0;">Allow 0 & 7 Special Rules</label>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="allowSpecial07">
-                    <span class="slider-toggle"></span>
-                </label>
-            </div>
-            <p style="font-size: 0.9em; color: var(--text-muted); margin-bottom: 10px;">Playing 0 or 7 swaps hands with opponent</p>
-            
-            <div class="toggle-container">
                 <label style="margin: 0;">💀 Allow +12 Card</label>
                 <label class="toggle-switch">
                     <input type="checkbox" id="allowPlus12">
@@ -2580,7 +2571,7 @@
 
             const rules = [];
             if (lobby.settings.allowStacking) rules.push('<span class="lobby-tag active">+2/+4 Stack</span>');
-            if (lobby.settings.allowSpecial07) rules.push('<span class="lobby-tag active">0 & 7 Swap</span>');
+
             if (lobby.settings.allowPlus12) rules.push('<span class="lobby-tag" style="background:rgba(255,140,0,0.2);color:#ff8c00;border:1px solid rgba(255,140,0,0.4);">💀 +12 Card</span>');
             if (lobby.settings.allowJumpIn) rules.push('<span class="lobby-tag active">Jump-In</span>');
             if (rules.length === 0) rules.push('<span class="lobby-tag">Classic Rules</span>');
@@ -2642,7 +2633,7 @@
             maxPlayers: parseInt(document.getElementById('maxPlayers').value),
             startingCards: parseInt(document.getElementById('startingCards').value),
             allowStacking: document.getElementById('allowStacking').checked,
-            allowSpecial07: document.getElementById('allowSpecial07').checked,
+
             allowPlus12: document.getElementById('allowPlus12').checked,
             allowJumpIn: document.getElementById('allowJumpIn').checked,
             drawUntilMatch: document.getElementById('drawUntilMatch').checked
@@ -2708,9 +2699,7 @@
         if (settings.allowStacking) {
             activeRules.push(`<div class="rule-item">✅ +2/+4 Stacking Enabled</div>`);
         }
-        if (settings.allowSpecial07) {
-            activeRules.push(`<div class="rule-item">✅ 0 & 7 Swap Enabled</div>`);
-        }
+
         if (settings.allowPlus12) activeRules.push(`<div class="rule-item">💀 +12 Card Enabled (rare wild)</div>`);
         if (settings.allowJumpIn) {
             activeRules.push(`<div class="rule-item">✅ Jump-In Enabled</div>`);
@@ -2719,7 +2708,7 @@
             activeRules.push(`<div class="rule-item">✅ Draw Until Match Enabled</div>`);
         }
         
-        const hasActiveRules = settings.allowStacking || settings.allowSpecial07 || 
+        const hasActiveRules = settings.allowStacking || 
                                settings.allowJumpIn || settings.allowPlus12 || settings.drawUntilMatch !== false;
         
         let rulesHTML = '<div class="rules-container">';
