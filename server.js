@@ -101,6 +101,10 @@ class GameRoom {
             this.deck.push({ color: 'wild', value: 'Wild+4', type: 'wild' });
         }
 
+        // +12 — only 2 copies in the whole deck (~1.8% draw chance)
+        this.deck.push({ color: 'wild', value: '+12', type: 'wild' });
+        this.deck.push({ color: 'wild', value: '+12', type: 'wild' });
+
         this.shuffleDeck();
     }
 
@@ -274,6 +278,16 @@ class GameRoom {
                 cardValue: 'Wild+4',
                 stacking: !!this.settings.allowStacking
             };
+        } else if (card.value === '+12') {
+            drawAnimation = {
+                victimId: this.players[nextIdx]?.id,
+                victimName: this.players[nextIdx]?.name,
+                playerId: this.players[playerIndex].id,
+                playerName: this.players[playerIndex].name,
+                count: 12,
+                cardValue: '+12',
+                stacking: false
+            };
         }
 
         return { 
@@ -351,28 +365,18 @@ class GameRoom {
                 this.advanceTurn();
                 break;
                 
-            case '4':
-                if (this.settings.allowSpecial48) {
-                    // 4 skips next player
-                    this.skipNextPlayer();
-                } else {
-                    this.advanceTurn();
-                }
+            case '+12':
+                // +12 wild card — forces next player to draw 12, no stacking
+                this.drawCards(this.getNextPlayerIndex(playerIndex), 12);
+                this.skipNextPlayer();
                 break;
-                
+
+            case '4':
+                this.advanceTurn();
+                break;
+
             case '8':
-                if (this.settings.allowSpecial48) {
-                    // 8 reverses direction
-                    this.direction *= -1;
-                    if (this.players.length === 2) {
-                        // In 2-player, Reverse acts like Skip
-                        this.skipNextPlayer();
-                    } else {
-                        this.advanceTurn();
-                    }
-                } else {
-                    this.advanceTurn();
-                }
+                this.advanceTurn();
                 break;
                 
             default:
