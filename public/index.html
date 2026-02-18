@@ -702,7 +702,7 @@ html[data-theme="dark"] .card.wild   .card-inner { color: #fff; background: rgba
 }
 
 .color-picker h3 {
-    color: #333;
+    color: var(--text-primary);
 }
 
 .color-options {
@@ -2091,6 +2091,9 @@ html[data-theme="dark"] #darkModeToggle .toggle-knob {
 
     // Initialize on page load
     window.addEventListener('DOMContentLoaded', () => {
+        // Re-apply theme now that DOM is ready (sets toggle knob emoji correctly)
+        const savedTheme = localStorage.getItem('ono-theme') || 'light';
+        applyTheme(savedTheme);
         loadBackgroundAnimation();
         initializeSocket();
     });
