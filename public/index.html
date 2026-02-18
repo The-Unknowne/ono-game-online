@@ -817,6 +817,80 @@
         filter: grayscale(25%);
     }
 
+    /* Jump-in card highlight */
+    .card.jump-in-card {
+        opacity: 1 !important;
+        filter: none !important;
+        cursor: pointer !important;
+        animation: jumpInPulse 0.9s ease-in-out infinite;
+        outline: 3px solid #f1c40f;
+        outline-offset: 3px;
+        box-shadow: 0 0 18px rgba(241, 196, 15, 0.9),
+                    0 0 35px rgba(241, 196, 15, 0.5) !important;
+        z-index: 5;
+        position: relative;
+    }
+
+    @keyframes jumpInPulse {
+        0%, 100% {
+            box-shadow: 0 0 18px rgba(241, 196, 15, 0.9), 0 0 35px rgba(241, 196, 15, 0.5);
+            transform: translateY(0) scale(1);
+        }
+        50% {
+            box-shadow: 0 0 28px rgba(241, 196, 15, 1), 0 0 55px rgba(241, 196, 15, 0.8);
+            transform: translateY(-8px) scale(1.06);
+        }
+    }
+
+    /* Jump-in banner */
+    #jumpInBanner {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.7);
+        background: linear-gradient(135deg, #f1c40f, #f39c12);
+        color: #1a1a1a;
+        font-family: 'Orbitron', sans-serif;
+        font-weight: 900;
+        font-size: 1.05em;
+        padding: 12px 28px;
+        border-radius: 40px;
+        box-shadow: 0 8px 32px rgba(241, 196, 15, 0.7), 0 0 0 3px rgba(255,255,255,0.3);
+        z-index: 50;
+        pointer-events: none;
+        letter-spacing: 1.5px;
+        text-align: center;
+        opacity: 0;
+        transition: none;
+    }
+
+    #jumpInBanner.visible {
+        display: block;
+        animation: jumpInBannerIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
+                   jumpInBannerBob 1.4s ease-in-out 0.4s infinite;
+    }
+
+    #jumpInBanner.hiding {
+        display: block;
+        animation: jumpInBannerOut 0.25s ease-in forwards;
+    }
+
+    @keyframes jumpInBannerIn {
+        from { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+        to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    }
+
+    @keyframes jumpInBannerBob {
+        0%, 100% { transform: translate(-50%, -50%) scale(1) translateY(0); }
+        50%       { transform: translate(-50%, -60%) scale(1.04); }
+    }
+
+    @keyframes jumpInBannerOut {
+        from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        to   { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
+    }
+
     .message {
         text-align: center;
         color: var(--text-on-glass);
@@ -1960,6 +2034,9 @@
 
 <div id="penaltyFlash"></div>
 
+<!-- Jump-In Banner -->
+<div id="jumpInBanner">⚡ JUMP IN!</div>
+
 <!-- Dark Mode Toggle -->
 <button id="darkModeToggle" onclick="toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
     <div class="toggle-knob">☀️</div>
@@ -2798,6 +2875,8 @@
         showConfirm('Are you sure you want to leave?', (confirmed) => {
             if (confirmed) {
                 prevStackCount = 0;
+                jumpInBannerVisible = false;
+                updateJumpInBanner(false);
                 if (socket) {
                     socket.disconnect();
                     socket.connect();
@@ -3014,26 +3093,60 @@
         
         if (!gameState.yourHand) return;
         
-        // Add glowing effect if it's your turn
         if (gameState.isYourTurn) {
             handDiv.classList.add('your-turn');
         } else {
             handDiv.classList.remove('your-turn');
         }
+
+        let hasJumpInCard = false;
+        let jumpInLabel = '⚡ JUMP IN!';
         
         gameState.yourHand.forEach((card, index) => {
             const isPlayable = canPlayCard(card);
-            const cardDiv = createCardElement(card);
+            const isJumpIn   = canJumpIn(card);
+            const cardDiv    = createCardElement(card);
             
-            // Disable cards if not playable, not your turn, or waiting for server
-            if (!isPlayable || !gameState.isYourTurn || isWaitingForServer) {
+            if (isJumpIn) {
+                hasJumpInCard = true;
+                // Pick the most specific label
+                if (card.value === 'Wild+4') jumpInLabel = '⚡ JUMP IN! Wild +4';
+                else if (card.value === '+2')  jumpInLabel = '⚡ JUMP IN! +2';
+                cardDiv.classList.add('jump-in-card');
+                cardDiv.onclick = () => playCard(index, true);
+            } else if (!isPlayable || !gameState.isYourTurn || isWaitingForServer) {
                 cardDiv.classList.add('disabled');
             } else {
-                cardDiv.onclick = () => playCard(index);
+                cardDiv.onclick = () => playCard(index, false);
             }
             
             handDiv.appendChild(cardDiv);
         });
+
+        // Show or hide the jump-in banner
+        updateJumpInBanner(hasJumpInCard, jumpInLabel);
+    }
+
+    let jumpInBannerVisible = false;
+    function updateJumpInBanner(show, label = '⚡ JUMP IN!') {
+        const banner = document.getElementById('jumpInBanner');
+        if (!banner) return;
+        if (show && !jumpInBannerVisible) {
+            jumpInBannerVisible = true;
+            banner.textContent = label;
+            banner.classList.remove('hiding');
+            banner.classList.add('visible');
+        } else if (show && jumpInBannerVisible) {
+            // Update label if already showing
+            banner.textContent = label;
+        } else if (!show && jumpInBannerVisible) {
+            jumpInBannerVisible = false;
+            banner.classList.remove('visible');
+            banner.classList.add('hiding');
+            setTimeout(() => {
+                banner.classList.remove('hiding');
+            }, 280);
+        }
     }
 
     function createCardElement(card) {
@@ -3346,6 +3459,27 @@
         setTimeout(() => burst.remove(), 1300);
     }
 
+    function canJumpIn(card) {
+        if (!gameState || !gameState.settings.allowJumpIn) return false;
+        if (gameState.isYourTurn) return false;
+        if (!card) return false;
+        if (gameState.stackedDrawCount > 0) return false; // can't jump in during a draw stack
+
+        if (card.value === 'Wild+4') {
+            // Wild+4 can always jump in
+            return true;
+        }
+        if (card.value === '+2') {
+            // +2 jump in only when same color as current
+            return card.color === gameState.currentColor;
+        }
+        if (card.type === 'number') {
+            // Number card: exact match (same color AND same value)
+            return card.color === gameState.currentColor && card.value === gameState.currentValue;
+        }
+        return false;
+    }
+
     function canPlayCard(card) {
         if (!gameState || !card) return false;
         if (card.type === 'wild') return true;
@@ -3359,18 +3493,24 @@
         return card.color === gameState.currentColor || card.value === gameState.currentValue;
     }
 
-    function playCard(index) {
+    function playCard(index, isJumpIn = false) {
         if (!gameState || !gameState.yourHand) return;
-        if (!gameState.isYourTurn) return;
-        if (isWaitingForServer) return; // Prevent rapid clicking
+        if (!gameState.isYourTurn && !isJumpIn) return;
+        if (isWaitingForServer) return;
         
         const card = gameState.yourHand[index];
         if (!card) return;
         
-        // Validate card can be played
-        if (!canPlayCard(card)) return;
+        // Validate: normal turn needs canPlayCard, jump-in needs canJumpIn
+        if (isJumpIn) {
+            if (!canJumpIn(card)) return;
+        } else {
+            if (!canPlayCard(card)) return;
+        }
         
-        // Get the card element before emitting to server
+        // Hide jump-in banner immediately on play
+        updateJumpInBanner(false);
+
         const yourHandDiv = document.getElementById('playerHand');
         const cardElement = yourHandDiv.children[index];
         
@@ -3378,10 +3518,7 @@
             pendingCardIndex = index;
             showColorPicker();
         } else {
-            // Block further plays before starting animation
             isWaitingForServer = true;
-            
-            // Animate card to center, then emit to server
             animateCardToCenter(cardElement, card, () => {
                 if (socket && socket.connected) {
                     socket.emit('playCard', {
