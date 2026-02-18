@@ -101,9 +101,11 @@ class GameRoom {
             this.deck.push({ color: 'wild', value: 'Wild+4', type: 'wild' });
         }
 
-        // +12 — only 2 copies in the whole deck (~1.8% draw chance)
-        this.deck.push({ color: 'wild', value: '+12', type: 'wild' });
-        this.deck.push({ color: 'wild', value: '+12', type: 'wild' });
+        // +12 — only added when enabled (2 copies, ~1.8% draw chance)
+        if (this.settings.allowPlus12) {
+            this.deck.push({ color: 'wild', value: '+12', type: 'wild' });
+            this.deck.push({ color: 'wild', value: '+12', type: 'wild' });
+        }
 
         this.shuffleDeck();
     }
