@@ -527,17 +527,15 @@ io.on('connection', socket => {
         socket.emit('lobbyList', Object.values(lobbies));
     });
 
-    socket.on('createLobby', ({ lobbyName, playerName, settings }) => {
+    socket.on('createLobby', ({ lobbyName, playerName, settings, isPrivate, passcode }) => {
         const id = `lobby_${Date.now()}`;
-        const minPlayers = 2; // minimum is always 2 (supports 1v1 up to 8 players)
+        const minPlayers = 2;
         
         const presenceManager = new PlayerPresenceManager(minPlayers, {
             heartbeatInterval: 5000,
             reconnectTimeout: 60000
         });
         lobbyPresenceManagers.set(id, presenceManager);
-        
-        // Add player to presence manager
         presenceManager.addPlayer(socket.id, playerName, PlayerState.LOBBY);
         
         lobbies[id] = {
@@ -545,20 +543,23 @@ io.on('connection', socket => {
             name: lobbyName,
             settings,
             players: [{ id: socket.id, name: playerName, ready: false }],
-            minPlayers
+            minPlayers,
+            isPrivate: !!isPrivate,
+            passcode: isPrivate ? (passcode || '') : null
         };
         socket.join(id);
         socket.emit('lobbyCreated', {
             roomId: id,
-            lobbyName: lobbyName,
-            settings: settings,
+            lobbyName,
+            settings,
             players: lobbies[id].players,
-            minPlayers
+            minPlayers,
+            isPrivate: lobbies[id].isPrivate
         });
         broadcastLobbyList();
     });
 
-    socket.on('joinLobby', ({ lobbyId, playerName }) => {
+    socket.on('joinLobby', ({ lobbyId, playerName, passcode }) => {
         const lobby = lobbies[lobbyId];
         if (!lobby) return;
 
@@ -574,6 +575,14 @@ io.on('connection', socket => {
             return;
         }
 
+        // Check passcode for private lobbies
+        if (lobby.isPrivate) {
+            if (!passcode || passcode !== lobby.passcode) {
+                socket.emit('error', '🔒 Wrong passcode. Try again.');
+                return;
+            }
+        }
+
         // Add to presence manager
         const presenceManager = lobbyPresenceManagers.get(lobbyId);
         if (presenceManager) {
@@ -587,7 +596,8 @@ io.on('connection', socket => {
             lobbyName: lobby.name,
             settings: lobby.settings,
             players: lobby.players,
-            minPlayers: lobby.minPlayers || 2
+            minPlayers: lobby.minPlayers || 2,
+            isPrivate: lobby.isPrivate
         });
         io.to(lobbyId).emit('lobbyUpdate', { roomId: lobbyId, players: lobby.players });
         broadcastLobbyList();
@@ -807,6 +817,10 @@ io.on('connection', socket => {
     });
 
     // Heartbeat handler - clients send this every 5 seconds
+    socket.on('leaveLobby', ({ roomId }) => {
+        cleanupPlayerFromLobby(socket.id, roomId);
+    });
+
     socket.on('heartbeat', ({ roomId }) => {
         // Check if player is in a lobby
         const lobby = lobbies[roomId];
@@ -832,38 +846,7 @@ io.on('connection', socket => {
         
         // Handle lobby disconnections
         Object.keys(lobbies).forEach(id => {
-            const hadPlayer = lobbies[id].players.some(p => p.id === socket.id);
-            
-            if (hadPlayer) {
-                const presenceManager = lobbyPresenceManagers.get(id);
-                if (presenceManager) {
-                    presenceManager.onPlayerDisconnect(socket.id);
-                    const player = presenceManager.getPlayer(socket.id);
-                    
-                    // Notify other players
-                    if (player) {
-                        io.to(id).emit('playerDisconnected', {
-                            playerId: socket.id,
-                            playerName: player.name,
-                            reconnectTimeout: presenceManager.reconnectTimeout
-                        });
-                    }
-                }
-                
-                lobbies[id].players = lobbies[id].players.filter(p => p.id !== socket.id);
-                
-                // Notify remaining players in the lobby if someone left
-                if (lobbies[id].players.length > 0) {
-                    io.to(id).emit('lobbyUpdate', { roomId: id, players: lobbies[id].players });
-                } else {
-                    // Clean up empty lobby
-                    delete lobbies[id];
-                    if (presenceManager) {
-                        presenceManager.destroy();
-                        lobbyPresenceManagers.delete(id);
-                    }
-                }
-            }
+            cleanupPlayerFromLobby(socket.id, id);
         });
         
         // Handle in-game disconnections
@@ -898,8 +881,43 @@ io.on('connection', socket => {
    HELPERS
 ======================= */
 
+function cleanupPlayerFromLobby(socketId, roomId) {
+    const lobby = lobbies[roomId];
+    if (!lobby) return;
+
+    const wasInLobby = lobby.players.some(p => p.id === socketId);
+    if (!wasInLobby) return;
+
+    const presenceManager = lobbyPresenceManagers.get(roomId);
+    lobby.players = lobby.players.filter(p => p.id !== socketId);
+
+    if (lobby.players.length === 0) {
+        // Last player left — delete the lobby entirely
+        delete lobbies[roomId];
+        if (presenceManager) {
+            presenceManager.destroy();
+            lobbyPresenceManagers.delete(roomId);
+        }
+        console.log(`Lobby ${roomId} deleted (all players left)`);
+    } else {
+        // Notify remaining players
+        io.to(roomId).emit('lobbyUpdate', { roomId, players: lobby.players });
+    }
+
+    broadcastLobbyList();
+}
+
 function broadcastLobbyList() {
-    io.emit('lobbyList', Object.values(lobbies));
+    // Send lobby list to all clients — strip passcode so it's never exposed
+    const publicList = Object.values(lobbies).map(l => ({
+        id: l.id,
+        name: l.name,
+        settings: l.settings,
+        players: l.players.length,
+        minPlayers: l.minPlayers,
+        isPrivate: l.isPrivate
+    }));
+    io.emit('lobbyList', publicList);
 }
 
 /* =======================
