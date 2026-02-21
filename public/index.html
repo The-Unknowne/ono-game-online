@@ -1534,11 +1534,6 @@
         gap: 8px;
     }
 
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-
     .spinner {
         display: inline-block;
         animation: spin 1s linear infinite;
@@ -2229,91 +2224,42 @@
     }
 
     function applyBackgroundAnimation(animation) {
-        const classMap = {
-            'static': 'bg-static',
-            'color-cycle': 'bg-color-cycle',
-            'pulsing': 'bg-pulsing'
-        };
-        
-        const className = classMap[animation] || 'bg-static';
-        
-        const body = document.body;
-        body.classList.remove('bg-static', 'bg-color-cycle', 'bg-pulsing');
-        body.classList.add(className);
+        document.body.classList.remove('bg-static', 'bg-color-cycle', 'bg-pulsing');
+        document.body.classList.add({ 'color-cycle': 'bg-color-cycle', 'pulsing': 'bg-pulsing' }[animation] || 'bg-static');
     }
 
-    // Custom Popup Functions
-    function showPopup(message, title = '') {
-        const popup = document.getElementById('customPopup');
+    // Shared popup helper
+    function _openPopup(title, message, buttons) {
+        const popup   = document.getElementById('customPopup');
         const overlay = document.getElementById('overlay');
-        const popupTitle = document.getElementById('popupTitle');
-        const popupMessage = document.getElementById('popupMessage');
-        const popupButtons = document.getElementById('popupButtons');
-
-        // Set title and message
-        if (title) {
-            popupTitle.textContent = title;
-            popupTitle.style.display = 'block';
-        } else {
-            popupTitle.style.display = 'none';
-        }
-        popupMessage.textContent = message;
-
-        // Clear and create OK button
-        popupButtons.innerHTML = '';
-        const okButton = document.createElement('button');
-        okButton.className = 'popup-button';
-        okButton.textContent = 'OK';
-        okButton.onclick = () => {
-            popup.classList.remove('active');
-            overlay.classList.remove('active');
-        };
-        popupButtons.appendChild(okButton);
-
-        // Show popup and overlay
+        const titleEl = document.getElementById('popupTitle');
+        const msgEl   = document.getElementById('popupMessage');
+        const btnsEl  = document.getElementById('popupButtons');
+        const close   = () => { popup.classList.remove('active'); overlay.classList.remove('active'); };
+        titleEl.textContent = title;
+        titleEl.style.display = title ? 'block' : 'none';
+        msgEl.textContent = message;
+        btnsEl.innerHTML  = '';
+        buttons.forEach(({ label, primary, cb }) => {
+            const btn = document.createElement('button');
+            btn.className = 'popup-button' + (primary ? '' : ' secondary');
+            btn.textContent = label;
+            btn.onclick = () => { close(); cb && cb(); };
+            btnsEl.appendChild(btn);
+        });
         overlay.classList.add('active');
         popup.classList.add('active');
+    }
+
+    function showPopup(message, title = '') {
+        _openPopup(title, message, [{ label: 'OK', primary: true }]);
     }
 
     function showConfirm(message, callback, title = 'Confirm') {
-        const popup = document.getElementById('customPopup');
-        const overlay = document.getElementById('overlay');
-        const popupTitle = document.getElementById('popupTitle');
-        const popupMessage = document.getElementById('popupMessage');
-        const popupButtons = document.getElementById('popupButtons');
-
-        // Set title and message
-        popupTitle.textContent = title;
-        popupTitle.style.display = 'block';
-        popupMessage.textContent = message;
-
-        // Clear and create Yes/No buttons
-        popupButtons.innerHTML = '';
-        
-        const noButton = document.createElement('button');
-        noButton.className = 'popup-button secondary';
-        noButton.textContent = 'No';
-        noButton.onclick = () => {
-            popup.classList.remove('active');
-            overlay.classList.remove('active');
-            if (callback) callback(false);
-        };
-
-        const yesButton = document.createElement('button');
-        yesButton.className = 'popup-button';
-        yesButton.textContent = 'Yes';
-        yesButton.onclick = () => {
-            popup.classList.remove('active');
-            overlay.classList.remove('active');
-            if (callback) callback(true);
-        };
-
-        popupButtons.appendChild(noButton);
-        popupButtons.appendChild(yesButton);
-
-        // Show popup and overlay
-        overlay.classList.add('active');
-        popup.classList.add('active');
+        _openPopup(title, message, [
+            { label: 'No',  primary: false, cb: () => callback(false) },
+            { label: 'Yes', primary: true,  cb: () => callback(true)  }
+        ]);
     }
 
     // Initialize socket connection with error handling
@@ -2395,51 +2341,21 @@
         });
 
         socket.on('gameState', (state) => {
-            // Always reset waiting flag when server responds — prevents getting stuck
             isWaitingForServer = false;
-            
-            // Show animation if cards were drawn by the current player
-            if (state.lastDrawInfo && state.lastDrawInfo.cardsDrawn && state.lastDrawInfo.playerId === socket.id) {
+            if (state.lastDrawInfo?.cardsDrawn && state.lastDrawInfo.playerId === socket.id) {
                 const count = state.lastDrawInfo.cardsDrawn;
-                
-                // Animate the cards being drawn
+                const done = () => { gameState = state; updateGameUI(); };
                 if (count === 1) {
-                    // Single card animation
-                    animateCardToHand('player', () => {
-                        // Update game state after animation completes
-                        gameState = state;
-                        isWaitingForServer = false;
-                        
-                        const message = 'You drew a card!';
-                        showMessage(message);
-                        updateGameUI();
-                    });
+                    animateCardToHand('player', () => { showMessage('You drew a card!'); done(); });
                 } else {
-                    // Multiple cards with staggered animation
-                    animateMultipleCardsToHand(count, () => {
-                        // Update game state after all animations complete
-                        gameState = state;
-                        isWaitingForServer = false;
-                        
-                        const message = `You drew ${count} cards until finding a matching color!`;
-                        showMessage(message);
-                        updateGameUI();
-                    });
+                    animateMultipleCardsToHand(count, () => { showMessage(`You drew ${count} cards until finding a matching color!`); done(); });
                 }
             } else {
-                // No animation needed, update immediately
                 gameState = state;
-                isWaitingForServer = false;
-                
-                // Show message if cards were drawn by opponent
-                if (state.lastDrawInfo && state.lastDrawInfo.cardsDrawn && state.lastDrawInfo.playerId !== socket.id) {
-                    const count = state.lastDrawInfo.cardsDrawn;
-                    const message = count === 1 
-                        ? 'Opponent drew a card!'
-                        : `Opponent drew ${count} cards!`;
-                    showMessage(message);
+                if (state.lastDrawInfo?.cardsDrawn && state.lastDrawInfo.playerId !== socket.id) {
+                    const c = state.lastDrawInfo.cardsDrawn;
+                    showMessage(c === 1 ? 'Opponent drew a card!' : `Opponent drew ${c} cards!`);
                 }
-                
                 updateGameUI();
             }
         });
@@ -2594,48 +2510,24 @@
 
     function renderLobbyList() {
         const container = document.getElementById('lobbyListContainer');
-        container.innerHTML = '';
-
         if (currentLobbies.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-icon">🎮</div>
-                    <p style="font-size: 1.2em; margin-bottom: 10px;">No lobbies available</p>
-                    <p style="font-size: 0.9em; color: #95a5a6;">No one is hosting a game right now</p>
-                    <p style="font-size: 0.9em; color: #95a5a6; margin-top: 5px;">Go back and create a lobby to get started!</p>
-                </div>
-            `;
+            container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🎮</div><p style="font-size:1.2em;margin-bottom:10px;">No lobbies available</p><p style="font-size:0.9em;color:#95a5a6;">Go back and create a lobby to get started!</p></div>`;
             return;
         }
-
+        container.innerHTML = '';
         currentLobbies.forEach(lobby => {
-            const card = document.createElement('div');
-            card.className = 'lobby-card' + (lobby.isPrivate ? ' is-private' : '');
-            card.onclick = () => joinLobby(lobby.id);
-
             const rules = [];
             if (lobby.settings.allowStacking) rules.push('<span class="lobby-tag active">+2/+4 Stack</span>');
-
-            if (lobby.settings.allowPlus12) rules.push('<span class="lobby-tag" style="background:rgba(255,140,0,0.2);color:#ff8c00;border:1px solid rgba(255,140,0,0.4);">💀 +12 Card</span>');
-            if (lobby.settings.allowJumpIn) rules.push('<span class="lobby-tag active">Jump-In</span>');
-            if (rules.length === 0) rules.push('<span class="lobby-tag">Classic Rules</span>');
-
+            if (lobby.settings.allowPlus12)   rules.push('<span class="lobby-tag" style="background:rgba(255,140,0,0.2);color:#ff8c00;border:1px solid rgba(255,140,0,0.4);">💀 +12 Card</span>');
+            if (lobby.settings.allowJumpIn)   rules.push('<span class="lobby-tag active">Jump-In</span>');
+            if (!rules.length)                rules.push('<span class="lobby-tag">Classic Rules</span>');
             const privBadge = lobby.isPrivate
                 ? `<span class="lobby-tag" style="background:rgba(231,76,60,0.25);color:#e74c3c;border:1px solid rgba(231,76,60,0.4);">🔒 Private</span>`
                 : `<span class="lobby-tag" style="background:rgba(46,204,113,0.2);color:#2ecc71;border:1px solid rgba(46,204,113,0.35);">🌐 Public</span>`;
-
-            card.innerHTML = `
-                <div class="lobby-card-header">
-                    <div class="lobby-name">${lobby.isPrivate ? '🔒 ' : ''}${lobby.name}</div>
-                    <div class="lobby-players">${lobby.players} / ${lobby.settings.maxPlayers || 2}</div>
-                </div>
-                <div class="lobby-info">
-                    <span class="lobby-tag">${lobby.settings.startingCards} Cards</span>
-                    ${privBadge}
-                    ${rules.join('')}
-                </div>
-            `;
-
+            const card = document.createElement('div');
+            card.className = 'lobby-card' + (lobby.isPrivate ? ' is-private' : '');
+            card.onclick = () => joinLobby(lobby.id);
+            card.innerHTML = `<div class="lobby-card-header"><div class="lobby-name">${lobby.isPrivate ? '🔒 ' : ''}${lobby.name}</div><div class="lobby-players">${lobby.players} / ${lobby.settings.maxPlayers || 2}</div></div><div class="lobby-info"><span class="lobby-tag">${lobby.settings.startingCards} Cards</span>${privBadge}${rules.join('')}</div>`;
             container.appendChild(card);
         });
     }
@@ -2724,227 +2616,116 @@
 
     function showWaitingLobby(lobbyName, settings, players, minPlayers = 2) {
         document.getElementById('waitingLobbyName').textContent = lobbyName;
-        
-        // Display lobby ID
-        if (roomId) {
-            document.getElementById('lobbyIdDisplay').textContent = `Lobby ID: ${roomId}`;
-        }
-        
-        const rulesDiv = document.getElementById('waitingRules');
-        
-        // Categorize rules
-        const gameSettings = [];
-        const activeRules = [];
-        
-        gameSettings.push(`<div class="rule-item">🎴 <strong>Starting Cards:</strong> ${settings.startingCards}</div>`);
-        gameSettings.push(`<div class="rule-item">👥 <strong>Max Players:</strong> ${settings.maxPlayers}</div>`);
-        gameSettings.push(`<div class="rule-item">⚠️ <strong>Min Players:</strong> ${minPlayers}</div>`);
-        
-        if (settings.allowStacking) {
-            activeRules.push(`<div class="rule-item">✅ +2/+4 Stacking Enabled</div>`);
-        }
+        if (roomId) document.getElementById('lobbyIdDisplay').textContent = `Lobby ID: ${roomId}`;
 
-        if (settings.allowPlus12) activeRules.push(`<div class="rule-item">💀 +12 Card Enabled (rare wild)</div>`);
-        if (settings.allowJumpIn) {
-            activeRules.push(`<div class="rule-item">✅ Jump-In Enabled</div>`);
-        }
-        if (settings.drawUntilMatch !== false) {
-            activeRules.push(`<div class="rule-item">✅ Draw Until Match Enabled</div>`);
-        }
-        
-        const hasActiveRules = settings.allowStacking || 
-                               settings.allowJumpIn || settings.allowPlus12 || settings.drawUntilMatch !== false;
-        
-        let rulesHTML = '<div class="rules-container">';
-        
-        // Game Settings Section
-        rulesHTML += '<div class="rules-section">';
-        rulesHTML += '<div class="rules-title">⚙️ Game Settings</div>';
-        rulesHTML += gameSettings.join('');
-        rulesHTML += '</div>';
-        
-        // Active Rules or Classic Rules Section
-        if (hasActiveRules) {
-            rulesHTML += '<div class="rules-section">';
-            rulesHTML += '<div class="rules-title">🎮 Active Rules</div>';
-            rulesHTML += activeRules.join('');
-            rulesHTML += '</div>';
-        } else {
-            rulesHTML += '<div class="rules-section">';
-            rulesHTML += '<div class="rules-title">📋 Classic Rules</div>';
-            rulesHTML += '<div class="rule-item">🎯 Playing with standard O,No rules</div>';
-            rulesHTML += '</div>';
-        }
-        
-        rulesHTML += '</div>';
-        rulesDiv.innerHTML = rulesHTML;
+        const activeRules = [
+            settings.allowStacking              && '✅ +2/+4 Stacking Enabled',
+            settings.allowPlus12                && '💀 +12 Card Enabled (rare wild)',
+            settings.allowJumpIn                && '✅ Jump-In Enabled',
+            settings.drawUntilMatch !== false   && '✅ Draw Until Match Enabled',
+        ].filter(Boolean);
+
+        const rulesRows = activeRules.length
+            ? `<div class="rules-section"><div class="rules-title">🎮 Active Rules</div>${activeRules.map(r => `<div class="rule-item">${r}</div>`).join('')}</div>`
+            : `<div class="rules-section"><div class="rules-title">📋 Classic Rules</div><div class="rule-item">🎯 Playing with standard O,No rules</div></div>`;
+
+        document.getElementById('waitingRules').innerHTML = `
+            <div class="rules-container">
+                <div class="rules-section">
+                    <div class="rules-title">⚙️ Game Settings</div>
+                    <div class="rule-item">🎴 <strong>Starting Cards:</strong> ${settings.startingCards}</div>
+                    <div class="rule-item">👥 <strong>Max Players:</strong> ${settings.maxPlayers}</div>
+                    <div class="rule-item">⚠️ <strong>Min Players:</strong> ${minPlayers}</div>
+                </div>
+                ${rulesRows}
+            </div>`;
 
         updateLobbyStatus(players || [{ id: socket.id, name: 'You', ready: false }], minPlayers);
-        
         showScreen('waitingLobby');
     }
 
     function updateLobbyStatus(players, minPlayers = 2) {
-        const maxPlayers = currentLobbyData?.settings?.maxPlayers || 2;
+        const maxPlayers  = currentLobbyData?.settings?.maxPlayers || 2;
         const playerCount = players.length;
         document.getElementById('playerCountText').textContent = `${playerCount} / ${maxPlayers}`;
 
+        const avatars = ['👤','🎮','🎯','🎲','🃏','🎪','🎭','🎨'];
         const statusDiv = document.getElementById('playersStatus');
-        statusDiv.innerHTML = '<div style="display: flex; flex-direction: column; gap: 12px;"></div>';
-        const container = statusDiv.firstChild;
 
-        // Show minimum players warning if needed
+        // Build player rows
+        let slotsHTML = '';
         if (playerCount < minPlayers) {
-            const warning = document.createElement('div');
-            warning.className = 'min-players-warning';
-            warning.innerHTML = `⚠️ Need at least ${minPlayers} players to start the game!<br><span style="font-size: 0.9em;">(Currently ${playerCount} / ${minPlayers})</span>`;
-            container.appendChild(warning);
+            slotsHTML += `<div class="min-players-warning">⚠️ Need at least ${minPlayers} players to start!<br><span style="font-size:0.9em;">(Currently ${playerCount} / ${minPlayers})</span></div>`;
         }
-
-        // Player avatars/emojis for variety
-        const avatars = ['👤', '🎮', '🎯', '🎲', '🃏', '🎪', '🎭', '🎨'];
-
-        // Show all current players
-        players.forEach((player, index) => {
-            const isYou = player.id === socket.id;
-            const isHost = index === 0; // First player is host
-            
-            const playerDiv = document.createElement('div');
-            playerDiv.className = `player-slot${isYou ? ' you' : ''}`;
-            
-            // Player Avatar
-            const avatar = document.createElement('div');
-            avatar.className = 'player-avatar';
-            avatar.textContent = avatars[index % avatars.length];
-            
-            // Player Info
-            const info = document.createElement('div');
-            info.className = 'player-info';
-            
-            const nameDiv = document.createElement('div');
-            nameDiv.className = 'player-name';
-            
-            const nameText = document.createElement('span');
-            nameText.textContent = isYou ? '👋 You' : player.name;
-            nameDiv.appendChild(nameText);
-            
-            // Host badge
-            if (isHost) {
-                const hostBadge = document.createElement('span');
-                hostBadge.className = 'host-badge';
-                hostBadge.textContent = '👑 Host';
-                nameDiv.appendChild(hostBadge);
-            }
-            
-            info.appendChild(nameDiv);
-            
-            // Ready Badge
-            const readyBadge = document.createElement('div');
-            readyBadge.className = `ready-badge ${player.ready ? 'ready' : 'not-ready'}`;
-            if (player.ready) {
-                readyBadge.textContent = '✓ Ready';
-            } else {
-                readyBadge.textContent = '⏳ Not Ready';
-            }
-            
-            playerDiv.appendChild(avatar);
-            playerDiv.appendChild(info);
-            playerDiv.appendChild(readyBadge);
-            container.appendChild(playerDiv);
+        players.forEach((player, i) => {
+            const isYou  = player.id === socket.id;
+            const isHost = i === 0;
+            slotsHTML += `
+                <div class="player-slot${isYou ? ' you' : ''}">
+                    <div class="player-avatar">${avatars[i % avatars.length]}</div>
+                    <div class="player-info">
+                        <div class="player-name">
+                            <span>${isYou ? '👋 You' : player.name}</span>
+                            ${isHost ? '<span class="host-badge">👑 Host</span>' : ''}
+                        </div>
+                    </div>
+                    <div class="ready-badge ${player.ready ? 'ready' : 'not-ready'}">${player.ready ? '✓ Ready' : '⏳ Not Ready'}</div>
+                </div>`;
         });
-
-        // Show empty slots
         for (let i = playerCount; i < maxPlayers; i++) {
-            const emptyDiv = document.createElement('div');
-            emptyDiv.className = 'player-slot empty';
-            
-            const avatar = document.createElement('div');
-            avatar.className = 'player-avatar empty';
-            avatar.textContent = '👤';
-            
-            const info = document.createElement('div');
-            info.className = 'player-info';
-            
-            const nameDiv = document.createElement('div');
-            nameDiv.className = 'player-name';
-            nameDiv.style.color = '#95a5a6';
-            nameDiv.textContent = 'Waiting for player...';
-            
-            info.appendChild(nameDiv);
-            
-            const readyBadge = document.createElement('div');
-            readyBadge.className = 'ready-badge empty';
-            readyBadge.textContent = '-';
-            
-            emptyDiv.appendChild(avatar);
-            emptyDiv.appendChild(info);
-            emptyDiv.appendChild(readyBadge);
-            container.appendChild(emptyDiv);
+            slotsHTML += `
+                <div class="player-slot empty">
+                    <div class="player-avatar empty">👤</div>
+                    <div class="player-info"><div class="player-name" style="color:#95a5a6;">Waiting for player...</div></div>
+                    <div class="ready-badge empty">-</div>
+                </div>`;
         }
+        statusDiv.innerHTML = `<div style="display:flex;flex-direction:column;gap:12px;">${slotsHTML}</div>`;
 
-        // Update ready status bar
-        const readyCount = players.filter(p => p.ready).length;
+        // Attach catch button listeners (none needed here — lobby screen)
+
+        // Ready status bar
+        const readyCount    = players.filter(p => p.ready).length;
         const readyStatusBar = document.getElementById('readyStatusBar');
-        
         if (playerCount >= minPlayers) {
             readyStatusBar.style.display = 'block';
-            
-            if (readyCount === playerCount) {
-                readyStatusBar.className = 'ready-status-bar all-ready';
-                readyStatusBar.innerHTML = '🎉 All players ready! Starting game...';
-            } else {
-                readyStatusBar.className = 'ready-status-bar waiting';
-                readyStatusBar.innerHTML = `⏳ Waiting for players to ready up... (${readyCount}/${playerCount} ready)`;
-            }
+            const allReady = readyCount === playerCount;
+            readyStatusBar.className = 'ready-status-bar ' + (allReady ? 'all-ready' : 'waiting');
+            readyStatusBar.innerHTML  = allReady
+                ? '🎉 All players ready! Starting game...'
+                : `⏳ Waiting for players to ready up... (${readyCount}/${playerCount} ready)`;
         } else {
             readyStatusBar.style.display = 'none';
         }
 
-        // Show/hide waiting message
+        // Waiting message
         const waitingMessage = document.getElementById('waitingMessage');
         if (playerCount < minPlayers) {
             waitingMessage.style.display = 'flex';
-            const messageSpan = waitingMessage.querySelector('span:last-child');
-            if (messageSpan) {
-                messageSpan.textContent = `Waiting for more players to join... (${playerCount}/${minPlayers})`;
-            }
+            const span = waitingMessage.querySelector('span:last-child');
+            if (span) span.textContent = `Waiting for more players to join... (${playerCount}/${minPlayers})`;
         } else {
             waitingMessage.style.display = 'none';
         }
 
-        // Show ready button if lobby has at least minimum players
-        const readyButton = document.getElementById('readyButton');
-        if (playerCount >= minPlayers) {
-            readyButton.style.display = 'block';
-            // Update button state based on current ready status
-            const currentPlayer = players.find(p => p.id === socket.id);
-            if (currentPlayer && currentPlayer.ready) {
-                readyButton.classList.add('is-ready');
-            } else {
-                readyButton.classList.remove('is-ready');
-            }
-        } else {
-            readyButton.style.display = 'none';
-        }
+        // Ready button
+        const readyButton   = document.getElementById('readyButton');
+        readyButton.style.display = playerCount >= minPlayers ? 'block' : 'none';
+        const me = players.find(p => p.id === socket.id);
+        if (me && me.ready) readyButton.classList.add('is-ready');
+        else                readyButton.classList.remove('is-ready');
     }
 
     function toggleReady() {
         if (!socket || !socket.connected || !roomId) return;
-        
         isReady = !isReady;
         const btn = document.getElementById('readyButton');
-        
-        if (isReady) {
-            btn.textContent = '✓ Ready!';
-            btn.classList.add('is-ready');
-            btn.style.background = 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)';
-        } else {
-            btn.textContent = '⏳ Ready Up!';
-            btn.classList.remove('is-ready');
-            btn.style.background = 'linear-gradient(135deg, #f39c12 0%, #e67e22 100%)';
-        }
-        
-        socket.emit('playerReady', { roomId: roomId, ready: isReady });
+        btn.textContent = isReady ? '✓ Ready!' : '⏳ Ready Up!';
+        btn.classList.toggle('is-ready', isReady);
+        btn.style.background = isReady
+            ? 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)'
+            : 'linear-gradient(135deg, #f39c12 0%, #e67e22 100%)';
+        socket.emit('playerReady', { roomId, ready: isReady });
     }
 
     // Heartbeat management
@@ -2972,37 +2753,16 @@
     // Disconnect notification management
     function showDisconnectNotification(message, timeout = 0, type = 'disconnected') {
         const notification = document.getElementById('disconnectNotification');
-        
-        if (type === 'reconnected') {
-            notification.className = 'disconnect-notification active reconnected';
-        } else {
-            notification.className = 'disconnect-notification active';
-        }
-        
+        notification.className = 'disconnect-notification active' + (type === 'reconnected' ? ' reconnected' : '');
         if (timeout > 0) {
-            const seconds = Math.ceil(timeout / 1000);
-            notification.innerHTML = `
-                ${message}
-                <span class="reconnect-timer">Grace period: ${seconds} seconds</span>
-            `;
-            
-            // Update timer countdown
-            let remaining = seconds;
-            if (disconnectNotificationTimeout) {
-                clearInterval(disconnectNotificationTimeout);
-            }
-            
+            let remaining = Math.ceil(timeout / 1000);
+            notification.innerHTML = `${message}<span class="reconnect-timer">Grace period: ${remaining} seconds</span>`;
+            if (disconnectNotificationTimeout) clearInterval(disconnectNotificationTimeout);
             disconnectNotificationTimeout = setInterval(() => {
                 remaining--;
-                if (remaining <= 0) {
-                    clearInterval(disconnectNotificationTimeout);
-                    hideDisconnectNotification();
-                } else {
-                    const timerSpan = notification.querySelector('.reconnect-timer');
-                    if (timerSpan) {
-                        timerSpan.textContent = `Grace period: ${remaining} seconds`;
-                    }
-                }
+                if (remaining <= 0) { clearInterval(disconnectNotificationTimeout); hideDisconnectNotification(); return; }
+                const t = notification.querySelector('.reconnect-timer');
+                if (t) t.textContent = `Grace period: ${remaining} seconds`;
             }, 1000);
         } else {
             notification.textContent = message;
@@ -3230,17 +2990,12 @@
     }
 
     function updateDirectionArrows() {
-        const dir = gameState.direction ?? 1;
-        const arcCW  = document.getElementById('arcCW');
-        const arcCCW = document.getElementById('arcCCW');
-        if (!arcCW || !arcCCW) return;
-        if (dir === 1) {
-            arcCW.style.display  = '';
-            arcCCW.style.display = 'none';
-        } else {
-            arcCW.style.display  = 'none';
-            arcCCW.style.display = '';
-        }
+        const cw  = document.getElementById('arcCW');
+        const ccw = document.getElementById('arcCCW');
+        if (!cw || !ccw) return;
+        const isCW = (gameState.direction ?? 1) === 1;
+        cw.style.display  = isCW ? '' : 'none';
+        ccw.style.display = isCW ? 'none' : '';
     }
 
     function renderDiscardPile() {
@@ -3309,21 +3064,18 @@
     function updateJumpInBanner(show, label = '⚡ JUMP IN!') {
         const banner = document.getElementById('jumpInBanner');
         if (!banner) return;
-        if (show && !jumpInBannerVisible) {
-            jumpInBannerVisible = true;
+        if (show) {
             banner.textContent = label;
-            banner.classList.remove('hiding');
-            banner.classList.add('visible');
-        } else if (show && jumpInBannerVisible) {
-            // Update label if already showing
-            banner.textContent = label;
-        } else if (!show && jumpInBannerVisible) {
+            if (!jumpInBannerVisible) {
+                jumpInBannerVisible = true;
+                banner.classList.remove('hiding');
+                banner.classList.add('visible');
+            }
+        } else if (jumpInBannerVisible) {
             jumpInBannerVisible = false;
             banner.classList.remove('visible');
             banner.classList.add('hiding');
-            setTimeout(() => {
-                banner.classList.remove('hiding');
-            }, 280);
+            setTimeout(() => banner.classList.remove('hiding'), 280);
         }
     }
 
@@ -3491,7 +3243,6 @@
         const flash = document.getElementById('penaltyFlash');
         if (!flash) return;
         flash.classList.remove('flashing');
-        // Force reflow to restart animation
         void flash.offsetWidth;
         flash.classList.add('flashing');
         setTimeout(() => flash.classList.remove('flashing'), 800);
@@ -3794,15 +3545,8 @@
         document.getElementById('message').textContent = msg;
     }
 
-    function getColorHex(color) {
-        const map = {
-            'red': '#e74c3c',
-            'blue': '#3498db',
-            'green': '#2ecc71',
-            'yellow': '#f1c40f'
-        };
-        return map[color] || '#ffffff';
-    }
+    const COLOR_HEX = { red: '#e74c3c', blue: '#3498db', green: '#2ecc71', yellow: '#f1c40f' };
+    function getColorHex(color) { return COLOR_HEX[color] || '#ffffff'; }
 </script>
 
 </body>
