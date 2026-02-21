@@ -3125,6 +3125,25 @@
             } else {
                 unoBtn.classList.remove('active');
             }
+            // Auto-draw stacked cards if it's your turn, there's a stack,
+            // and you have no card that can stack on it
+            if (gameState.isYourTurn && gameState.stackedDrawCount > 0 && !isWaitingForServer) {
+                const hasStackCard = gameState.yourHand && gameState.yourHand.some(card => {
+                    if (gameState.currentValue === '+2'     && card.value === '+2')     return true;
+                    if (gameState.currentValue === 'Wild+4' && card.value === 'Wild+4') return true;
+                    return false;
+                });
+                if (!hasStackCard) {
+                    // No stackable card — automatically absorb the penalty
+                    isWaitingForServer = true;
+                    setTimeout(() => {
+                        if (socket && socket.connected) {
+                            socket.emit('drawCard', { roomId });
+                        }
+                    }, 600); // short delay so player sees the stack count before it resolves
+                }
+            }
+
         } catch (error) {
             console.error('Error updating UI:', error);
         }
