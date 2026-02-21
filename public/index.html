@@ -621,6 +621,35 @@
         cursor: pointer;
         font-weight: bold;
         font-size: 0.82em;
+        animation: catchPulse 1s ease-in-out infinite;
+    }
+    @keyframes catchPulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(231,76,60,0.7); }
+        50%       { box-shadow: 0 0 0 6px rgba(231,76,60,0); }
+    }
+
+    /* O,No diagonal ribbon on seat box */
+    .seat-box {
+        position: relative;
+        overflow: hidden;
+    }
+    .ono-ribbon {
+        position: absolute;
+        top: 10px;
+        right: -22px;
+        width: 80px;
+        background: linear-gradient(135deg, #f1c40f, #e67e22);
+        color: #1a1a1a;
+        font-size: 0.6em;
+        font-weight: 900;
+        text-align: center;
+        padding: 2px 0;
+        transform: rotate(45deg);
+        transform-origin: center;
+        pointer-events: none;
+        z-index: 10;
+        letter-spacing: 0.5px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.35);
     }
 
     /* Direction indicator text label in center */
@@ -1182,22 +1211,29 @@
         position: fixed;
         bottom: 20px;
         right: 20px;
-        background: #e74c3c;
+        background: linear-gradient(135deg, #e74c3c, #c0392b);
         color: white;
-        border: none;
+        border: 3px solid rgba(255,255,255,0.3);
         padding: 15px 30px;
         font-size: 1.3em;
-        font-weight: bold;
+        font-weight: 900;
         border-radius: 50px;
         cursor: pointer;
-        box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+        box-shadow: 0 6px 20px rgba(231, 76, 60, 0.5);
         display: none;
         z-index: 100;
         touch-action: manipulation;
+        letter-spacing: 1px;
     }
 
     .uno-button.active {
         display: block;
+        animation: unoBtnPulse 0.8s ease-in-out infinite;
+    }
+
+    @keyframes unoBtnPulse {
+        0%, 100% { transform: scale(1);    box-shadow: 0 6px 20px rgba(231,76,60,0.5); }
+        50%       { transform: scale(1.07); box-shadow: 0 8px 30px rgba(231,76,60,0.9); }
     }
 
     /* =============================================
@@ -2409,11 +2445,15 @@
         });
         
         socket.on('playerCalledUno', (data) => {
-            showMessage(data.message);
+            showMessage(`🔔 ${data.playerName} called O,No!`);
         });
         
         socket.on('unoPenalty', (data) => {
             showMessage(data.message);
+        });
+
+        socket.on('unoTransfer', (data) => {
+            showMessage(`🔄 ${data.playerName} now has 1 card — they must call O,No!`);
         });
 
         // 7-swap: server asks this player to pick a target
@@ -3071,8 +3111,13 @@
                 drawPileEl.style.pointerEvents = 'none';
             }
 
+            // O,No button: only show when you have exactly 1 card and haven't called it yet
             const unoBtn = document.getElementById('unoButton');
-            if (gameState.yourHand && (gameState.yourHand.length === 2 || gameState.yourHand.length === 1)) {
+            const myPlayer = gameState.allPlayers && gameState.allPlayers.find(p => p.isYou);
+            const shouldShowUno = gameState.yourHand &&
+                                  gameState.yourHand.length === 1 &&
+                                  myPlayer && !myPlayer.calledUno;
+            if (shouldShowUno) {
                 unoBtn.classList.add('active');
             } else {
                 unoBtn.classList.remove('active');
@@ -3127,7 +3172,12 @@
                 player.isCurrent ? 'is-current'  : ''
             ].filter(Boolean).join(' ');
 
-            const catchBtn = (!player.isYou && player.cardCount === 1)
+            // O,No ribbon — show on anyone (including you) who has called O,No
+            const onoRibbon = player.calledUno
+                ? `<div class="ono-ribbon">O,NO!</div>` : '';
+
+            // Catch button — only show on opponents with 1 card who haven't called O,No
+            const catchBtn = (!player.isYou && player.cardCount === 1 && !player.calledUno)
                 ? `<button class="catch-button" data-id="${player.id}">Catch!</button>` : '';
 
             const turnLabel = player.isCurrent
@@ -3138,6 +3188,7 @@
 
             seat.innerHTML = `
                 <div class="${boxClasses}">
+                    ${onoRibbon}
                     <div class="seat-name">${player.name}</div>
                     <div class="seat-cards">${player.cardCount} 🎴</div>
                     ${turnLabel}
