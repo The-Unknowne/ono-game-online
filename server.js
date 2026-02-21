@@ -339,6 +339,7 @@ class GameRoom {
             const count = this.stackedDrawCount;
             this.drawCards(playerIndex, count);
             this.stackedDrawCount = 0;
+            this.players[playerIndex].calledUno = false; // hand grew, O,No state gone
             this.advanceTurn();
             return { success: true, drewStacked: true, stackCount: count };
         }
@@ -348,6 +349,10 @@ class GameRoom {
         const drawnCard = this.players[playerIndex].hand.at(-1);
         const canPlay = drawnCard ? this.canPlayCard(drawnCard) : false;
         if (!canPlay) this.advanceTurn();
+        // If drawing pushed hand above 1 card, O,No state is no longer valid
+        if (this.players[playerIndex].hand.length > 1) {
+            this.players[playerIndex].calledUno = false;
+        }
         return { success: true, canPlayDrawn: canPlay, cardsDrawn: 1 };
     }
 
