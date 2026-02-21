@@ -640,27 +640,28 @@
         position: fixed;
         bottom: 30px;
         right: 30px;
-        background: #e74c3c;
+        background: linear-gradient(135deg, #e74c3c, #c0392b);
         color: white;
-        border: none;
+        border: 3px solid rgba(255,255,255,0.3);
         padding: 20px 40px;
         font-size: 1.5em;
-        font-weight: bold;
+        font-weight: 900;
         border-radius: 50px;
         cursor: pointer;
-        box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
-        transition: all 0.3s;
+        box-shadow: 0 6px 20px rgba(231, 76, 60, 0.5);
         display: none;
         z-index: 100;
+        letter-spacing: 1px;
     }
 
     .uno-button.active {
         display: block;
+        animation: unoBtnPulse 0.8s ease-in-out infinite;
     }
 
-    .uno-button:hover {
-        transform: scale(1.1);
-        box-shadow: 0 8px 25px rgba(231, 76, 60, 0.6);
+    @keyframes unoBtnPulse {
+        0%, 100% { transform: scale(1);    box-shadow: 0 6px 20px rgba(231,76,60,0.5); }
+        50%       { transform: scale(1.07); box-shadow: 0 8px 30px rgba(231,76,60,0.9); }
     }
 
     @keyframes pulse {
@@ -668,8 +669,47 @@
         50% { transform: scale(1.1); }
     }
 
-    .uno-button.pulse {
-        animation: pulse 0.5s ease-in-out infinite;
+    /* Catch button pulse */
+    #catchButton {
+        animation: catchPulse 1s ease-in-out infinite;
+    }
+    @keyframes catchPulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(231,76,60,0.7); }
+        50%       { box-shadow: 0 0 0 6px rgba(231,76,60,0); }
+    }
+
+    /* O,No ribbon on computer box */
+    .computer-label-box {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        overflow: visible;
+    }
+    .computer-ono-ribbon {
+        display: none;
+        background: linear-gradient(135deg, #f1c40f, #e67e22);
+        color: #1a1a1a;
+        font-size: 0.72em;
+        font-weight: 900;
+        padding: 3px 10px;
+        border-radius: 20px;
+        letter-spacing: 0.5px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        white-space: nowrap;
+    }
+    .computer-ono-ribbon.visible {
+        display: inline-block;
+    }
+
+    /* Direction indicator */
+    .direction-indicator {
+        font-size: 1.2em;
+        font-weight: 700;
+        color: rgba(255,255,255,0.7);
+        text-align: center;
+        margin: 4px 0 0;
+        letter-spacing: 1px;
     }
     
     @keyframes cardPulse {
@@ -822,6 +862,31 @@
         display: block;
     }
 
+    /* +12 wild card */
+    .card.plus12 {
+        background: linear-gradient(145deg, #0a0a0a 0%, #1a1a1a 40%, #2a1a00 100%);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.7), 0 0 20px rgba(255,180,0,0.4), 0 0 40px rgba(255,100,0,0.2), inset 0 1px 0 rgba(255,180,0,0.2);
+        border: 2px solid rgba(255,180,0,0.5) !important;
+    }
+    .card.plus12 .card-inner {
+        color: #0a0a0a;
+        background: linear-gradient(135deg, #ffd700, #ff8c00);
+        font-size: 1.1em;
+        font-weight: 900;
+        box-shadow: 0 0 12px rgba(255,180,0,0.6);
+    }
+    html[data-theme="dark"] .card.plus12 .card-inner {
+        color: #0a0a0a;
+        background: linear-gradient(135deg, #ffd700, #ff6a00);
+    }
+    .player-hand .card.plus12 {
+        animation: plus12Glow 2s ease-in-out infinite;
+    }
+    @keyframes plus12Glow {
+        0%, 100% { box-shadow: 0 6px 20px rgba(0,0,0,0.7), 0 0 18px rgba(255,160,0,0.5); }
+        50%       { box-shadow: 0 8px 28px rgba(0,0,0,0.8), 0 0 36px rgba(255,100,0,0.8), 0 0 60px rgba(255,60,0,0.3); }
+    }
+
     @keyframes stackPulse {
         0%, 100% { transform: translateX(-50%) scale(1); box-shadow: 0 4px 15px rgba(255, 65, 108, 0.5); }
         50% { transform: translateX(-50%) scale(1.05); box-shadow: 0 6px 25px rgba(255, 65, 108, 0.8); }
@@ -962,6 +1027,24 @@
                 </label>
             </div>
             <p style="font-size: 0.9em; color: var(--text-muted);">Play out of turn if you have an exact match (same color AND number)</p>
+
+            <div class="toggle-container" style="margin-bottom: 15px; margin-top: 20px;">
+                <label style="margin-bottom: 0;">💀 Allow +12 Card</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="allowPlus12">
+                    <span class="slider-toggle"></span>
+                </label>
+            </div>
+            <p style="font-size: 0.9em; color: var(--text-muted);">Adds 2 rare +12 wild cards to the deck — low chance, devastating effect</p>
+
+            <div class="toggle-container" style="margin-bottom: 15px; margin-top: 20px;">
+                <label style="margin-bottom: 0;">Draw One Per Turn</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="drawOnePerTurn">
+                    <span class="slider-toggle"></span>
+                </label>
+            </div>
+            <p style="font-size: 0.9em; color: var(--text-muted);">Draw only one card per turn instead of drawing until you find a match</p>
         </div>
 
         <div class="settings-buttons">
@@ -985,10 +1068,12 @@
         </div>
 
         <div class="computer-hand">
-            <div style="display: flex; align-items: center; justify-content: center; gap: 15px;">
+            <div class="computer-label-box">
                 <span>Computer (<span id="computerCardCount">7</span> cards)</span>
-                <button id="catchButton" onclick="catchComputer()" style="display: none; background: #e74c3c; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-weight: bold;">Catch!</button>
+                <span class="computer-ono-ribbon" id="computerOnoRibbon">O,NO!</span>
+                <button id="catchButton" onclick="catchComputer()" style="display: none; background: #e74c3c; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-weight: bold; border-radius: 6px;">Catch!</button>
             </div>
+            <div class="direction-indicator" id="directionIndicator">▶ Clockwise</div>
             <div class="computer-cards" id="computerCards"></div>
         </div>
 
@@ -1077,6 +1162,8 @@
         allowStacking: false,
         allowSpecial07: false,
         allowJumpIn: false,
+        allowPlus12: false,
+        drawOnePerTurn: false,
         backgroundAnimation: 'static'
     };
 
@@ -1124,34 +1211,30 @@
     }
 
     function showSettings() {
+        showScreen('settingsScreen');
         document.getElementById('difficulty').value = settings.difficulty;
         document.getElementById('startingCards').value = settings.startingCards;
-        document.getElementById('soundToggle').checked = settings.soundEffects;
         document.getElementById('autoUno').checked = settings.autoUno;
+        document.getElementById('backgroundAnimation').value = settings.backgroundAnimation;
         document.getElementById('allowStacking').checked = settings.allowStacking;
         document.getElementById('allowSpecial07').checked = settings.allowSpecial07;
         document.getElementById('allowJumpIn').checked = settings.allowJumpIn;
-        document.getElementById('backgroundAnimation').value = settings.backgroundAnimation;
-        
-        showScreen('settingsScreen');
+        document.getElementById('allowPlus12').checked = settings.allowPlus12;
+        document.getElementById('drawOnePerTurn').checked = settings.drawOnePerTurn;
     }
 
     function saveSettings() {
         settings.difficulty = document.getElementById('difficulty').value;
         settings.startingCards = parseInt(document.getElementById('startingCards').value);
-        settings.soundEffects = document.getElementById('soundToggle').checked;
         settings.autoUno = document.getElementById('autoUno').checked;
+        settings.backgroundAnimation = document.getElementById('backgroundAnimation').value;
         settings.allowStacking = document.getElementById('allowStacking').checked;
         settings.allowSpecial07 = document.getElementById('allowSpecial07').checked;
         settings.allowJumpIn = document.getElementById('allowJumpIn').checked;
-        settings.backgroundAnimation = document.getElementById('backgroundAnimation').value;
-        
-        // Save to localStorage
+        settings.allowPlus12 = document.getElementById('allowPlus12').checked;
+        settings.drawOnePerTurn = document.getElementById('drawOnePerTurn').checked;
         localStorage.setItem('onoGameSettings', JSON.stringify(settings));
-        
-        // Apply background animation
         applyBackgroundAnimation();
-        
         showScreen('mainMenuScreen');
     }
 
@@ -1211,6 +1294,12 @@
             deck.push({ color: 'wild', value: 'Wild', type: 'wild' });
             deck.push({ color: 'wild', value: 'Wild+4', type: 'wild' });
         }
+
+        // +12 wild cards — only when enabled (2 copies, ~1.8% draw chance)
+        if (settings.allowPlus12) {
+            deck.push({ color: 'wild', value: '+12', type: 'wild' });
+            deck.push({ color: 'wild', value: '+12', type: 'wild' });
+        }
         
         shuffleDeck();
     }
@@ -1249,17 +1338,12 @@
 
     function renderCard(card, clickHandler = null, isDisabled = false) {
         const cardDiv = document.createElement('div');
-        cardDiv.className = `card ${card.color}`;
+        const colorClass = card.value === '+12' ? 'plus12' : card.color;
+        cardDiv.className = `card ${colorClass}`;
         if (isDisabled) cardDiv.classList.add('disabled');
         
         const cardInner = document.createElement('div');
         cardInner.className = 'card-inner';
-        // Color handled by CSS (.card.color .card-inner)
-        
-        if (card.color === 'wild') {
-            // wild color handled by CSS
-        }
-        
         cardInner.textContent = card.value;
         cardDiv.appendChild(cardInner);
         
@@ -1293,21 +1377,29 @@
             handDiv.appendChild(cardDiv);
         });
 
-        // Handle O,No button visibility
+        // Handle O,No button visibility — show only at exactly 1 card and not yet called
         const unoButton = document.getElementById('unoButton');
-        if (playerHand.length === 2 && currentPlayer === 'player' && !settings.autoUno && gameInProgress) {
-            unoButton.classList.add('active', 'pulse');
-        } else if (playerHand.length === 1 && currentPlayer === 'player' && !settings.autoUno && gameInProgress) {
-            // Show button but don't pulse if already at 1 card
+        if (playerHand.length === 1 && !playerCalledUno && !settings.autoUno && gameInProgress) {
             unoButton.classList.add('active');
-            unoButton.classList.remove('pulse');
         } else {
-            unoButton.classList.remove('active', 'pulse');
+            unoButton.classList.remove('active');
         }
-        
+
         // Auto-call O,No if setting is enabled
-        if (settings.autoUno && (playerHand.length === 2 || playerHand.length === 1)) {
+        if (settings.autoUno && playerHand.length === 1) {
             playerCalledUno = true;
+        }
+
+        // Auto-draw stacked cards if it's player's turn and they have no stackable card
+        if (currentPlayer === 'player' && settings.allowStacking && stackedDrawCount > 0 && !isAnimating && gameInProgress) {
+            const hasStackCard = playerHand.some(card => {
+                if (currentValue === '+2'     && card.value === '+2')     return true;
+                if (currentValue === 'Wild+4' && card.value === 'Wild+4') return true;
+                return false;
+            });
+            if (!hasStackCard) {
+                setTimeout(() => drawCard(), 600);
+            }
         }
     }
 
@@ -1365,6 +1457,20 @@
         document.getElementById('currentColor').textContent = currentColor || '-';
         document.getElementById('deckCount').textContent = deck.length;
 
+        // Direction indicator
+        const dirEl = document.getElementById('directionIndicator');
+        if (dirEl) dirEl.textContent = direction === 1 ? '▶ Clockwise' : '◀ Counter-Clockwise';
+
+        // O,No ribbon on computer
+        const ribbon = document.getElementById('computerOnoRibbon');
+        if (ribbon) {
+            if (computerCalledUno && computerHand.length === 1) {
+                ribbon.classList.add('visible');
+            } else {
+                ribbon.classList.remove('visible');
+            }
+        }
+
         // Update stack indicator
         const stackIndicator = document.getElementById('stackIndicator');
         if (stackedDrawCount > 0 && stackStartedBy) {
@@ -1378,7 +1484,7 @@
             stackIndicator.classList.remove('active');
         }
         
-        // Show/hide catch button if computer has 1 card and hasn't called O,no
+        // Show/hide catch button if computer has 1 card and hasn't called O,No
         const catchButton = document.getElementById('catchButton');
         if (computerHand.length === 1 && !computerCalledUno && gameInProgress) {
             catchButton.style.display = 'inline-block';
@@ -1609,15 +1715,21 @@
         switch(card.value) {
             case '0':
                 if (settings.allowSpecial07) {
-                    // Swap hands with computer
+                    // 0: swap with computer (next player in direction — in 2-player always the computer)
                     showMessage('You played 0! Swapping hands with computer...');
                     setTimeout(() => {
                         const temp = playerHand;
                         playerHand = computerHand;
                         computerHand = temp;
+                        // Reset O,No state — whoever now has 1 card must call it themselves
+                        playerCalledUno = false;
+                        computerCalledUno = false;
+                        if (computerHand.length === 1) showMessage('Hands swapped! Computer now has 1 card!');
+                        else if (playerHand.length === 1) showMessage('Hands swapped! You now have 1 card — call O,No!');
+                        else showMessage('Hands swapped!');
                         renderPlayerHand();
                         renderComputerHand();
-                        showMessage('Hands swapped!');
+                        updateGameInfo();
                         setTimeout(() => {
                             currentPlayer = 'player';
                             updateGameInfo();
@@ -1626,22 +1738,27 @@
                         }, 1500);
                     }, 1000);
                 } else {
-                    // Regular number card
                     switchTurn();
                 }
                 break;
                 
             case '7':
                 if (settings.allowSpecial07) {
-                    // In 2-player, also just swap hands
+                    // 7: choose to swap — in 2-player always computer
                     showMessage('You played 7! Swapping hands with computer...');
                     setTimeout(() => {
                         const temp = playerHand;
                         playerHand = computerHand;
                         computerHand = temp;
+                        // Reset O,No state on both sides
+                        playerCalledUno = false;
+                        computerCalledUno = false;
+                        if (computerHand.length === 1) showMessage('Hands swapped! Computer now has 1 card!');
+                        else if (playerHand.length === 1) showMessage('Hands swapped! You now have 1 card — call O,No!');
+                        else showMessage('Hands swapped!');
                         renderPlayerHand();
                         renderComputerHand();
-                        showMessage('Hands swapped!');
+                        updateGameInfo();
                         setTimeout(() => {
                             currentPlayer = 'player';
                             updateGameInfo();
@@ -1650,7 +1767,6 @@
                         }, 1500);
                     }, 1000);
                 } else {
-                    // Regular number card
                     switchTurn();
                 }
                 break;
@@ -1698,6 +1814,19 @@
                 }
                 break;
                 
+            case '+12':
+                // +12 wild — force computer to draw 12, no stacking
+                drawCardsForPlayer('computer', 12, () => {
+                    showMessage('Computer draws 12 cards! 💀');
+                    setTimeout(() => {
+                        currentPlayer = 'player';
+                        updateGameInfo();
+                        renderPlayerHand();
+                        showMessage('Your turn again!');
+                    }, 1500);
+                });
+                break;
+
             default:
                 // Regular number card or Wild cards
                 switchTurn();
@@ -1744,18 +1873,10 @@
 
     function checkTurnEnd() {
         if (!gameInProgress) return;
-        
-        // Only check for O,No penalty if player has exactly 1 card after playing
-        if (playerHand.length === 1 && !playerCalledUno && currentPlayer === 'player' && !settings.autoUno) {
-            showMessage('You forgot to call O,No! Draw 2 cards!');
-            drawCardsForPlayer('player', 2, () => {
-                playerCalledUno = false; // Reset after penalty
-                setTimeout(() => switchTurn(), 1500);
-            });
-        } else {
-            playerCalledUno = false; // Reset for next turn
-            switchTurn();
-        }
+        // No auto-penalty here — the computer catches via computerPlay, and player catches via Catch! button
+        // Just reset calledUno when hand is not 1
+        if (playerHand.length !== 1) playerCalledUno = false;
+        switchTurn();
     }
 
     function switchTurn() {
@@ -1827,12 +1948,14 @@
             });
         }
         
-        if (computerHand.length === 2) {
+        // Computer calls O,No when it will have 1 card after playing
+        // (i.e. currently has 2 cards and will play one)
+        if (computerHand.length === 2 && playableCards.length > 0) {
             computerCalledUno = true;
             showMessage('Computer says O,No!');
             setTimeout(() => computerPlayContinue(playableCards), 1000);
         } else {
-            computerCalledUno = false;
+            if (computerHand.length !== 1) computerCalledUno = false;
             computerPlayContinue(playableCards);
         }
     }
@@ -1926,13 +2049,11 @@
                         return;
                     }
                     
-                    // Handle Wild+4 effect
+                    // Handle Wild+4 / +12 effect
                     setTimeout(() => {
                         if (cardToPlay.value === 'Wild+4') {
                             if (settings.allowStacking) {
-                                if (stackedDrawCount === 0) {
-                                    stackStartedBy = 'Computer';
-                                }
+                                if (stackedDrawCount === 0) stackStartedBy = 'Computer';
                                 stackedDrawCount += 4;
                                 showMessage(`You must draw ${stackedDrawCount} or stack another +4!`);
                                 renderPlayerHand();
@@ -1940,14 +2061,14 @@
                             } else {
                                 drawCardsForPlayer('player', 4, () => {
                                     showMessage('You draw 4 cards and are skipped!');
-                                    // Player is skipped, computer goes again
-                                    setTimeout(() => {
-                                        currentPlayer = 'computer';
-                                        updateGameInfo();
-                                        setTimeout(computerPlay, 500);
-                                    }, 1500);
+                                    setTimeout(() => { currentPlayer = 'computer'; updateGameInfo(); setTimeout(computerPlay, 500); }, 1500);
                                 });
                             }
+                        } else if (cardToPlay.value === '+12') {
+                            drawCardsForPlayer('player', 12, () => {
+                                showMessage('💀 Computer played +12! You draw 12 cards!');
+                                setTimeout(() => { currentPlayer = 'computer'; updateGameInfo(); setTimeout(computerPlay, 500); }, 1500);
+                            });
                         } else {
                             // Regular Wild - switch to player
                             switchTurn();
@@ -2034,46 +2155,44 @@
         switch(card.value) {
             case '0':
                 if (settings.allowSpecial07) {
-                    // Swap hands with player
                     showMessage('Computer played 0! Swapping hands...');
                     setTimeout(() => {
                         const temp = playerHand;
                         playerHand = computerHand;
                         computerHand = temp;
+                        playerCalledUno = false;
+                        computerCalledUno = false;
+                        if (playerHand.length === 1) showMessage('Hands swapped! You now have 1 card — call O,No!');
+                        else if (computerHand.length === 1) showMessage('Hands swapped! Computer now has 1 card!');
+                        else showMessage('Hands swapped!');
                         renderPlayerHand();
                         renderComputerHand();
-                        showMessage('Hands swapped!');
-                        setTimeout(() => {
-                            currentPlayer = 'computer';
-                            updateGameInfo();
-                            setTimeout(computerPlay, 500);
-                        }, 1500);
+                        updateGameInfo();
+                        setTimeout(() => { currentPlayer = 'computer'; updateGameInfo(); setTimeout(computerPlay, 500); }, 1500);
                     }, 1000);
                 } else {
-                    // Regular number card
                     switchTurn();
                 }
                 break;
                 
             case '7':
                 if (settings.allowSpecial07) {
-                    // Swap hands with player
                     showMessage('Computer played 7! Swapping hands...');
                     setTimeout(() => {
                         const temp = playerHand;
                         playerHand = computerHand;
                         computerHand = temp;
+                        playerCalledUno = false;
+                        computerCalledUno = false;
+                        if (playerHand.length === 1) showMessage('Hands swapped! You now have 1 card — call O,No!');
+                        else if (computerHand.length === 1) showMessage('Hands swapped! Computer now has 1 card!');
+                        else showMessage('Hands swapped!');
                         renderPlayerHand();
                         renderComputerHand();
-                        showMessage('Hands swapped!');
-                        setTimeout(() => {
-                            currentPlayer = 'computer';
-                            updateGameInfo();
-                            setTimeout(computerPlay, 500);
-                        }, 1500);
+                        updateGameInfo();
+                        setTimeout(() => { currentPlayer = 'computer'; updateGameInfo(); setTimeout(computerPlay, 500); }, 1500);
                     }, 1000);
                 } else {
-                    // Regular number card
                     switchTurn();
                 }
                 break;
@@ -2121,6 +2240,18 @@
                 }
                 break;
                 
+            case '+12':
+                // +12 wild — force player to draw 12, no stacking
+                drawCardsForPlayer('player', 12, () => {
+                    showMessage('💀 Computer played +12! You draw 12 cards!');
+                    setTimeout(() => {
+                        currentPlayer = 'computer';
+                        updateGameInfo();
+                        setTimeout(computerPlay, 500);
+                    }, 1500);
+                });
+                break;
+
             default:
                 // Regular number card or Wild cards - switch to player's turn
                 switchTurn();
@@ -2129,79 +2260,76 @@
 
     function drawCard() {
         if (currentPlayer !== 'player' || !gameInProgress) return;
-        if (isAnimating) return; // Prevent rapid clicking during animation
-        
+        if (isAnimating) return;
+
         // If there's a stacked draw count, player must draw all cards
         if (settings.allowStacking && stackedDrawCount > 0) {
             const count = stackedDrawCount;
-            
-            // Set animation lock before starting animation
             isAnimating = true;
-            
-            // Animate multiple cards being drawn
             animateMultipleCardsToHand('player', count, () => {
                 for (let i = 0; i < count; i++) {
                     if (deck.length === 0) reshuffleDeck();
                     if (deck.length > 0) playerHand.push(deck.pop());
                 }
                 showMessage(`You drew ${count} cards!`);
-                stackedDrawCount = 0; // Reset stack
-                stackStartedBy = null; // Reset who started the stack
+                stackedDrawCount = 0;
+                stackStartedBy = null;
+                playerCalledUno = false; // hand grew, O,No state gone
                 renderPlayerHand();
                 updateGameInfo();
-                
-                // Player is skipped after drawing stacked cards
-                setTimeout(() => {
-                    currentPlayer = 'computer';
-                    updateGameInfo();
-                    setTimeout(computerPlay, 1000);
-                }, 1500);
-                
-                // Release animation lock after game logic completes
                 isAnimating = false;
+                setTimeout(() => { currentPlayer = 'computer'; updateGameInfo(); setTimeout(computerPlay, 1000); }, 1500);
             });
             return;
         }
-        
-        // Draw cards until we find one that matches the current color or is wild
-        let cardsDrawn = 0;
-        let matchFound = false;
-        
-        // Actually draw cards until we find a match
-        while (!matchFound && cardsDrawn < MAX_DRAW_ATTEMPTS) {
+
+        if (settings.drawOnePerTurn) {
+            // Draw exactly one card per turn
             if (deck.length === 0) reshuffleDeck();
-            if (deck.length === 0) break; // No more cards available
-            
+            if (deck.length === 0) { showMessage('No cards available!'); return; }
             const drawnCard = deck.pop();
             playerHand.push(drawnCard);
-            cardsDrawn++;
-            
-            // Check if the drawn card matches the current color or is wild
-            if (drawnCard.type === 'wild' || drawnCard.color === currentColor) {
-                matchFound = true;
-            }
-        }
-        
-        if (cardsDrawn > 0) {
-            // Set animation lock before starting animation
             isAnimating = true;
-            
-            // Animate the cards that were already drawn
-            animateMultipleCardsToHand('player', cardsDrawn, () => {
-                const message = cardsDrawn === 1 
-                    ? 'You drew a card!' 
-                    : `You drew ${cardsDrawn} cards until finding a matching color!`;
-                showMessage(message);
+            animateCardToHand('player', () => {
+                const canPlay = drawnCard.type === 'wild' || drawnCard.color === currentColor || drawnCard.value === currentValue;
+                showMessage(canPlay ? 'You drew a card — you can play it!' : 'You drew a card!');
+                playerCalledUno = playerHand.length === 1 ? playerCalledUno : false;
                 renderPlayerHand();
                 updateGameInfo();
-                
-                setTimeout(() => switchTurn(), 1000);
-                
-                // Release animation lock after game logic completes
                 isAnimating = false;
+                if (!canPlay) setTimeout(() => switchTurn(), 1000);
+                // if canPlay, player can choose to play it or pass — they click the card
             });
         } else {
-            showMessage('No cards available!');
+            // Draw until match (classic mode)
+            let cardsDrawn = 0;
+            let matchFound = false;
+            while (!matchFound && cardsDrawn < MAX_DRAW_ATTEMPTS) {
+                if (deck.length === 0) reshuffleDeck();
+                if (deck.length === 0) break;
+                const drawnCard = deck.pop();
+                playerHand.push(drawnCard);
+                cardsDrawn++;
+                if (drawnCard.type === 'wild' || drawnCard.color === currentColor || drawnCard.value === currentValue) {
+                    matchFound = true;
+                }
+            }
+            if (cardsDrawn > 0) {
+                isAnimating = true;
+                animateMultipleCardsToHand('player', cardsDrawn, () => {
+                    const message = cardsDrawn === 1
+                        ? 'You drew a card!'
+                        : `You drew ${cardsDrawn} cards until finding a matching color!`;
+                    showMessage(message);
+                    playerCalledUno = false; // hand grew
+                    renderPlayerHand();
+                    updateGameInfo();
+                    isAnimating = false;
+                    setTimeout(() => switchTurn(), 1000);
+                });
+            } else {
+                showMessage('No cards available!');
+            }
         }
     }
 
@@ -2258,10 +2386,10 @@
     }
 
     function callUno() {
-        if ((playerHand.length === 2 || playerHand.length === 1) && gameInProgress) {
+        if (playerHand.length === 1 && gameInProgress) {
             playerCalledUno = true;
-            showMessage('O,No!');
-            document.getElementById('unoButton').classList.remove('pulse');
+            showMessage('🔔 O,No!');
+            document.getElementById('unoButton').classList.remove('active');
         }
     }
     
@@ -2317,6 +2445,7 @@
         currentValue = null;
         stackedDrawCount = 0;
         stackStartedBy = null;
+        isAnimating = false;
         
         // Create fresh deck and deal
         createDeck();
