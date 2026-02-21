@@ -526,7 +526,7 @@ io.on('connection', socket => {
             const room = new GameRoom(roomId, lobby.players, lobby.settings);
             rooms.set(roomId, room);
             room.createDeck();
-            room.dealCards();
+            room.dealCards(room.settings.startingCards || 7);
             room.gameStarted = true;
 
             if (presenceManager) {
