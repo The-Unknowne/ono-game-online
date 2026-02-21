@@ -2394,6 +2394,9 @@
         });
 
         socket.on('gameState', (state) => {
+            // Always reset waiting flag when server responds — prevents getting stuck
+            isWaitingForServer = false;
+            
             // Show animation if cards were drawn by the current player
             if (state.lastDrawInfo && state.lastDrawInfo.cardsDrawn && state.lastDrawInfo.playerId === socket.id) {
                 const count = state.lastDrawInfo.cardsDrawn;
