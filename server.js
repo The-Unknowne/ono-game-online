@@ -636,6 +636,8 @@ io.on('connection', socket => {
             io.to(roomId).emit('playerCalledUno', {
                 playerName: result.playerName, message: `${result.playerName} called O,No!`
             });
+            // Broadcast updated state so everyone sees the ribbon and button disappears
+            broadcastGameState(room);
         }
     });
 
