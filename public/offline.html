@@ -1690,20 +1690,22 @@
             
             if (card.type === 'wild') {
                 pendingWildCard = card;
+                renderPlayerHand();
+                renderDiscardPile();
+                updateGameInfo();
                 showColorPicker();
                 // Don't release lock yet - will be released in chooseColor()
             } else {
                 currentColor = card.color;
                 currentValue = card.value;
                 handleCardEffect(card);
-                
-                // Release animation lock after game logic completes (non-wild cards only)
+                renderPlayerHand();
+                renderDiscardPile();
+                updateGameInfo();
+                // Release animation lock AFTER rendering (so auto-draw guard works correctly)
+                // Note: stacking +2/+4 paths return early above and handle isAnimating themselves
                 isAnimating = false;
             }
-            
-            renderPlayerHand();
-            renderDiscardPile();
-            updateGameInfo();
             
             if (playerHand.length === 0) {
                 endGame('player');
@@ -1800,7 +1802,8 @@
                     stackedDrawCount += 2;
                     showMessage(`Computer must draw ${stackedDrawCount} or stack another +2!`);
                     renderComputerHand();
-                    setTimeout(() => switchTurn(), 1500);
+                    setTimeout(() => { isAnimating = false; switchTurn(); }, 1500);
+                    return; // keep isAnimating=true until switchTurn
                 } else {
                     drawCardsForPlayer('computer', 2, () => {
                         showMessage('Computer draws 2 cards and is skipped!');
@@ -2362,7 +2365,8 @@
                     stackedDrawCount += 4;
                     showMessage(`Computer must draw ${stackedDrawCount} or stack another +4!`);
                     renderComputerHand();
-                    setTimeout(() => switchTurn(), 1500);
+                    setTimeout(() => { isAnimating = false; switchTurn(); }, 1500);
+                    return; // keep isAnimating=true until switchTurn
                 } else {
                     // Draw 4 for opponent and skip their turn
                     drawCardsForPlayer('computer', 4, () => {
