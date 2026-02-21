@@ -2381,6 +2381,7 @@
 
         socket.on('gameStarted', (state) => {
             gameState = state;
+            isWaitingForServer = false;
             showScreen('gameScreen');
             // Start heartbeat monitoring for in-game presence
             startHeartbeat();
