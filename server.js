@@ -114,7 +114,8 @@ class GameRoom {
             yourIndex:         index,
             allPlayers:        this.players.map((p, i) => ({
                 id: p.id, name: p.name, cardCount: p.hand.length,
-                isYou: i === index, isCurrent: i === cur
+                isYou: i === index, isCurrent: i === cur,
+                calledUno: p.calledUno
             })),
             currentPlayer:     cur,
             currentPlayerName: this.players[cur]?.name || 'Unknown',
@@ -249,6 +250,17 @@ class GameRoom {
                         targetName:  this.players[nextIdx].name,
                         type: '0'
                     };
+                    // Transfer O,No status: if the recipient now has 1 card, they inherit calledUno
+                    // Reset both first, then grant to whoever ends up with 1 card
+                    this.players[playerIndex].calledUno = false;
+                    this.players[nextIdx].calledUno = false;
+                    if (this.players[nextIdx].hand.length === 1) {
+                        // nextIdx received the 1-card hand — they must now call O,No themselves
+                        // calledUno stays false so catch window opens for them too
+                        this._lastSwapEvent.unoTransfer = this.players[nextIdx].name;
+                    } else if (this.players[playerIndex].hand.length === 1) {
+                        this._lastSwapEvent.unoTransfer = this.players[playerIndex].name;
+                    }
                 }
                 this.advanceTurn();
                 break;
@@ -343,11 +355,12 @@ class GameRoom {
         const playerIndex = this.players.findIndex(p => p.id === playerId);
         if (playerIndex === -1) return { success: false, error: 'Player not found' };
         const player = this.players[playerIndex];
-        if (player.hand.length <= 2 && player.hand.length > 0) {
+        // Can only call O,No when you have exactly 1 card
+        if (player.hand.length === 1) {
             player.calledUno = true;
             return { success: true, playerName: player.name };
         }
-        return { success: false, error: 'Can only call O,no with 2 or 1 cards' };
+        return { success: false, error: 'Can only call O,No when you have 1 card' };
     }
 
     catchUnoViolation(catcherId, caughtPlayerId) {
@@ -370,11 +383,9 @@ class GameRoom {
 
     checkUnoAfterPlay(playerIndex) {
         const player = this.players[playerIndex];
-        if (player.hand.length === 1 && !player.calledUno) {
-            this.drawCards(playerIndex, 2);
-            return { penaltyApplied: true, playerName: player.name };
-        }
+        // Reset calledUno whenever hand is not exactly 1 card
         if (player.hand.length !== 1) player.calledUno = false;
+        // No auto-penalty here — opponents must catch them via catchUnoViolation
         return { penaltyApplied: false };
     }
 
@@ -564,7 +575,12 @@ io.on('connection', socket => {
         }
 
         if (result.drawAnimation)  io.to(roomId).emit('drawAnimation', result.drawAnimation);
-        if (result.swapHappened)   io.to(roomId).emit('swapHappened', result.swapHappened);
+        if (result.swapHappened) {
+            io.to(roomId).emit('swapHappened', result.swapHappened);
+            if (result.swapHappened.unoTransfer) {
+                io.to(roomId).emit('unoTransfer', { playerName: result.swapHappened.unoTransfer });
+            }
+        }
         if (result.unoPenalty) {
             io.to(roomId).emit('unoPenalty', {
                 playerName: result.unoPenalty.playerName,
