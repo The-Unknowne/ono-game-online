@@ -21,6 +21,7 @@ app.get('*', (req, res) => req.url.includes('.')
 const rooms   = new Map();
 const lobbies = {};
 const lobbyPresenceManagers = new Map();
+const rematchQueues = new Map(); // roomId -> { players, settings, votes: Set, total }
 
 /* ── GAME ROOM ────────────────────────────────────────────── */
 class GameRoom {
@@ -505,6 +506,17 @@ io.on('connection', socket => {
                 winnerId: room.players[result.winner].id,
                 scores: sorted
             });
+
+            // Store rematch queue so players can vote to play again
+            rematchQueues.set(roomId, {
+                players:  room.players.map(p => ({ id: p.id, name: p.name })),
+                settings: room.settings,
+                votes:    new Set(),
+                total:    room.players.length
+            });
+            // Auto-expire rematch queue after 60s
+            setTimeout(() => rematchQueues.delete(roomId), 60000);
+
             rooms.delete(roomId);
         }
     });
@@ -560,6 +572,64 @@ io.on('connection', socket => {
 
     socket.on('leaveLobby', ({ roomId }) => cleanupPlayerFromLobby(socket.id, roomId));
 
+    socket.on('rematchVote', ({ roomId }) => {
+        const q = rematchQueues.get(roomId);
+        if (!q) { socket.emit('error', 'Rematch expired or not found'); return; }
+        if (!q.players.some(p => p.id === socket.id)) return;
+
+        q.votes.add(socket.id);
+
+        // Broadcast updated vote count to all players in this rematch
+        const voterName = q.players.find(p => p.id === socket.id)?.name;
+        q.players.forEach(p => {
+            io.to(p.id).emit('rematchVoteUpdate', {
+                votes: q.votes.size,
+                total: q.total,
+                voterName
+            });
+        });
+
+        // All voted — start rematch
+        if (q.votes.size >= q.total) {
+            rematchQueues.delete(roomId);
+
+            // Verify all sockets still connected
+            const connected = q.players.filter(p => !!io.sockets.sockets.get(p.id));
+            if (connected.length < q.total) {
+                const missing = q.players.filter(p => !io.sockets.sockets.get(p.id)).map(p => p.name).join(', ');
+                q.players.filter(p => io.sockets.sockets.get(p.id))
+                    .forEach(p => io.to(p.id).emit('rematchCancelled', { reason: `${missing} disconnected. Can't start rematch.` }));
+                return;
+            }
+
+            console.log(`[Server] Starting rematch in room ${roomId}`);
+            const room = new GameRoom(roomId, q.players, q.settings);
+            rooms.set(roomId, room);
+            room.createDeck();
+            room.dealCards(room.settings.startingCards || 7);
+            room.gameStarted = true;
+
+            // Re-join all players to the socket room
+            q.players.forEach(p => {
+                const s = io.sockets.sockets.get(p.id);
+                if (s) s.join(roomId);
+                io.to(p.id).emit('gameStarted', room.getGameState(p.id));
+            });
+        }
+    });
+
+    socket.on('rematchDecline', ({ roomId }) => {
+        const q = rematchQueues.get(roomId);
+        if (!q) return;
+        const decliner = q.players.find(p => p.id === socket.id);
+        rematchQueues.delete(roomId);
+        q.players.forEach(p => {
+            io.to(p.id).emit('rematchCancelled', {
+                reason: `${decliner?.name || 'A player'} declined the rematch.`
+            });
+        });
+    });
+
     socket.on('heartbeat', ({ roomId }) => {
         const pm = lobbyPresenceManagers.get(roomId);
         if (pm) pm.receiveHeartbeat(socket.id);
@@ -568,6 +638,17 @@ io.on('connection', socket => {
     socket.on('disconnect', () => {
         console.log('Disconnected:', socket.id);
         Object.keys(lobbies).forEach(id => cleanupPlayerFromLobby(socket.id, id));
+
+        // Cancel any pending rematch this player was part of
+        rematchQueues.forEach((q, rid) => {
+            if (q.players.some(p => p.id === socket.id)) {
+                const decliner = q.players.find(p => p.id === socket.id);
+                rematchQueues.delete(rid);
+                q.players.filter(p => p.id !== socket.id).forEach(p => {
+                    io.to(p.id).emit('rematchCancelled', { reason: `${decliner?.name || 'A player'} disconnected. Rematch cancelled.` });
+                });
+            }
+        });
         rooms.forEach((room, roomId) => {
             const player = room.players.find(p => p.id === socket.id);
             if (!player) return;
