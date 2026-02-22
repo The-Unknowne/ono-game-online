@@ -2149,7 +2149,11 @@
         <div id="scoreboardTitle" style="font-size:2.2em;font-weight:900;margin-bottom:6px;color:var(--menu-h1);font-family:'Orbitron',sans-serif;"></div>
         <div id="scoreboardSubtitle" style="font-size:1.1em;color:var(--text-muted);margin-bottom:28px;"></div>
         <div id="scoreboardRows" style="display:flex;flex-direction:column;gap:12px;margin-bottom:28px;"></div>
-        <button class="menu-button online" onclick="showMainMenu()">🏠 Main Menu</button>
+        <div id="rematchStatus" style="display:none;text-align:center;margin-bottom:14px;font-weight:700;font-size:0.95em;color:var(--text-muted);"></div>
+        <div style="display:flex;gap:12px;">
+            <button class="menu-button online" id="rematchBtn" onclick="voteRematch()" style="flex:1;margin-bottom:0;">🔄 Rematch</button>
+            <button class="menu-button offline" onclick="declineRematch()" style="flex:1;margin-bottom:0;">🏠 Main Menu</button>
+        </div>
     </div>
 </div>
 
@@ -2486,6 +2490,24 @@
 
         socket.on('gameOver', (data) => {
             setTimeout(() => showScoreboard(data), 600);
+        });
+
+        socket.on('rematchVoteUpdate', (data) => {
+            const statusEl = document.getElementById('rematchStatus');
+            const btn = document.getElementById('rematchBtn');
+            if (!statusEl) return;
+            statusEl.style.display = 'block';
+            statusEl.textContent = `⏳ ${data.voterName} wants a rematch! (${data.votes}/${data.total} ready)`;
+            if (btn) {
+                btn.textContent = '✓ Rematch voted!';
+                btn.disabled = true;
+                btn.style.opacity = '0.7';
+            }
+        });
+
+        socket.on('rematchCancelled', (data) => {
+            showPopup(data.reason || 'Rematch cancelled.', 'Rematch Cancelled');
+            showMainMenu();
         });
 
         socket.on('opponentDisconnected', () => {
@@ -3607,11 +3629,30 @@
         }
     }
 
+    function voteRematch() {
+        if (!socket || !socket.connected || !roomId) return;
+        const btn = document.getElementById('rematchBtn');
+        if (btn) { btn.disabled = true; btn.textContent = '⏳ Waiting for others...'; btn.style.opacity = '0.7'; }
+        socket.emit('rematchVote', { roomId });
+    }
+
+    function declineRematch() {
+        if (socket && socket.connected && roomId) {
+            socket.emit('rematchDecline', { roomId });
+        }
+        showMainMenu();
+    }
+
     function showScoreboard(data) {
         const isWinner = data.winnerId === socket.id;
         const scores   = data.scores || [];
 
-        // Title & subtitle
+        // Reset rematch UI
+        const rematchBtn = document.getElementById('rematchBtn');
+        const rematchStatus = document.getElementById('rematchStatus');
+        if (rematchBtn)    { rematchBtn.disabled = false; rematchBtn.textContent = '🔄 Rematch'; rematchBtn.style.opacity = ''; }
+        if (rematchStatus) { rematchStatus.style.display = 'none'; rematchStatus.textContent = ''; }
+
         document.getElementById('scoreboardTitle').textContent    = isWinner ? '🏆 You Won!' : '😢 Game Over';
         document.getElementById('scoreboardSubtitle').textContent = `${data.winner} won the round!`;
 
@@ -3625,7 +3666,6 @@
             const pts       = player.score;
             const ptsClass  = pts === 0 ? 'zero' : 'negative';
 
-            // Summarise remaining cards
             let cardSummary = '';
             if (player.hand && player.hand.length > 0) {
                 const n = player.hand.filter(c => c.type === 'number').length;
@@ -3656,7 +3696,6 @@
             rows.appendChild(row);
         });
 
-        // Scoring legend
         const legend = document.createElement('div');
         legend.style.cssText = 'font-size:0.8em;color:var(--text-muted);margin-top:6px;line-height:1.7;';
         legend.innerHTML = '📋 Scoring: Number card <strong>−3</strong> &nbsp;|&nbsp; Action/Draw <strong>−2</strong> &nbsp;|&nbsp; Wild <strong>−1</strong>';
