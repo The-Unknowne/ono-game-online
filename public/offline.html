@@ -1,22 +1,27 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <title>O,No Card Game</title>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+    <script>
+        (function() {
+            var t = localStorage.getItem('ono-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
     <style>
-        /* =============================================
-           CSS VARIABLE THEME SYSTEM (Light / Dark)
-        ============================================= */
+        /* ── THEME ── */
         :root {
             --bg-grad-a: #667eea; --bg-grad-b: #764ba2;
             --surface: rgba(255,255,255,0.97);
             --surface-glass: rgba(255,255,255,0.15);
+            --surface-glass-strong: rgba(255,255,255,0.22);
             --text-primary: #333; --text-secondary: #555;
             --text-muted: #666; --text-on-glass: #fff;
-            --menu-h1: #667eea;
+            --menu-h1: #667eea; --menu-shadow: 0 20px 60px rgba(0,0,0,0.4);
             --card-border: rgba(255,255,255,0.65);
             --card-inner-bg: rgba(255,255,255,0.92);
             --card-shadow: 0 6px 20px rgba(0,0,0,0.32);
@@ -24,18 +29,21 @@
             --draw-pile-bg: linear-gradient(145deg,#1a1a2e,#16213e,#0f3460);
             --draw-pile-border: rgba(255,255,255,0.22);
             --draw-pile-glow: rgba(100,130,255,0.3);
-            --menu-shadow: 0 20px 60px rgba(0,0,0,0.4);
             --input-border: #667eea; --input-bg: #fff; --input-text: #333;
             --slider-bg: #ccc; --slider-knob: #fff;
             --popup-bg: #fff; --popup-text: #333; --popup-sub: #555;
+            --opp-box-bg: rgba(255,255,255,0.14);
+            --info-chip-bg: rgba(255,255,255,0.22);
+            --surface-glass-strong: rgba(255,255,255,0.22);
         }
         html[data-theme="dark"] {
             --bg-grad-a: #0d0d1a; --bg-grad-b: #1a0a2e;
             --surface: rgba(18,18,32,0.98);
-            --surface-glass: rgba(255,255,255,0.06);
+            --surface-glass: rgba(255,255,255,0.055);
+            --surface-glass-strong: rgba(255,255,255,0.1);
             --text-primary: #e0e0ff; --text-secondary: #a0a0cc;
             --text-muted: #8888aa; --text-on-glass: #e0e0ff;
-            --menu-h1: #a78bfa;
+            --menu-h1: #a78bfa; --menu-shadow: 0 20px 80px rgba(0,0,0,0.85), 0 0 0 1px rgba(255,255,255,0.04);
             --card-border: rgba(255,255,255,0.16);
             --card-inner-bg: rgba(10,10,22,0.78);
             --card-shadow: 0 6px 24px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05);
@@ -43,1058 +51,609 @@
             --draw-pile-bg: linear-gradient(145deg,#07070f,#0b0b1c,#0a0820);
             --draw-pile-border: rgba(140,100,255,0.4);
             --draw-pile-glow: rgba(140,100,255,0.35);
-            --menu-shadow: 0 20px 80px rgba(0,0,0,0.85), 0 0 0 1px rgba(255,255,255,0.04);
             --input-border: #7c3aed; --input-bg: rgba(20,20,40,0.9); --input-text: #e0e0ff;
             --slider-bg: #3a3a60; --slider-knob: #e0e0ff;
             --popup-bg: rgba(18,18,34,0.98); --popup-text: #e0e0ff; --popup-sub: #a0a0cc;
-        }
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+            --opp-box-bg: rgba(255,255,255,0.055);
+            --info-chip-bg: rgba(255,255,255,0.07);
         }
 
-    body {
-        font-family: 'Nunito', sans-serif;
-        background: linear-gradient(135deg, var(--bg-grad-a) 0%, var(--bg-grad-b) 100%);
-        background-attachment: fixed;
-        min-height: 100vh;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        padding: 20px;
-        overflow-x: hidden;
-    }
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 
-    /* Background Animation Classes */
-    body.bg-static {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        background-attachment: fixed;
-    }
-
-    body.bg-color-cycle {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        background-attachment: fixed;
-        animation: colorCycle 15s ease-in-out infinite;
-    }
-
-    body.bg-pulsing {
-        background: linear-gradient(-45deg, #667eea, #764ba2, #667eea, #764ba2);
-        background-size: 400% 400%;
-        background-attachment: fixed;
-        animation: pulsing 10s ease infinite;
-    }
-
-    /* Keyframe Animations */
-    @keyframes colorCycle {
-        0% {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(135deg, var(--bg-grad-a) 0%, var(--bg-grad-b) 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            overflow-x: hidden;
+            touch-action: pan-y;
+            -webkit-font-smoothing: antialiased;
         }
-        25% {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        body.bg-color-cycle { animation: colorCycle 15s ease-in-out infinite; }
+        body.bg-pulsing {
+            background: linear-gradient(-45deg, var(--bg-grad-a), var(--bg-grad-b), var(--bg-grad-a), var(--bg-grad-b));
+            background-size: 400% 400%;
+            animation: pulsing 10s ease infinite;
         }
-        50% {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        @keyframes colorCycle {
+            0%   { background: linear-gradient(135deg,#667eea,#764ba2); }
+            25%  { background: linear-gradient(135deg,#f093fb,#f5576c); }
+            50%  { background: linear-gradient(135deg,#4facfe,#00f2fe); }
+            75%  { background: linear-gradient(135deg,#43e97b,#38f9d7); }
+            100% { background: linear-gradient(135deg,#667eea,#764ba2); }
         }
-        75% {
-            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        @keyframes pulsing {
+            0%,100% { background-position: 0% 50%; }
+            50%     { background-position: 100% 50%; }
         }
-        100% {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+        .screen { display:none; width:100%; max-width:1000px; }
+        .screen.active {
+            display:flex; flex-direction:column;
+            align-items:center; justify-content:center;
+            min-height:100vh; width:100%;
         }
-    }
 
-    @keyframes pulsing {
-        0% {
-            background-position: 0% 50%;
+        /* ── MENU ── */
+        .menu-container {
+            background: var(--surface);
+            border-radius: 30px;
+            padding: 40px;
+            box-shadow: var(--menu-shadow);
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            color: var(--text-primary);
+            transition: background 0.4s, box-shadow 0.4s;
         }
-        50% {
-            background-position: 100% 50%;
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3em; color: var(--menu-h1);
+            margin-bottom: 20px;
+            text-shadow: 3px 3px 12px rgba(0,0,0,0.2);
+            letter-spacing: 2px;
         }
-        100% {
-            background-position: 0% 50%;
+        h2 { font-size: 2em; color: var(--menu-h1); margin-bottom: 15px; }
+
+        .menu-button {
+            display: block; width: 100%;
+            background: linear-gradient(135deg,#667eea,#764ba2);
+            color: white; border: none;
+            padding: 18px; font-size: 1.2em; font-weight: 700;
+            border-radius: 15px; cursor: pointer;
+            margin-bottom: 14px;
+            transition: all 0.3s;
+            box-shadow: 0 6px 15px rgba(102,126,234,0.4);
+            touch-action: manipulation; font-family: 'Nunito', sans-serif;
         }
-    }
+        .menu-button:active { transform: translateY(2px); }
+        .menu-button.settings { background: linear-gradient(135deg,#3498db,#2980b9); box-shadow: 0 6px 15px rgba(52,152,219,0.4); }
+        .menu-button.quit    { background: linear-gradient(135deg,#e74c3c,#c0392b); box-shadow: 0 6px 15px rgba(231,76,60,0.4); }
+        .menu-button.green   { background: linear-gradient(135deg,#2ecc71,#27ae60); box-shadow: 0 6px 15px rgba(46,204,113,0.4); }
 
-    /* Screen Management */
-    .screen {
-        display: none;
-    }
-
-    .screen.active {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
-        width: 100%;
-    }
-
-    /* Main Menu Styles */
-    .main-menu {
-        background: var(--surface);
-        border-radius: 30px;
-        padding: 60px 80px;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-        text-align: center;
-        max-width: 500px;
-    }
-
-    .main-menu h1 {
-        font-size: 4em;
-        color: var(--menu-h1);
-        margin-bottom: 20px;
-        text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.2);
-    }
-
-    .main-menu p {
-        font-size: 1.2em;
-        color: var(--text-muted);
-        margin-bottom: 40px;
-    }
-
-    .menu-button {
-        display: block;
-        width: 100%;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        padding: 20px 40px;
-        font-size: 1.3em;
-        border-radius: 15px;
-        cursor: pointer;
-        margin-bottom: 15px;
-        transition: all 0.3s;
-        box-shadow: 0 6px 15px rgba(102, 126, 234, 0.4);
-    }
-
-    .menu-button:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 25px rgba(102, 126, 234, 0.6);
-    }
-
-    .menu-button.settings {
-        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-        box-shadow: 0 6px 15px rgba(52, 152, 219, 0.4);
-    }
-
-    .menu-button.settings:hover {
-        box-shadow: 0 10px 25px rgba(52, 152, 219, 0.6);
-    }
-
-    .menu-button.quit {
-        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-        box-shadow: 0 6px 15px rgba(231, 76, 60, 0.4);
-    }
-
-    .menu-button.quit:hover {
-        box-shadow: 0 10px 25px rgba(231, 76, 60, 0.6);
-    }
-
-    /* Settings Menu Styles */
-    .settings-menu {
-        background: var(--surface);
-        border-radius: 30px;
-        padding: 50px 60px;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-        max-width: 600px;
-    }
-
-    .settings-menu h2 {
-        font-size: 2.5em;
-        color: #667eea;
-        margin-bottom: 30px;
-        text-align: center;
-    }
-
-    .setting-item {
-        margin-bottom: 30px;
-        background: rgba(102, 126, 234, 0.1);
-        padding: 20px;
-        border-radius: 15px;
-    }
-
-    .setting-item label {
-        display: block;
-        font-size: 1.3em;
-        color: var(--text-primary);
-        margin-bottom: 15px;
-        font-weight: bold;
-    }
-
-    .setting-item select {
-        width: 100%;
-        padding: 12px;
-        font-size: 1.1em;
-        border: 2px solid var(--input-border);
-        border-radius: 10px;
-        background: white;
-        cursor: pointer;
-    }
-
-    .toggle-container {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .toggle-switch {
-        position: relative;
-        display: inline-block;
-        width: 80px;
-        height: 40px;
-    }
-
-    .toggle-switch input {
-        opacity: 0;
-        width: 0;
-        height: 0;
-    }
-
-    .slider-toggle {
-        position: absolute;
-        cursor: pointer;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: var(--slider-bg);
-        transition: 0.4s;
-        border-radius: 40px;
-    }
-
-    .slider-toggle:before {
-        position: absolute;
-        content: "";
-        height: 32px;
-        width: 32px;
-        left: 4px;
-        bottom: 4px;
-        background-color: white;
-        transition: 0.4s;
-        border-radius: 50%;
-    }
-
-    input:checked + .slider-toggle {
-        background-color: #667eea;
-    }
-
-    input:checked + .slider-toggle:before {
-        transform: translateX(40px);
-    }
-
-    .settings-buttons {
-        display: flex;
-        gap: 15px;
-        margin-top: 40px;
-    }
-
-    .settings-buttons button {
-        flex: 1;
-    }
-
-    /* Game Container Styles */
-    .game-container {
-        background: rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(10px);
-        border-radius: 20px;
-        padding: 30px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        max-width: 1200px;
-        width: 100%;
-        margin: 0 auto;
-    }
-
-    .game-header {
-        text-align: center;
-        color: white;
-        margin-bottom: 30px;
-    }
-
-    .game-header h1 {
-        font-size: 3em;
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-        margin-bottom: 10px;
-    }
-
-    .game-info {
-        display: flex;
-        justify-content: space-around;
-        flex-wrap: wrap;
-        color: white;
-        margin-bottom: 20px;
-        font-size: 1.2em;
-        gap: 10px;
-    }
-
-    .game-info div {
-        background: rgba(255, 255, 255, 0.2);
-        padding: 10px 20px;
-        border-radius: 10px;
-    }
-
-    .play-area {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 40px;
-        margin: 40px 0;
-        min-height: 180px;
-        flex-wrap: wrap;
-        position: relative;
-    }
-
-    /* =============================================
-       PREMIUM CARD DESIGN
-    ============================================= */
-    .card {
-        width: 120px;
-        height: 180px;
-        border-radius: 14px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        cursor: pointer;
-        transition:
-            transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
-            box-shadow 0.25s ease,
-            filter 0.25s ease;
-        position: relative;
-        overflow: hidden;
-        box-shadow: var(--card-shadow);
-        border: 3px solid var(--card-border);
-    }
-    .card::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        border-radius: 11px;
-        background: linear-gradient(145deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.06) 40%, transparent 60%);
-        pointer-events: none;
-    }
-    .card:hover {
-        transform: translateY(-10px) scale(1.06);
-        box-shadow: var(--card-hover-shadow);
-        filter: brightness(1.08);
-    }
-    .card:active {
-        transform: scale(0.95);
-        transition: transform 0.1s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-    .card-inner {
-        width: 78%;
-        height: 78%;
-        background: var(--card-inner-bg);
-        border-radius: 50%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-size: 2.2em;
-        font-weight: 900;
-        font-family: 'Orbitron', sans-serif;
-        letter-spacing: -1px;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.25);
-        border: 2px solid rgba(255,255,255,0.2);
-    }
-    .card.red  { background: linear-gradient(145deg,#e74c3c,#c0392b,#96281b); }
-    .card.red  .card-inner { color: #e74c3c; }
-    .card.blue { background: linear-gradient(145deg,#3498db,#2471a3,#1a5276); }
-    .card.blue .card-inner { color: #2471a3; }
-    .card.green{ background: linear-gradient(145deg,#2ecc71,#27ae60,#1e8449); }
-    .card.green .card-inner { color: #1e8449; }
-    .card.yellow{ background: linear-gradient(145deg,#f1c40f,#d4ac0d,#b7950b); }
-    .card.yellow .card-inner { color: #9a7d0a; }
-    .card.wild {
-        background: conic-gradient(from 0deg,#e74c3c 0deg 90deg,#3498db 90deg 180deg,#2ecc71 180deg 270deg,#f1c40f 270deg 360deg);
-    }
-    .card.wild .card-inner { color: #1a1a2e; background: rgba(255,255,255,0.92); font-size: 1.6em; }
-    html[data-theme="dark"] .card.red    .card-inner { color: #ff6b6b; }
-    html[data-theme="dark"] .card.blue   .card-inner { color: #5dade2; }
-    html[data-theme="dark"] .card.green  .card-inner { color: #58d68d; }
-    html[data-theme="dark"] .card.yellow .card-inner { color: #f9ca24; }
-    html[data-theme="dark"] .card.wild   .card-inner { color: #fff; background: rgba(15,10,30,0.85); }
-    .wild-color-indicator {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        width: 26px;
-        height: 26px;
-        border-radius: 50%;
-        border: 2px solid rgba(255,255,255,0.7);
-        box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-    }
-    .card-back {
-        background: var(--draw-pile-bg);
-        border-color: var(--draw-pile-border);
-        box-shadow: var(--card-shadow), 0 0 18px var(--draw-pile-glow);
-        cursor: pointer;
-    }
-    .card-back::after {
-        content:'';
-        position:absolute;
-        inset:8px;
-        border-radius:8px;
-        border:1.5px solid rgba(255,255,255,0.12);
-        pointer-events:none;
-    }
-    .card-back .card-inner {
-        font-size: 0.65em;
-        color: rgba(255,255,255,0.65);
-        background: rgba(255,255,255,0.08);
-        letter-spacing: 1px;
-    }
-    .card-back:hover {
-        transform: scale(1.06);
-    }
-
-    .player-hand {
-        display: flex;
-        justify-content: center;
-        flex-wrap: wrap;
-        gap: 10px;
-        min-height: 200px;
-        margin-top: 30px;
-    }
-
-    .player-hand .card {
-        width: 100px;
-        height: 150px;
-    }
-
-    .player-hand .card-inner {
-        font-size: 2em;
-    }
-
-    .card.disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-
-    .card.disabled:hover {
-        transform: none;
-    }
-
-    .color-picker {
-        display: none;
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: white;
-        padding: 30px;
-        border-radius: 20px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-        z-index: 1000;
-        color: var(--text-primary);
-    }
-
-    .color-picker.active {
-        display: block;
-    }
-
-    .color-picker h3 {
-        margin-bottom: 20px;
-        text-align: center;
-        color: var(--text-primary);
-    }
-
-    .color-options {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 15px;
-    }
-
-    .color-option {
-        width: 80px;
-        height: 80px;
-        border-radius: 10px;
-        cursor: pointer;
-        border: 4px solid #fff;
-        transition: transform 0.2s;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    }
-
-    .color-option:hover {
-        transform: scale(1.1);
-        border-color: #333;
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
-    }
-    
-    .color-option.red {
-        background-color: #e74c3c !important;
-    }
-    
-    .color-option.blue {
-        background-color: #3498db !important;
-    }
-    
-    .color-option.green {
-        background-color: #2ecc71 !important;
-    }
-    
-    .color-option.yellow {
-        background-color: #f1c40f !important;
-    }
-
-    .overlay {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.7);
-        z-index: 999;
-    }
-
-    .overlay.active {
-        display: block;
-    }
-
-    .message {
-        text-align: center;
-        color: white;
-        font-size: 1.5em;
-        margin: 20px 0;
-        min-height: 40px;
-        font-weight: bold;
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-    }
-
-    .controls {
-        display: flex;
-        justify-content: center;
-        gap: 20px;
-        margin-top: 20px;
-        flex-wrap: wrap;
-    }
-
-    button {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        padding: 15px 30px;
-        font-size: 1.1em;
-        border-radius: 10px;
-        cursor: pointer;
-        transition: transform 0.2s;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    }
-
-    button:hover {
-        transform: scale(1.05);
-    }
-
-    button:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-
-    .game-over {
-        display: none;
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: white;
-        padding: 40px;
-        border-radius: 20px;
-        text-align: center;
-        z-index: 1001;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-        max-width: 90%;
-        color: var(--text-primary);
-    }
-
-    .game-over.active {
-        display: block;
-    }
-
-    .game-over h2 {
-        font-size: 2.5em;
-        margin-bottom: 20px;
-        color: #667eea;
-    }
-
-    .computer-hand {
-        text-align: center;
-        color: white;
-        font-size: 1.3em;
-        margin-bottom: 20px;
-    }
-
-    .computer-cards {
-        display: flex;
-        justify-content: center;
-        flex-wrap: wrap;
-        gap: 5px;
-    }
-
-    .computer-cards .card {
-        width: 80px;
-        height: 120px;
-        margin: 0 -30px;
-    }
-
-    .uno-button {
-        position: fixed;
-        bottom: 30px;
-        right: 30px;
-        background: linear-gradient(135deg, #e74c3c, #c0392b);
-        color: white;
-        border: 3px solid rgba(255,255,255,0.3);
-        padding: 20px 40px;
-        font-size: 1.5em;
-        font-weight: 900;
-        border-radius: 50px;
-        cursor: pointer;
-        box-shadow: 0 6px 20px rgba(231, 76, 60, 0.5);
-        display: none;
-        z-index: 100;
-        letter-spacing: 1px;
-    }
-
-    .uno-button.active {
-        display: block;
-        animation: unoBtnPulse 0.8s ease-in-out infinite;
-    }
-
-    @keyframes unoBtnPulse {
-        0%, 100% { transform: scale(1);    box-shadow: 0 6px 20px rgba(231,76,60,0.5); }
-        50%       { transform: scale(1.07); box-shadow: 0 8px 30px rgba(231,76,60,0.9); }
-    }
-
-    @keyframes pulse {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.1); }
-    }
-
-    /* Catch button pulse */
-    #catchButton {
-        animation: catchPulse 1s ease-in-out infinite;
-    }
-    @keyframes catchPulse {
-        0%, 100% { box-shadow: 0 0 0 0 rgba(231,76,60,0.7); }
-        50%       { box-shadow: 0 0 0 6px rgba(231,76,60,0); }
-    }
-
-    /* O,No ribbon on computer box */
-    .computer-label-box {
-        position: relative;
-        display: inline-flex;
-        align-items: center;
-        gap: 12px;
-        overflow: visible;
-    }
-    .computer-ono-ribbon {
-        display: none;
-        background: linear-gradient(135deg, #f1c40f, #e67e22);
-        color: #1a1a1a;
-        font-size: 0.72em;
-        font-weight: 900;
-        padding: 3px 10px;
-        border-radius: 20px;
-        letter-spacing: 0.5px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-        white-space: nowrap;
-    }
-    .computer-ono-ribbon.visible {
-        display: inline-block;
-    }
-
-    /* Direction indicator */
-    .direction-indicator {
-        font-size: 1.2em;
-        font-weight: 700;
-        color: rgba(255,255,255,0.7);
-        text-align: center;
-        margin: 4px 0 0;
-        letter-spacing: 1px;
-    }
-    
-    @keyframes cardPulse {
-        0%, 100% { 
-            transform: translateY(0) scale(1);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        .setting-item { margin-bottom: 20px; text-align: left; }
+        .setting-item label { display:block; font-size:1.1em; color:var(--text-primary); margin-bottom:8px; font-weight:600; }
+        .setting-item select, input[type="text"] {
+            width:100%; padding:12px; font-size:1.1em;
+            border:2px solid var(--input-border); border-radius:10px;
+            background:var(--input-bg); color:var(--input-text);
+            font-family:'Nunito',sans-serif;
         }
-        50% { 
-            transform: translateY(-5px) scale(1.05);
-            box-shadow: 0 8px 16px rgba(255, 215, 0, 0.6);
+        .toggle-container { display:flex; justify-content:space-between; align-items:center; padding:8px 0; }
+        .toggle-switch { position:relative; display:inline-block; width:60px; height:34px; }
+        .toggle-switch input { opacity:0; width:0; height:0; }
+        .slider-toggle {
+            position:absolute; cursor:pointer; inset:0;
+            background:var(--slider-bg); transition:.4s; border-radius:34px;
         }
-    }
-
-    .pause-menu {
-        display: none;
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: white;
-        padding: 40px;
-        border-radius: 20px;
-        text-align: center;
-        z-index: 1001;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-        min-width: 300px;
-    }
-
-    .pause-menu.active {
-        display: block;
-    }
-
-    .pause-menu h2 {
-        font-size: 2em;
-        color: #667eea;
-        margin-bottom: 30px;
-    }
-
-    .pause-menu button {
-        width: 100%;
-        margin-bottom: 15px;
-    }
-
-    @media (max-width: 768px) {
-        .main-menu {
-            padding: 40px 50px;
+        .slider-toggle:before {
+            position:absolute; content:""; height:26px; width:26px;
+            left:4px; bottom:4px; background:var(--slider-knob);
+            transition:.4s; border-radius:50%;
         }
-        
-        .main-menu h1 {
-            font-size: 3em;
+        input:checked + .slider-toggle { background:#2ecc71; }
+        input:checked + .slider-toggle:before { transform:translateX(26px); }
+
+        /* ── GAME TABLE (OVAL LAYOUT) ── */
+        .game-table-wrapper {
+            display:flex; flex-direction:column; align-items:center;
+            width:100%; max-width:900px; margin:0 auto; padding:10px; gap:10px;
         }
-        
-        .settings-menu {
-            padding: 30px 40px;
+        .game-info {
+            display:flex; justify-content:center; flex-wrap:wrap;
+            align-items:center; color:var(--text-on-glass);
+            font-size:0.95em; gap:10px; width:100%;
         }
-        
-        .game-container {
-            padding: 20px;
+        .game-info div {
+            background:var(--info-chip-bg); padding:6px 14px;
+            border-radius:10px; border:1px solid var(--surface-glass);
         }
-        
+        .table-arena {
+            position:relative; width:100%; max-width:820px; aspect-ratio:4/3;
+            background: radial-gradient(ellipse 70% 60% at 50% 50%,
+                rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 60%, transparent 100%);
+            border: 2px solid rgba(255,255,255,0.12);
+            border-radius:50%;
+            display:flex; align-items:center; justify-content:center;
+            box-shadow: 0 0 60px rgba(0,0,0,0.3), inset 0 0 40px rgba(0,0,0,0.15);
+        }
+        .direction-svg {
+            position:absolute; inset:0; width:100%; height:100%;
+            pointer-events:none; opacity:0.85;
+        }
+        .play-area {
+            position:relative; z-index:2;
+            display:flex; align-items:center; justify-content:center; gap:20px;
+        }
+        /* Seats */
+        .player-seat {
+            position:absolute; display:flex; flex-direction:column;
+            align-items:center; gap:4px; z-index:3;
+            transform:translate(-50%,-50%); transition:all 0.3s;
+        }
+        .seat-box {
+            background:var(--opp-box-bg); backdrop-filter:blur(8px);
+            border:2px solid rgba(255,255,255,0.15); border-radius:12px;
+            padding:8px 12px; text-align:center; color:var(--text-on-glass);
+            min-width:90px; transition:border-color 0.25s, box-shadow 0.25s;
+            font-size:0.82em; cursor:default; white-space:nowrap;
+            position:relative; overflow:hidden;
+        }
+        .seat-box.is-you     { background:rgba(102,126,234,0.25); border-color:rgba(102,126,234,0.6); box-shadow:0 0 18px rgba(102,126,234,0.35); }
+        .seat-box.is-current { border-color:#2ecc71; box-shadow:0 0 18px rgba(46,204,113,0.55); animation:seatPulse 1.2s ease-in-out infinite; }
+        .seat-box.is-you.is-current { border-color:#f1c40f; box-shadow:0 0 20px rgba(241,196,15,0.6); background:rgba(241,196,15,0.18); }
+        @keyframes seatPulse {
+            0%,100% { box-shadow:0 0 18px rgba(46,204,113,0.55); }
+            50%     { box-shadow:0 0 30px rgba(46,204,113,0.85); }
+        }
+        .seat-name  { font-weight:700; font-size:1em; max-width:100px; overflow:hidden; text-overflow:ellipsis; }
+        .seat-cards { font-size:1.1em; color:#f1c40f; margin-top:2px; }
+        .seat-turn-badge { font-size:0.78em; color:#2ecc71; font-weight:700; margin-top:2px; }
+        .seat-you-badge  { font-size:0.72em; background:rgba(102,126,234,0.35); color:#a78bfa; border-radius:6px; padding:1px 6px; font-weight:700; margin-top:2px; }
+        .ono-ribbon {
+            position:absolute; top:10px; right:-22px; width:80px;
+            background:linear-gradient(135deg,#f1c40f,#e67e22);
+            color:#1a1a1a; font-size:0.6em; font-weight:900;
+            text-align:center; padding:2px 0; transform:rotate(45deg);
+            pointer-events:none; z-index:10; letter-spacing:0.5px;
+            box-shadow:0 2px 6px rgba(0,0,0,0.35);
+        }
+        .catch-button {
+            margin-top:5px; padding:3px 10px; background:#e74c3c;
+            color:white; border:none; border-radius:6px; cursor:pointer;
+            font-weight:bold; font-size:0.82em;
+            animation:catchPulse 1s ease-in-out infinite;
+            font-family:'Nunito',sans-serif;
+        }
+        @keyframes catchPulse {
+            0%,100% { box-shadow:0 0 0 0 rgba(231,76,60,0.7); }
+            50%     { box-shadow:0 0 0 6px rgba(231,76,60,0); }
+        }
+
+        /* ── CARDS ── */
+        .card {
+            width:100px; height:150px; border-radius:14px;
+            display:flex; flex-direction:column; justify-content:center; align-items:center;
+            cursor:pointer; position:relative; overflow:hidden;
+            box-shadow:var(--card-shadow); border:3px solid var(--card-border);
+            transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s, filter 0.25s;
+            touch-action:manipulation;
+        }
+        .card::before {
+            content:''; position:absolute; inset:0; border-radius:11px;
+            background:linear-gradient(145deg,rgba(255,255,255,0.28) 0%,rgba(255,255,255,0.06) 40%,transparent 60%);
+            pointer-events:none;
+        }
+        .card:active { transform:scale(0.95); }
+        @media (hover:hover) {
+            .card:hover { transform:translateY(-7px) scale(1.04); box-shadow:var(--card-hover-shadow); filter:brightness(1.08); }
+        }
+        .card-inner {
+            width:78%; height:78%; background:var(--card-inner-bg);
+            border-radius:50%; display:flex; justify-content:center; align-items:center;
+            font-size:2em; font-weight:900; font-family:'Orbitron',sans-serif;
+            letter-spacing:-1px; box-shadow:0 2px 12px rgba(0,0,0,0.25);
+            border:2px solid rgba(255,255,255,0.2); transition:background 0.4s;
+        }
+        .card.red    { background:linear-gradient(145deg,#e74c3c,#c0392b,#96281b); }
+        .card.red    .card-inner { color:#e74c3c; }
+        .card.blue   { background:linear-gradient(145deg,#3498db,#2471a3,#1a5276); }
+        .card.blue   .card-inner { color:#2471a3; }
+        .card.green  { background:linear-gradient(145deg,#2ecc71,#27ae60,#1e8449); }
+        .card.green  .card-inner { color:#1e8449; }
+        .card.yellow { background:linear-gradient(145deg,#f1c40f,#d4ac0d,#b7950b); }
+        .card.yellow .card-inner { color:#9a7d0a; }
+        .card.wild {
+            background:conic-gradient(from 0deg,#e74c3c 0deg 90deg,#3498db 90deg 180deg,#2ecc71 180deg 270deg,#f1c40f 270deg 360deg);
+        }
+        .card.wild   .card-inner { color:#1a1a2e; background:rgba(255,255,255,0.9); }
+        html[data-theme="dark"] .card.red    .card-inner { color:#ff6b6b; }
+        html[data-theme="dark"] .card.blue   .card-inner { color:#5dade2; }
+        html[data-theme="dark"] .card.green  .card-inner { color:#58d68d; }
+        html[data-theme="dark"] .card.yellow .card-inner { color:#f9ca24; }
+        html[data-theme="dark"] .card.wild   .card-inner { color:#fff; background:rgba(15,10,30,0.85); }
+        .card.plus12 {
+            background:linear-gradient(145deg,#0a0a0a,#1a1a1a,#2a1a00);
+            box-shadow:0 6px 20px rgba(0,0,0,0.7),0 0 20px rgba(255,180,0,0.4),0 0 40px rgba(255,100,0,0.2),inset 0 1px 0 rgba(255,180,0,0.2);
+            border:2px solid rgba(255,180,0,0.5) !important;
+        }
+        .card.plus12 .card-inner { color:#0a0a0a; background:linear-gradient(135deg,#ffd700,#ff8c00); font-size:1.1em; box-shadow:0 0 12px rgba(255,180,0,0.6); }
+        .player-hand .card.plus12 { animation:plus12Glow 2s ease-in-out infinite; }
+        @keyframes plus12Glow {
+            0%,100% { box-shadow:0 6px 20px rgba(0,0,0,0.7),0 0 18px rgba(255,160,0,0.5); }
+            50%     { box-shadow:0 8px 28px rgba(0,0,0,0.8),0 0 36px rgba(255,100,0,0.8),0 0 60px rgba(255,60,0,0.3); }
+        }
+        .card.card-back {
+            background:var(--draw-pile-bg); border-color:var(--draw-pile-border);
+            box-shadow:var(--card-shadow),0 0 18px var(--draw-pile-glow);
+        }
+        .card.card-back::after {
+            content:''; position:absolute; inset:8px; border-radius:8px;
+            border:1.5px solid rgba(255,255,255,0.12); pointer-events:none;
+        }
+        .wild-color-indicator {
+            position:absolute; top:8px; right:8px; width:22px; height:22px;
+            border-radius:50%; border:2px solid rgba(255,255,255,0.7);
+            box-shadow:0 2px 8px rgba(0,0,0,0.4);
+        }
+        .card.disabled { opacity:0.42; cursor:not-allowed; filter:grayscale(25%); }
+        @media (hover:hover) { .card.disabled:hover { transform:none; filter:grayscale(25%); } }
+        .player-hand {
+            display:flex; justify-content:center; flex-wrap:wrap;
+            gap:8px; min-height:160px; padding:10px; border-radius:15px; transition:all 0.3s;
+        }
+        .player-hand.your-turn {
+            animation:glowPulse 2s ease-in-out infinite;
+            box-shadow:0 0 20px rgba(46,204,113,0.6),0 0 40px rgba(46,204,113,0.4),0 0 60px rgba(46,204,113,0.2);
+        }
+        @keyframes glowPulse {
+            0%,100% { box-shadow:0 0 20px rgba(46,204,113,0.6),0 0 40px rgba(46,204,113,0.4); }
+            50%     { box-shadow:0 0 30px rgba(46,204,113,0.8),0 0 60px rgba(46,204,113,0.6); }
+        }
+        .player-hand .card { width:80px; height:120px; }
+        .player-hand .card-inner { font-size:1.6em; }
+
+        /* ── STACK INDICATOR ── */
+        .stack-indicator {
+            display:none; background:linear-gradient(135deg,#ff416c,#ff4b2b);
+            color:white; padding:6px 16px; border-radius:20px; font-weight:bold;
+            font-size:0.9em; text-align:center; box-shadow:0 4px 15px rgba(255,65,108,0.5);
+            animation:stackPulse 1.5s ease-in-out infinite; white-space:nowrap;
+            position:relative; overflow:visible;
+        }
+        .stack-indicator.active { display:block; }
+        .stack-indicator.stack-bump { animation:stackBump 0.4s cubic-bezier(0.34,1.56,0.64,1), stackPulse 1.5s ease-in-out infinite 0.4s; }
+        @keyframes stackPulse {
+            0%,100% { transform:scale(1); box-shadow:0 4px 15px rgba(255,65,108,0.5); }
+            50%     { transform:scale(1.06); box-shadow:0 6px 25px rgba(255,65,108,0.8); }
+        }
+        @keyframes stackBump {
+            0%   { transform:scale(1); }
+            40%  { transform:scale(1.35); box-shadow:0 8px 35px rgba(255,65,108,1); }
+            100% { transform:scale(1); }
+        }
+        .stack-count-num { display:inline-block; font-size:1.6em; font-weight:900; font-family:'Orbitron',sans-serif; line-height:1; }
+        .stack-count-num.num-change { animation:numPop 0.35s cubic-bezier(0.34,1.56,0.64,1); }
+        @keyframes numPop {
+            0%   { transform:scale(1) translateY(0); color:white; }
+            50%  { transform:scale(1.5) translateY(-4px); color:#ffe082; }
+            100% { transform:scale(1) translateY(0); color:white; }
+        }
+        .stack-increment-badge {
+            position:absolute; top:-28px; left:50%; transform:translateX(-50%);
+            background:rgba(255,255,255,0.25); color:white; font-size:1em;
+            font-weight:900; font-family:'Orbitron',sans-serif; border-radius:10px;
+            padding:2px 10px; pointer-events:none;
+            animation:incrementFloat 0.9s ease-out forwards; white-space:nowrap;
+        }
+        @keyframes incrementFloat {
+            0%   { opacity:1; transform:translateX(-50%) translateY(0) scale(0.8); }
+            60%  { opacity:1; transform:translateX(-50%) translateY(-20px) scale(1.1); }
+            100% { opacity:0; transform:translateX(-50%) translateY(-36px) scale(0.9); }
+        }
+
+        /* ── MESSAGE / CONTROLS ── */
+        .message {
+            text-align:center; color:var(--text-on-glass); font-size:1.3em;
+            margin:10px 0; min-height:35px; font-weight:bold;
+            text-shadow:2px 2px 4px rgba(0,0,0,0.5);
+        }
+        .controls { display:flex; justify-content:center; gap:10px; margin-top:10px; flex-wrap:wrap; }
+        .controls button {
+            padding:12px 25px; font-size:1em;
+            background:linear-gradient(135deg,#667eea,#764ba2);
+            color:white; border:none; border-radius:10px;
+            cursor:pointer; box-shadow:0 4px 8px rgba(0,0,0,0.3);
+            touch-action:manipulation; font-weight:600; font-family:'Nunito',sans-serif;
+        }
+        .controls button:active { transform:translateY(2px); }
+
+        /* ── UNO BUTTON ── */
         .uno-button {
-            bottom: 20px;
-            right: 20px;
-            padding: 15px 30px;
-            font-size: 1.2em;
+            position:fixed; bottom:20px; right:20px;
+            background:linear-gradient(135deg,#e74c3c,#c0392b);
+            color:white; border:3px solid rgba(255,255,255,0.3);
+            padding:15px 30px; font-size:1.3em; font-weight:900;
+            border-radius:50px; cursor:pointer; box-shadow:0 6px 20px rgba(231,76,60,0.5);
+            display:none; z-index:100; touch-action:manipulation; letter-spacing:1px;
+            font-family:'Nunito',sans-serif;
         }
-    }
-
-    /* Card fly animation for playing a card to center */
-    /* Card fly animation for playing/drawing cards */
-    .card-fly-to-center,
-    .card-fly-to-hand {
-        position: fixed;
-        z-index: 9999;
-        transition: 
-            left 0.6s cubic-bezier(0.2, 0.8, 0.2, 1),
-            top 0.6s cubic-bezier(0.2, 0.8, 0.2, 1),
-            transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
-            opacity 0.6s ease-out;
-        pointer-events: none;
-    }
-
-    /* Landing bounce animation */
-    @keyframes cardLand {
-        0% {
-            transform: scale(1.1) rotate(0deg);
+        .uno-button.active { display:block; animation:unoBtnPulse 0.8s ease-in-out infinite; }
+        @keyframes unoBtnPulse {
+            0%,100% { transform:scale(1);    box-shadow:0 6px 20px rgba(231,76,60,0.5); }
+            50%     { transform:scale(1.07); box-shadow:0 8px 30px rgba(231,76,60,0.9); }
         }
-        50% {
-            transform: scale(1.15) rotate(0deg);
+
+        /* ── DARK MODE TOGGLE ── */
+        #darkModeToggle {
+            position:fixed; top:16px; right:16px; z-index:9000;
+            width:48px; height:28px; border-radius:14px; border:none; cursor:pointer;
+            background:var(--surface-glass-strong); backdrop-filter:blur(8px);
+            border:1.5px solid rgba(255,255,255,0.25);
+            display:flex; align-items:center; padding:3px;
+            transition:background 0.3s; box-shadow:0 2px 12px rgba(0,0,0,0.25);
         }
-        100% {
-            transform: scale(1) rotate(0deg);
+        #darkModeToggle:hover { opacity:0.85; }
+        #darkModeToggle .toggle-knob {
+            width:20px; height:20px; border-radius:50%; background:white;
+            transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1), background 0.3s;
+            display:flex; align-items:center; justify-content:center; font-size:11px;
+            box-shadow:0 1px 6px rgba(0,0,0,0.35);
         }
-    }
+        html[data-theme="dark"] #darkModeToggle { background:rgba(140,100,255,0.25); border-color:rgba(140,100,255,0.4); }
+        html[data-theme="dark"] #darkModeToggle .toggle-knob { transform:translateX(20px); background:#a78bfa; }
 
-    /* Discard pile pulse animation */
-    @keyframes discardLand {
-        0% {
-            transform: scale(1);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        /* ── OVERLAYS / POPUPS ── */
+        .overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:999; }
+        .overlay.active { display:block; }
+        .color-picker, .custom-popup, .pause-menu {
+            display:none; position:fixed; top:50%; left:50%;
+            transform:translate(-50%,-50%); background:var(--popup-bg);
+            padding:30px; border-radius:20px; box-shadow:var(--menu-shadow);
+            z-index:1001; color:var(--popup-text); text-align:center;
+            transition:background 0.3s;
         }
-        50% {
-            transform: scale(1.05);
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 255, 255, 0.3);
+        .color-picker.active, .custom-popup.active, .pause-menu.active { display:block; }
+        .color-picker h3 { color:var(--popup-text); margin-bottom:15px; font-size:1.2em; }
+        .color-options { display:grid; grid-template-columns:repeat(2,1fr); gap:15px; margin-top:15px; }
+        .color-option {
+            width:80px; height:80px; border-radius:10px; cursor:pointer;
+            border:4px solid #fff; transition:transform 0.2s;
+            box-shadow:0 4px 8px rgba(0,0,0,0.3); touch-action:manipulation;
         }
-        100% {
-            transform: scale(1);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        .color-option:active { transform:scale(0.9); }
+        .color-option.red    { background:#e74c3c !important; }
+        .color-option.blue   { background:#3498db !important; }
+        .color-option.green  { background:#2ecc71 !important; }
+        .color-option.yellow { background:#f1c40f !important; }
+        .custom-popup { min-width:300px; max-width:90%; }
+        .custom-popup h2 { font-size:1.8em; color:var(--menu-h1); margin-bottom:15px; }
+        .custom-popup p  { font-size:1.1em; color:var(--popup-sub); margin-bottom:25px; line-height:1.5; }
+        .popup-buttons { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+        .popup-button {
+            background:linear-gradient(135deg,#667eea,#764ba2); color:white;
+            border:none; padding:13px 35px; font-size:1.05em; font-weight:600;
+            border-radius:12px; cursor:pointer; box-shadow:0 6px 15px rgba(102,126,234,0.4);
+            transition:all 0.3s; touch-action:manipulation; font-family:'Nunito',sans-serif;
         }
-    }
+        .popup-button:active { transform:translateY(2px); }
+        .popup-button.secondary { background:linear-gradient(135deg,#95a5a6,#7f8c8d); }
+        .pause-menu { min-width:280px; }
+        .pause-menu h2 { font-size:1.8em; color:var(--menu-h1); margin-bottom:25px; }
+        .pause-menu .menu-button { font-family:'Nunito',sans-serif; }
 
-    /* Card just played impact effect */
-    @keyframes cardJustPlayed {
-        0% {
-            transform: scale(1.05);
+        /* ── DRAW PENALTY ANIM ── */
+        .draw-penalty-card {
+            position:fixed; z-index:9998; width:55px; height:82px;
+            border-radius:8px; background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);
+            border:2px solid rgba(255,255,255,0.3);
+            display:flex; align-items:center; justify-content:center; font-size:1.4em;
+            box-shadow:0 4px 20px rgba(0,0,0,0.5),0 0 15px rgba(255,200,0,0.3);
+            pointer-events:none;
+            transition: left 0.55s cubic-bezier(0.2,0.8,0.2,1), top 0.55s cubic-bezier(0.2,0.8,0.2,1), transform 0.55s, opacity 0.3s;
+            will-change:left,top,transform;
         }
-        100% {
-            transform: scale(1);
+        @keyframes penaltyBurst {
+            0%   { transform:scale(0.5) rotate(-10deg); opacity:0; }
+            40%  { transform:scale(1.3) rotate(4deg);  opacity:1; }
+            70%  { transform:scale(0.95) rotate(-2deg); opacity:1; }
+            100% { transform:scale(1);                  opacity:0; }
         }
-    }
+        .penalty-burst {
+            position:fixed; z-index:9999; pointer-events:none;
+            display:flex; flex-direction:column; align-items:center; gap:4px;
+            animation:penaltyBurst 1.1s cubic-bezier(0.22,1,0.36,1) forwards;
+        }
+        .penalty-burst-badge {
+            background:linear-gradient(135deg,#ff416c,#ff4b2b); color:white;
+            font-weight:900; font-size:1.5em; padding:6px 18px; border-radius:30px;
+            box-shadow:0 4px 20px rgba(255,65,108,0.7); letter-spacing:1px; white-space:nowrap;
+        }
+        .penalty-burst-sub {
+            color:white; font-size:0.9em; font-weight:700;
+            background:rgba(0,0,0,0.5); padding:3px 12px; border-radius:12px;
+        }
+        @keyframes victimShake {
+            0%   { transform:translateX(0); }
+            15%  { transform:translateX(-8px) rotate(-3deg); }
+            30%  { transform:translateX(8px)  rotate(3deg); }
+            45%  { transform:translateX(-6px) rotate(-2deg); }
+            60%  { transform:translateX(6px)  rotate(2deg); }
+            100% { transform:translateX(0); }
+        }
+        .victim-shaking { animation:victimShake 0.55s ease-in-out; border-color:#ff416c !important; box-shadow:0 0 25px rgba(255,65,108,0.8) !important; }
+        @keyframes screenFlash { 0%{opacity:0;} 20%{opacity:0.45;} 60%{opacity:0.2;} 100%{opacity:0;} }
+        #penaltyFlash {
+            position:fixed; inset:0; z-index:9997;
+            background:radial-gradient(ellipse at center,rgba(255,65,108,0.6),rgba(255,75,43,0.3) 60%,transparent);
+            pointer-events:none; opacity:0; display:none;
+        }
+        #penaltyFlash.flashing { display:block; animation:screenFlash 0.7s ease-out forwards; }
+        @keyframes sparkle {
+            0%   { transform:scale(0) rotate(0deg); opacity:1; }
+            100% { transform:scale(1.5) rotate(180deg); opacity:0; }
+        }
+        .card-sparkle { position:fixed; z-index:9997; width:8px; height:8px; border-radius:50%; pointer-events:none; animation:sparkle 0.4s ease-out forwards; }
+        .card-fly-to-center, .card-fly-to-hand {
+            position:fixed; z-index:9999; pointer-events:none;
+            transition: left 0.6s cubic-bezier(0.2,0.8,0.2,1), top 0.6s cubic-bezier(0.2,0.8,0.2,1), transform 0.6s cubic-bezier(0.34,1.56,0.64,1), opacity 0.6s;
+        }
 
-    .card-just-played {
-        animation: cardJustPlayed 0.3s ease-out;
-    }
+        /* ── SCOREBOARD ── */
+        .score-row {
+            display:flex; align-items:center; gap:14px;
+            background:var(--surface-glass); border:2px solid rgba(255,255,255,0.12);
+            border-radius:14px; padding:14px 18px;
+        }
+        .score-row.rank-1 { background:rgba(241,196,15,0.15); border-color:rgba(241,196,15,0.5); box-shadow:0 0 18px rgba(241,196,15,0.25); }
+        .score-row.rank-2 { background:rgba(192,192,192,0.12); border-color:rgba(192,192,192,0.4); }
+        .score-row.rank-3 { background:rgba(205,127,50,0.12); border-color:rgba(205,127,50,0.35); }
+        .score-rank  { font-size:1.7em; width:36px; text-align:center; flex-shrink:0; }
+        .score-name  { flex:1; font-weight:800; font-size:1.1em; color:var(--text-primary); }
+        .score-points { font-size:1.35em; font-weight:900; font-family:'Orbitron',sans-serif; color:var(--text-primary); min-width:54px; text-align:right; }
+        .score-points.zero     { color:#2ecc71; }
+        .score-points.negative { color:#e74c3c; }
+        .score-cards { font-size:0.78em; color:var(--text-muted); margin-top:3px; }
 
-    .discard-pile-pulse {
-        animation: discardLand 0.3s ease-out;
-    }
+        /* ── DISCARD PULSE ── */
+        .discard-pile-pulse { animation:discardLand 0.3s ease-out; }
+        @keyframes discardLand {
+            0%,100% { transform:scale(1); }
+            50%     { transform:scale(1.05); box-shadow:0 8px 16px rgba(0,0,0,0.5),0 0 20px rgba(255,255,255,0.3); }
+        }
 
-    .stack-indicator {
-        display: none;
-        position: absolute;
-        top: -20px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: linear-gradient(135deg, #ff416c, #ff4b2b);
-        color: white;
-        padding: 8px 20px;
-        border-radius: 20px;
-        font-weight: bold;
-        font-size: 1.1em;
-        text-align: center;
-        box-shadow: 0 4px 15px rgba(255, 65, 108, 0.5);
-        z-index: 10;
-        animation: stackPulse 1.5s ease-in-out infinite;
-        white-space: nowrap;
-    }
+        /* ── POPUP FADE ── */
+        @keyframes popupFadeIn {
+            from { opacity:0; transform:translate(-50%,-50%) scale(0.9); }
+            to   { opacity:1; transform:translate(-50%,-50%) scale(1); }
+        }
+        .custom-popup.active { animation:popupFadeIn 0.3s ease-out; }
 
-    .stack-indicator.active {
-        display: block;
-    }
-
-    /* +12 wild card */
-    .card.plus12 {
-        background: linear-gradient(145deg, #0a0a0a 0%, #1a1a1a 40%, #2a1a00 100%);
-        box-shadow: 0 6px 20px rgba(0,0,0,0.7), 0 0 20px rgba(255,180,0,0.4), 0 0 40px rgba(255,100,0,0.2), inset 0 1px 0 rgba(255,180,0,0.2);
-        border: 2px solid rgba(255,180,0,0.5) !important;
-    }
-    .card.plus12 .card-inner {
-        color: #0a0a0a;
-        background: linear-gradient(135deg, #ffd700, #ff8c00);
-        font-size: 1.1em;
-        font-weight: 900;
-        box-shadow: 0 0 12px rgba(255,180,0,0.6);
-    }
-    html[data-theme="dark"] .card.plus12 .card-inner {
-        color: #0a0a0a;
-        background: linear-gradient(135deg, #ffd700, #ff6a00);
-    }
-    .player-hand .card.plus12 {
-        animation: plus12Glow 2s ease-in-out infinite;
-    }
-    @keyframes plus12Glow {
-        0%, 100% { box-shadow: 0 6px 20px rgba(0,0,0,0.7), 0 0 18px rgba(255,160,0,0.5); }
-        50%       { box-shadow: 0 8px 28px rgba(0,0,0,0.8), 0 0 36px rgba(255,100,0,0.8), 0 0 60px rgba(255,60,0,0.3); }
-    }
-
-    @keyframes stackPulse {
-        0%, 100% { transform: translateX(-50%) scale(1); box-shadow: 0 4px 15px rgba(255, 65, 108, 0.5); }
-        50% { transform: translateX(-50%) scale(1.05); box-shadow: 0 6px 25px rgba(255, 65, 108, 0.8); }
-    }
-    /* Dark Mode Toggle */
-    #darkModeToggle {
-        position: fixed;
-        top: 16px;
-        right: 16px;
-        z-index: 9000;
-        width: 48px;
-        height: 28px;
-        border-radius: 14px;
-        border: 1.5px solid rgba(255,255,255,0.25);
-        cursor: pointer;
-        background: rgba(255,255,255,0.2);
-        display: flex;
-        align-items: center;
-        padding: 3px;
-        transition: background 0.3s;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.25);
-    }
-    #darkModeToggle:hover { opacity: 0.85; }
-    #darkModeToggle .toggle-knob {
-        width: 20px;
-        height: 20px;
-        border-radius: 50%;
-        background: white;
-        transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), background 0.3s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 11px;
-        box-shadow: 0 1px 6px rgba(0,0,0,0.35);
-    }
-    html[data-theme="dark"] #darkModeToggle {
-        background: rgba(140,100,255,0.25);
-        border-color: rgba(140,100,255,0.4);
-    }
-    html[data-theme="dark"] #darkModeToggle .toggle-knob {
-        transform: translateX(20px);
-        background: #a78bfa;
-    }
-</style>
-
+        @media (max-width:768px) {
+            h1 { font-size:2.2em; } h2 { font-size:1.5em; }
+            .menu-container { padding:25px 18px; }
+            .player-hand .card { width:65px; height:100px; }
+            .player-hand .card-inner { font-size:1.3em; }
+        }
+    </style>
 </head>
 <body>
-    <!-- Main Menu Screen -->
-    <div id="mainMenuScreen" class="screen active">
-        <div class="main-menu">
-            <h1>🎴 O,No 🎴</h1>
-            <p>Classic Card Game</p>
-            <button class="menu-button" onclick="startGame()">Play Game</button>
-            <button class="menu-button settings" onclick="showSettings()">Settings</button>
-            <button class="menu-button quit" onclick="quitGame()">Quit</button>
-        </div>
+
+<!-- ── SCREENS ─────────────────────────────────────────────── -->
+<div id="mainMenuScreen" class="screen active">
+    <div class="menu-container">
+        <h1>🎴 O,No 🎴</h1>
+        <p style="margin-bottom:30px;color:var(--text-muted);">Classic Card Game vs Computer</p>
+        <button class="menu-button green" onclick="startGame()">▶ Play Game</button>
+        <button class="menu-button settings" onclick="showSettingsScreen()">⚙️ Settings</button>
+        <button class="menu-button quit" onclick="confirmQuit()">🏠 Back to Home</button>
     </div>
+</div>
 
-
-<!-- Settings Screen -->
 <div id="settingsScreen" class="screen">
-    <div class="settings-menu">
+    <div class="menu-container">
         <h2>⚙️ Settings</h2>
-        
         <div class="setting-item">
-            <label>Difficulty Level</label>
-            <select id="difficulty">
-                <option value="easy">Easy</option>
-                <option value="medium" selected>Medium</option>
-                <option value="hard">Hard</option>
-            </select>
+            <label>Difficulty</label>
+            <select id="difficulty"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option></select>
         </div>
-
         <div class="setting-item">
             <label>Starting Cards</label>
-            <select id="startingCards">
-                <option value="5">5 Cards</option>
-                <option value="7" selected>7 Cards (Classic)</option>
-                <option value="10">10 Cards</option>
-            </select>
+            <select id="startingCards"><option value="5">5 Cards</option><option value="7" selected>7 Cards (Classic)</option><option value="10">10 Cards</option></select>
         </div>
-
         <div class="setting-item">
-            <div class="toggle-container">
-                <label style="margin-bottom: 0;">Sound Effects</label>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="soundToggle" checked>
-                    <span class="slider-toggle"></span>
-                </label>
-            </div>
+            <label>Background</label>
+            <select id="backgroundAnimation"><option value="static">Static</option><option value="color-cycle">Color Cycling</option><option value="pulsing">Pulsing</option></select>
         </div>
-
         <div class="setting-item">
-            <div class="toggle-container">
-                <label style="margin-bottom: 0;">Auto O,No Call</label>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="autoUno">
-                    <span class="slider-toggle"></span>
-                </label>
-            </div>
+            <label style="margin-bottom:15px;font-size:1.3em;color:var(--menu-h1);">Game Rules</label>
+            <div class="toggle-container"><label style="margin:0;">+2/+4 Stacking</label><label class="toggle-switch"><input type="checkbox" id="allowStacking"><span class="slider-toggle"></span></label></div>
+            <p style="font-size:0.85em;color:var(--text-muted);margin:4px 0 12px;">Stack draw cards to pass the penalty</p>
+            <div class="toggle-container"><label style="margin:0;">0 & 7 Special Rules</label><label class="toggle-switch"><input type="checkbox" id="allowSpecial07"><span class="slider-toggle"></span></label></div>
+            <p style="font-size:0.85em;color:var(--text-muted);margin:4px 0 12px;">0 swaps all hands; 7 lets you swap with opponent</p>
+            <div class="toggle-container"><label style="margin:0;">Jump-In</label><label class="toggle-switch"><input type="checkbox" id="allowJumpIn"><span class="slider-toggle"></span></label></div>
+            <p style="font-size:0.85em;color:var(--text-muted);margin:4px 0 12px;">Play out of turn with exact match</p>
+            <div class="toggle-container"><label style="margin:0;">💀 +12 Card</label><label class="toggle-switch"><input type="checkbox" id="allowPlus12"><span class="slider-toggle"></span></label></div>
+            <p style="font-size:0.85em;color:var(--text-muted);margin:4px 0 12px;">2 rare +12 wild cards in the deck</p>
+            <div class="toggle-container"><label style="margin:0;">Draw One Per Turn</label><label class="toggle-switch"><input type="checkbox" id="drawOnePerTurn"><span class="slider-toggle"></span></label></div>
+            <p style="font-size:0.85em;color:var(--text-muted);margin:4px 0 0;">Draw only one card instead of drawing until match</p>
         </div>
-
-        <div class="setting-item">
-            <label for="backgroundAnimation">Background Animation</label>
-            <select id="backgroundAnimation">
-                <option value="static">Static</option>
-                <option value="color-cycle">Color Cycling</option>
-                <option value="pulsing">Pulsing</option>
-            </select>
-        </div>
-
-        <div class="setting-item">
-            <label style="margin-bottom: 20px; font-size: 1.4em; color: var(--menu-h1);">Game Rules</label>
-            
-            <div class="toggle-container" style="margin-bottom: 15px;">
-                <label style="margin-bottom: 0;">Allow +2/+4 Stacking</label>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="allowStacking">
-                    <span class="slider-toggle"></span>
-                </label>
-            </div>
-            <p style="font-size: 0.9em; color: var(--text-muted); margin-bottom: 15px;">Stack +2 on +2 and +4 on +4 to pass the draw to opponent</p>
-            
-            <div class="toggle-container" style="margin-bottom: 15px;">
-                <label style="margin-bottom: 0;">Allow 0 & 7 Special Rules</label>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="allowSpecial07">
-                    <span class="slider-toggle"></span>
-                </label>
-            </div>
-            <p style="font-size: 0.9em; color: var(--text-muted); margin-bottom: 15px;">Playing 0 swaps hands with opponent. Playing 7 allows you to swap hands</p>
-            
-            <div class="toggle-container" style="margin-bottom: 15px;">
-                <label style="margin-bottom: 0;">Allow Jump-In</label>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="allowJumpIn">
-                    <span class="slider-toggle"></span>
-                </label>
-            </div>
-            <p style="font-size: 0.9em; color: var(--text-muted);">Play out of turn if you have an exact match (same color AND number)</p>
-
-            <div class="toggle-container" style="margin-bottom: 15px; margin-top: 20px;">
-                <label style="margin-bottom: 0;">💀 Allow +12 Card</label>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="allowPlus12">
-                    <span class="slider-toggle"></span>
-                </label>
-            </div>
-            <p style="font-size: 0.9em; color: var(--text-muted);">Adds 2 rare +12 wild cards to the deck — low chance, devastating effect</p>
-
-            <div class="toggle-container" style="margin-bottom: 15px; margin-top: 20px;">
-                <label style="margin-bottom: 0;">Draw One Per Turn</label>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="drawOnePerTurn">
-                    <span class="slider-toggle"></span>
-                </label>
-            </div>
-            <p style="font-size: 0.9em; color: var(--text-muted);">Draw only one card per turn instead of drawing until you find a match</p>
-        </div>
-
-        <div class="settings-buttons">
-            <button class="menu-button" onclick="saveSettings()">Save & Return</button>
-            <button class="menu-button quit" onclick="cancelSettings()">Cancel</button>
-        </div>
+        <button class="menu-button green" onclick="saveSettings()">✓ Save & Back</button>
+        <button class="menu-button quit"  onclick="cancelSettings()">✕ Cancel</button>
     </div>
 </div>
 
-<!-- Game Screen -->
+<!-- Game Screen (uses same oval layout as online) -->
 <div id="gameScreen" class="screen">
-    <div class="game-container">
-        <div class="game-header">
-            <h1>🎴 O,No 🎴</h1>
-        </div>
-
+    <div class="game-table-wrapper">
         <div class="game-info">
-            <div>Player: <span id="currentPlayer">You</span></div>
-            <div>Color: <span id="currentColor">-</span></div>
-            <div>Deck: <span id="deckCount">108</span></div>
-        </div>
-
-        <div class="computer-hand">
-            <div class="computer-label-box">
-                <span>Computer (<span id="computerCardCount">7</span> cards)</span>
-                <span class="computer-ono-ribbon" id="computerOnoRibbon">O,NO!</span>
-                <button id="catchButton" onclick="catchComputer()" style="display: none; background: #e74c3c; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-weight: bold; border-radius: 6px;">Catch!</button>
-            </div>
-            <div class="direction-indicator" id="directionIndicator">▶ Clockwise</div>
-            <div class="computer-cards" id="computerCards"></div>
-        </div>
-
-        <div class="message" id="message">Game started! Your turn.</div>
-
-        <div class="play-area">
+            <div>🎨 <span id="currentColor">-</span></div>
+            <div>🃏 Deck: <span id="deckCount">-</span></div>
             <div id="stackIndicator" class="stack-indicator"></div>
-            <div class="card card-back" id="drawPile" onclick="drawCard()">
-                <div style="color: white; font-size: 3em;">🎴</div>
-            </div>
-            <div id="discardPile"></div>
         </div>
-
+        <div class="table-arena" id="tableArena">
+            <svg id="directionSvg" class="direction-svg" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <marker id="arrowHead" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+                        <path d="M0,0 L0,6 L9,3 z" fill="rgba(255,255,255,0.9)"/>
+                    </marker>
+                </defs>
+                <ellipse cx="200" cy="150" rx="175" ry="128" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1.5"/>
+                <ellipse id="arcCW" cx="200" cy="150" rx="175" ry="128" fill="none"
+                         stroke="rgba(255,255,255,0.7)" stroke-width="3"
+                         stroke-dasharray="55 1060" stroke-dashoffset="0"
+                         marker-end="url(#arrowHead)" class="dir-arc">
+                    <animate attributeName="stroke-dashoffset" from="0" to="-1115" dur="3s" repeatCount="indefinite"/>
+                </ellipse>
+                <ellipse id="arcCCW" cx="200" cy="150" rx="175" ry="128" fill="none"
+                         stroke="rgba(255,255,255,0.7)" stroke-width="3"
+                         stroke-dasharray="55 1060" stroke-dashoffset="0"
+                         marker-end="url(#arrowHead)" class="dir-arc" style="display:none"
+                         transform="scale(-1,1) translate(-400,0)">
+                    <animate attributeName="stroke-dashoffset" from="0" to="-1115" dur="3s" repeatCount="indefinite"/>
+                </ellipse>
+            </svg>
+            <div class="play-area" id="playArea">
+                <div class="card card-back" id="drawPile" onclick="drawCard()" style="cursor:pointer;">
+                    <div class="card-inner" style="font-size:0.6em;color:rgba(255,255,255,0.7);background:rgba(255,255,255,0.08);font-family:'Orbitron',sans-serif;letter-spacing:1px;">DRAW</div>
+                </div>
+                <div id="discardPile"></div>
+            </div>
+            <div id="tableSeats"></div>
+        </div>
+        <div class="message" id="message">Your turn!</div>
         <div class="player-hand" id="playerHand"></div>
-
         <div class="controls">
-            <button onclick="pauseGame()">Pause</button>
-            <button onclick="startNewGame()">New Game</button>
+            <button onclick="pauseGame()">⏸ Pause</button>
+            <button onclick="startNewGame()">🔄 New Game</button>
         </div>
     </div>
 </div>
+
+<!-- Scoreboard Screen -->
+<div id="scoreboardScreen" class="screen">
+    <div class="menu-container" style="max-width:520px;">
+        <div id="scoreboardTitle" style="font-size:2.2em;font-weight:900;margin-bottom:6px;color:var(--menu-h1);font-family:'Orbitron',sans-serif;"></div>
+        <div id="scoreboardSubtitle" style="font-size:1.1em;color:var(--text-muted);margin-bottom:28px;"></div>
+        <div id="scoreboardRows" style="display:flex;flex-direction:column;gap:12px;margin-bottom:28px;"></div>
+        <button class="menu-button green" onclick="startNewGame();showScreen('gameScreen');" style="margin-bottom:0;">🔄 Play Again</button>
+        <button class="menu-button settings" onclick="showScreen('mainMenuScreen');" style="margin-top:10px;margin-bottom:0;">🏠 Main Menu</button>
+    </div>
+</div>
+
+<!-- Penalty Flash -->
+<div id="penaltyFlash"></div>
+
+<!-- Dark Mode Toggle -->
+<button id="darkModeToggle" onclick="toggleDarkMode()" title="Toggle dark mode">
+    <div class="toggle-knob">☀️</div>
+</button>
 
 <button class="uno-button" id="unoButton" onclick="callUno()">O,NO!</button>
 
@@ -1103,1391 +662,785 @@
 <div class="color-picker" id="colorPicker">
     <h3>Choose a Color:</h3>
     <div class="color-options">
-        <div class="color-option red" onclick="chooseColor('red')"></div>
-        <div class="color-option blue" onclick="chooseColor('blue')"></div>
-        <div class="color-option green" onclick="chooseColor('green')"></div>
+        <div class="color-option red"    onclick="chooseColor('red')"></div>
+        <div class="color-option blue"   onclick="chooseColor('blue')"></div>
+        <div class="color-option green"  onclick="chooseColor('green')"></div>
         <div class="color-option yellow" onclick="chooseColor('yellow')"></div>
     </div>
 </div>
 
-<div class="game-over" id="gameOver">
-    <h2 id="winnerText">You Win!</h2>
-    <p id="winnerMessage"></p>
-    <button onclick="returnToMenu()" style="margin-top: 20px;">Main Menu</button>
-    <button onclick="startNewGame()" style="margin-top: 10px;">Play Again</button>
+<div class="custom-popup" id="customPopup">
+    <h2 id="popupTitle"></h2>
+    <p id="popupMessage"></p>
+    <div class="popup-buttons" id="popupButtons"></div>
 </div>
 
 <div class="pause-menu" id="pauseMenu">
-    <h2>⏸️ Paused</h2>
-    <button onclick="resumeGame()">Resume Game</button>
-    <button onclick="returnToMenu()">Main Menu</button>
-    <button class="menu-button quit" onclick="quitGame()">Quit</button>
+    <h2>⏸ Paused</h2>
+    <button class="menu-button green"    onclick="resumeGame()">▶ Resume</button>
+    <button class="menu-button settings" onclick="startNewGame()">🔄 New Game</button>
+    <button class="menu-button"          onclick="showScreen('mainMenuScreen');resumeGame();">🏠 Main Menu</button>
 </div>
 
 <script>
-    const COLORS = ['red', 'blue', 'green', 'yellow'];
-    const NUMBERS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
-    const ACTIONS = ['Skip', 'Reverse', '+2'];
-    const WILDS = ['Wild', 'Wild+4'];
+// ── CONSTANTS ───────────────────────────────────────────────
+const COLORS  = ['red','blue','green','yellow'];
+const NUMBERS = ['0','1','2','3','4','5','6','7','8','9'];
+const ACTIONS = ['Skip','Reverse','+2'];
+const MAX_DRAW = 50;
 
-    let deck = [];
-    let playerHand = [];
-    let computerHand = [];
-    let discardPile = [];
-    let currentColor = null;
-    let currentValue = null;
-    let currentPlayer = 'player';
-    let direction = 1;
-    let playerCalledUno = false;
-    let computerCalledUno = false;
-    let pendingWildCard = null;
-    let gameInProgress = false;
-    let stackedDrawCount = 0; // Track stacked +2/+4 cards
-    let stackStartedBy = null; // Track who started the stack
-    let isAnimating = false; // Animation lock to prevent rapid clicks
-    
-    // Constants
-    const MAX_DRAW_ATTEMPTS = 50; // Safety limit for "draw until match" to prevent infinite loops
-    const EASY_CATCH_PROBABILITY = 0.3; // 30% chance for easy difficulty
-    const MEDIUM_CATCH_PROBABILITY = 0.5; // 50% chance for medium difficulty
-    const HARD_CATCH_PROBABILITY = 0.8; // 80% chance for hard difficulty
-    const PENALTY_DISPLAY_DELAY_MS = 1500; // Delay before continuing after penalty
-    
-    // Settings
-    let settings = {
-        difficulty: 'medium',
-        startingCards: 7,
-        soundEffects: true,
-        autoUno: false,
-        allowStacking: false,
-        allowSpecial07: false,
-        allowJumpIn: false,
-        allowPlus12: false,
-        drawOnePerTurn: false,
-        backgroundAnimation: 'static'
-    };
+// ── STATE ────────────────────────────────────────────────────
+let deck=[], playerHand=[], computerHand=[], discardPile=[];
+let currentColor=null, currentValue=null;
+let currentPlayer='player', direction=1;
+let playerCalledUno=false, computerCalledUno=false;
+let pendingWildCard=null, gameInProgress=false;
+let stackedDrawCount=0, isAnimating=false;
+let prevStackCount=0;
 
-    // Load settings from localStorage on page load
-    function loadSettings() {
-        const savedSettings = localStorage.getItem('onoGameSettings');
-        if (savedSettings) {
-            try {
-                const parsed = JSON.parse(savedSettings);
-                // Only merge properties that exist in the default settings object
-                Object.keys(settings).forEach(key => {
-                    if (parsed.hasOwnProperty(key)) {
-                        settings[key] = parsed[key];
-                    }
-                });
-            } catch (e) {
-                console.error('Error loading settings:', e);
+let settings = {
+    difficulty:'medium', startingCards:7, allowStacking:false,
+    allowSpecial07:false, allowJumpIn:false, allowPlus12:false,
+    drawOnePerTurn:false, backgroundAnimation:'static'
+};
+
+// ── THEME ────────────────────────────────────────────────────
+(function() {
+    const t = localStorage.getItem('ono-theme')||'light';
+    applyTheme(t);
+})();
+function applyTheme(t){
+    document.documentElement.setAttribute('data-theme',t);
+    const k=document.querySelector('#darkModeToggle .toggle-knob');
+    if(k) k.textContent = t==='dark'?'🌙':'☀️';
+}
+function toggleDarkMode(){
+    const c=document.documentElement.getAttribute('data-theme')||'light';
+    const n=c==='dark'?'light':'dark';
+    localStorage.setItem('ono-theme',n); applyTheme(n);
+}
+
+// ── SETTINGS ─────────────────────────────────────────────────
+function loadSettings(){
+    const s=localStorage.getItem('onoGameSettings');
+    if(s){ try{ Object.assign(settings,JSON.parse(s)); }catch(e){} }
+    applyBgAnim();
+}
+function applyBgAnim(){
+    document.body.classList.remove('bg-static','bg-color-cycle','bg-pulsing');
+    const map={'color-cycle':'bg-color-cycle','pulsing':'bg-pulsing'};
+    document.body.classList.add(map[settings.backgroundAnimation]||'bg-static');
+}
+function showSettingsScreen(){
+    ['difficulty','startingCards','backgroundAnimation'].forEach(id=>{
+        document.getElementById(id).value=settings[id];
+    });
+    ['allowStacking','allowSpecial07','allowJumpIn','allowPlus12','drawOnePerTurn'].forEach(id=>{
+        document.getElementById(id).checked=settings[id];
+    });
+    showScreen('settingsScreen');
+}
+function saveSettings(){
+    settings.difficulty=document.getElementById('difficulty').value;
+    settings.startingCards=parseInt(document.getElementById('startingCards').value);
+    settings.backgroundAnimation=document.getElementById('backgroundAnimation').value;
+    ['allowStacking','allowSpecial07','allowJumpIn','allowPlus12','drawOnePerTurn'].forEach(id=>{
+        settings[id]=document.getElementById(id).checked;
+    });
+    localStorage.setItem('onoGameSettings',JSON.stringify(settings));
+    applyBgAnim();
+    showScreen('mainMenuScreen');
+}
+function cancelSettings(){ showScreen('mainMenuScreen'); }
+
+// ── SCREEN MGMT ──────────────────────────────────────────────
+function showScreen(id){
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+}
+
+// ── POPUP HELPER ─────────────────────────────────────────────
+function _openPopup(title,message,buttons){
+    const popup=document.getElementById('customPopup');
+    const overlay=document.getElementById('overlay');
+    const close=()=>{ popup.classList.remove('active'); overlay.classList.remove('active'); };
+    document.getElementById('popupTitle').textContent=title;
+    document.getElementById('popupTitle').style.display=title?'block':'none';
+    document.getElementById('popupMessage').textContent=message;
+    const btnsEl=document.getElementById('popupButtons');
+    btnsEl.innerHTML='';
+    buttons.forEach(({label,primary,cb})=>{
+        const btn=document.createElement('button');
+        btn.className='popup-button'+(primary?'':' secondary');
+        btn.textContent=label;
+        btn.onclick=()=>{ close(); cb&&cb(); };
+        btnsEl.appendChild(btn);
+    });
+    overlay.classList.add('active');
+    popup.classList.add('active');
+}
+function showPopup(msg,title=''){
+    _openPopup(title,msg,[{label:'OK',primary:true}]);
+}
+function showConfirm(msg,cb,title='Confirm'){
+    _openPopup(title,msg,[
+        {label:'No', primary:false,cb:()=>cb(false)},
+        {label:'Yes',primary:true, cb:()=>cb(true)}
+    ]);
+}
+function confirmQuit(){
+    showConfirm('Return to the home page?',ok=>{ if(ok) window.location.href='/index.html'; },'Quit Game');
+}
+
+// ── GAME INIT ────────────────────────────────────────────────
+function startGame(){ showScreen('gameScreen'); startNewGame(); }
+
+function startNewGame(){
+    document.getElementById('overlay').classList.remove('active');
+    document.getElementById('customPopup').classList.remove('active');
+    document.getElementById('colorPicker').classList.remove('active');
+    document.getElementById('pauseMenu').classList.remove('active');
+    document.getElementById('unoButton').classList.remove('active');
+    currentPlayer='player'; direction=1;
+    playerCalledUno=false; computerCalledUno=false;
+    pendingWildCard=null; gameInProgress=true;
+    currentColor=null; currentValue=null;
+    stackedDrawCount=0; isAnimating=false; prevStackCount=0;
+    createDeck(); dealCards();
+    renderAll();
+    showMessage('New game! Your turn.');
+    showScreen('gameScreen');
+}
+
+function createDeck(){
+    deck=[];
+    COLORS.forEach(c=>{
+        deck.push({color:c,value:'0',type:'number'});
+        for(let i=0;i<2;i++){
+            NUMBERS.slice(1).forEach(n=>deck.push({color:c,value:n,type:'number'}));
+            ACTIONS.forEach(a=>deck.push({color:c,value:a,type:'action'}));
+        }
+    });
+    for(let i=0;i<4;i++){
+        deck.push({color:'wild',value:'Wild',type:'wild'});
+        deck.push({color:'wild',value:'Wild+4',type:'wild'});
+    }
+    if(settings.allowPlus12){
+        deck.push({color:'wild',value:'+12',type:'wild'});
+        deck.push({color:'wild',value:'+12',type:'wild'});
+    }
+    shuffle(deck);
+}
+function shuffle(arr){
+    for(let i=arr.length-1;i>0;i--){
+        const j=Math.floor(Math.random()*(i+1));
+        [arr[i],arr[j]]=[arr[j],arr[i]];
+    }
+}
+function dealCards(){
+    playerHand=[]; computerHand=[]; discardPile=[];
+    const n=settings.startingCards;
+    for(let i=0;i<n;i++){
+        if(deck.length) playerHand.push(deck.pop());
+        if(deck.length) computerHand.push(deck.pop());
+    }
+    let s; do{ s=deck.pop(); }while(s.type!=='number');
+    discardPile=[s]; currentColor=s.color; currentValue=s.value;
+}
+function reshuffle(){
+    if(discardPile.length<=1) return;
+    const top=discardPile.pop();
+    deck=[...discardPile]; discardPile=[top]; shuffle(deck);
+}
+
+// ── RENDER ───────────────────────────────────────────────────
+function renderAll(){
+    renderTableSeats();
+    renderDiscardPile();
+    renderPlayerHand();
+    updateInfoBar();
+    updateDirectionArrows();
+}
+
+function renderTableSeats(){
+    const arena=document.getElementById('tableArena');
+    const seatsDiv=document.getElementById('tableSeats');
+    seatsDiv.innerHTML='';
+    const arenaW=arena.offsetWidth||820;
+    const arenaH=arena.offsetHeight||615;
+    const rx=arenaW*0.43, ry=arenaH*0.40;
+
+    // Build players array: player at bottom, computer at top (2-player)
+    const seats=[
+        {name:'You', cardCount:playerHand.length, isYou:true,  isCurrent:currentPlayer==='player', calledUno:playerCalledUno, isComputer:false},
+        {name:'CPU', cardCount:computerHand.length,isYou:false, isCurrent:currentPlayer==='computer',calledUno:computerCalledUno,isComputer:true}
+    ];
+    const n=seats.length;
+
+    seats.forEach((seat,i)=>{
+        const angle=(Math.PI/2) + (i/n)*2*Math.PI;
+        const cx=arenaW/2+rx*Math.cos(angle);
+        const cy=arenaH/2+ry*Math.sin(angle);
+        const el=document.createElement('div');
+        el.className='player-seat';
+        el.style.left=cx+'px'; el.style.top=cy+'px';
+        const boxClass=['seat-box', seat.isYou?'is-you':'', seat.isCurrent?'is-current':''].filter(Boolean).join(' ');
+        const ribbon=seat.calledUno?'<div class="ono-ribbon">O,NO!</div>':'';
+        const catchBtn=(seat.isComputer && seat.cardCount===1 && !seat.calledUno)
+            ? `<button class="catch-button" onclick="catchComputer()">Catch!</button>`:'';
+        const turnLabel=seat.isCurrent
+            ? `<div class="seat-turn-badge">${seat.isYou?'⭐ Your Turn':'⏰ CPU Turn'}</div>`:'';
+        const youBadge=seat.isYou?'<div class="seat-you-badge">YOU</div>':'';
+        el.innerHTML=`<div class="${boxClass}">${ribbon}<div class="seat-name">${seat.name}</div><div class="seat-cards">${seat.cardCount} 🎴</div>${turnLabel}${youBadge}${catchBtn}</div>`;
+        seatsDiv.appendChild(el);
+    });
+}
+
+function updateDirectionArrows(){
+    const cw=document.getElementById('arcCW');
+    const ccw=document.getElementById('arcCCW');
+    if(!cw||!ccw) return;
+    const isCW=direction===1;
+    cw.style.display=isCW?'':'none';
+    ccw.style.display=isCW?'none':'';
+}
+
+function updateInfoBar(){
+    document.getElementById('currentColor').textContent=currentColor||'-';
+    document.getElementById('deckCount').textContent=deck.length;
+    const stackEl=document.getElementById('stackIndicator');
+    const newCount=stackedDrawCount;
+    const increased=newCount>prevStackCount && prevStackCount>0;
+    const started=newCount>0 && prevStackCount===0;
+    const incr=newCount-prevStackCount;
+    if(newCount>0){
+        const ct=currentValue==='+2'?'+2':'+4';
+        stackEl.innerHTML=`<div style="font-size:0.78em;opacity:0.85;margin-bottom:1px;">${ct} Stack</div><span class="stack-count-num" id="stackCountNum">Draw ${newCount}</span>`;
+        stackEl.classList.add('active');
+        if(started||increased){
+            stackEl.classList.remove('stack-bump'); void stackEl.offsetWidth; stackEl.classList.add('stack-bump');
+            const numEl=document.getElementById('stackCountNum');
+            if(numEl){ numEl.classList.remove('num-change'); void numEl.offsetWidth; numEl.classList.add('num-change'); }
+            if(increased){
+                const badge=document.createElement('div');
+                badge.className='stack-increment-badge'; badge.textContent=`+${incr}`;
+                stackEl.appendChild(badge); setTimeout(()=>badge.remove(),950);
             }
         }
-        applyBackgroundAnimation();
+    } else {
+        stackEl.innerHTML=''; stackEl.classList.remove('active','stack-bump');
     }
+    prevStackCount=newCount;
+}
 
-    // Apply background animation based on current setting
-    function applyBackgroundAnimation() {
-        const classMap = {
-            'static': 'bg-static',
-            'color-cycle': 'bg-color-cycle',
-            'pulsing': 'bg-pulsing'
-        };
-        
-        const animation = settings.backgroundAnimation;
-        const className = classMap[animation] || 'bg-static';
-        
-        const body = document.body;
-        body.classList.remove('bg-static', 'bg-color-cycle', 'bg-pulsing');
-        body.classList.add(className);
+function renderDiscardPile(){
+    const div=document.getElementById('discardPile');
+    div.innerHTML='';
+    if(!discardPile.length) return;
+    const card=discardPile[discardPile.length-1];
+    const el=createCardEl(card);
+    if(card.type==='wild'&&currentColor){
+        el.style.borderColor=colorHex(currentColor);
+        el.style.borderWidth='6px';
+        const ind=document.createElement('div');
+        ind.className='wild-color-indicator';
+        ind.style.backgroundColor=colorHex(currentColor);
+        el.appendChild(ind);
     }
+    div.appendChild(el);
+}
 
-    // Screen Management
-    function showScreen(screenId) {
-        document.querySelectorAll('.screen').forEach(screen => {
-            screen.classList.remove('active');
+function createCardEl(card){
+    const div=document.createElement('div');
+    div.className=`card ${card.value==='+12'?'plus12':card.color}`;
+    const inner=document.createElement('div');
+    inner.className='card-inner'; inner.textContent=card.value;
+    div.appendChild(inner);
+    return div;
+}
+
+function renderPlayerHand(){
+    const div=document.getElementById('playerHand');
+    div.innerHTML='';
+    if(currentPlayer==='player') div.classList.add('your-turn');
+    else div.classList.remove('your-turn');
+
+    playerHand.forEach((card,i)=>{
+        const playable=canPlay(card);
+        const isJumpIn=settings.allowJumpIn && currentPlayer!=='player'
+            && card.type==='number' && card.color===currentColor && card.value===currentValue;
+        const el=createCardEl(card);
+        if(isJumpIn){
+            el.style.animation='cardJumpInPulse 0.9s ease-in-out infinite';
+            el.style.outline='3px solid #f1c40f'; el.style.outlineOffset='3px';
+            el.style.boxShadow='0 0 18px rgba(241,196,15,0.9)';
+            el.onclick=()=>doJumpIn(i);
+        } else if(!playable||currentPlayer!=='player'||isAnimating){
+            el.classList.add('disabled');
+        } else {
+            el.onclick=()=>playCard(i);
+        }
+        div.appendChild(el);
+    });
+    // UNO button
+    const unoBtn=document.getElementById('unoButton');
+    if(playerHand.length===1&&!playerCalledUno&&!settings.autoUno&&gameInProgress)
+        unoBtn.classList.add('active');
+    else unoBtn.classList.remove('active');
+}
+
+// ── CARD LOGIC ───────────────────────────────────────────────
+function canPlay(card){
+    if(card.type==='wild') return true;
+    if(settings.allowStacking&&stackedDrawCount>0){
+        return (currentValue==='+2'&&card.value==='+2')||(currentValue==='Wild+4'&&card.value==='Wild+4');
+    }
+    return card.color===currentColor||card.value===currentValue;
+}
+
+function playCard(index){
+    if(!gameInProgress||isAnimating) return;
+    if(currentPlayer!=='player') return;
+    const card=playerHand[index];
+    if(!canPlay(card)){ showMessage("Can't play that card!"); return; }
+    isAnimating=true;
+    const handDiv=document.getElementById('playerHand');
+    const el=handDiv.children[index];
+    if(card.type==='wild'){
+        pendingWildCard={card,index};
+        // Remove card optimistically for animation then show picker
+        playerHand.splice(index,1);
+        animateCardToCenter(el,card,()=>{
+            renderDiscardPile(); renderPlayerHand();
+            showColorPicker();
         });
-        document.getElementById(screenId).classList.add('active');
-    }
-
-    function showSettings() {
-        showScreen('settingsScreen');
-        document.getElementById('difficulty').value = settings.difficulty;
-        document.getElementById('startingCards').value = settings.startingCards;
-        document.getElementById('autoUno').checked = settings.autoUno;
-        document.getElementById('backgroundAnimation').value = settings.backgroundAnimation;
-        document.getElementById('allowStacking').checked = settings.allowStacking;
-        document.getElementById('allowSpecial07').checked = settings.allowSpecial07;
-        document.getElementById('allowJumpIn').checked = settings.allowJumpIn;
-        document.getElementById('allowPlus12').checked = settings.allowPlus12;
-        document.getElementById('drawOnePerTurn').checked = settings.drawOnePerTurn;
-    }
-
-    function saveSettings() {
-        settings.difficulty = document.getElementById('difficulty').value;
-        settings.startingCards = parseInt(document.getElementById('startingCards').value);
-        settings.autoUno = document.getElementById('autoUno').checked;
-        settings.backgroundAnimation = document.getElementById('backgroundAnimation').value;
-        settings.allowStacking = document.getElementById('allowStacking').checked;
-        settings.allowSpecial07 = document.getElementById('allowSpecial07').checked;
-        settings.allowJumpIn = document.getElementById('allowJumpIn').checked;
-        settings.allowPlus12 = document.getElementById('allowPlus12').checked;
-        settings.drawOnePerTurn = document.getElementById('drawOnePerTurn').checked;
-        localStorage.setItem('onoGameSettings', JSON.stringify(settings));
-        applyBackgroundAnimation();
-        showScreen('mainMenuScreen');
-    }
-
-    function cancelSettings() {
-        showScreen('mainMenuScreen');
-    }
-
-    function startGame() {
-        showScreen('gameScreen');
-        startNewGame();
-    }
-
-    function pauseGame() {
-        if (!gameInProgress) return;
-        document.getElementById('overlay').classList.add('active');
-        document.getElementById('pauseMenu').classList.add('active');
-    }
-
-    function resumeGame() {
-        document.getElementById('overlay').classList.remove('active');
-        document.getElementById('pauseMenu').classList.remove('active');
-    }
-
-    function returnToMenu() {
-        document.getElementById('overlay').classList.remove('active');
-        document.getElementById('pauseMenu').classList.remove('active');
-        document.getElementById('gameOver').classList.remove('active');
-        document.getElementById('unoButton').classList.remove('active', 'pulse');
-        gameInProgress = false;
-        showScreen('mainMenuScreen');
-    }
-
-    function quitGame() {
-        if (confirm('Are you sure you want to quit?')) {
-            window.location.href = '/index.html';
-        }
-    }
-
-    function createDeck() {
-        deck = [];
-        
-        COLORS.forEach(color => {
-            deck.push({ color, value: '0', type: 'number' });
-            
-            for (let i = 0; i < 2; i++) {
-                NUMBERS.slice(1).forEach(num => {
-                    deck.push({ color, value: num, type: 'number' });
-                });
-                
-                ACTIONS.forEach(action => {
-                    deck.push({ color, value: action, type: 'action' });
-                });
-            }
+    } else {
+        playerHand.splice(index,1);
+        discardPile.push(card);
+        currentColor=card.color; currentValue=card.value;
+        animateCardToCenter(el,card,()=>{
+            renderAll(); handlePlayerEffect(card);
+            isAnimating=false;
+            if(playerHand.length===0) endGame('player');
         });
-        
-        for (let i = 0; i < 4; i++) {
-            deck.push({ color: 'wild', value: 'Wild', type: 'wild' });
-            deck.push({ color: 'wild', value: 'Wild+4', type: 'wild' });
-        }
-
-        // +12 wild cards — only when enabled (2 copies, ~1.8% draw chance)
-        if (settings.allowPlus12) {
-            deck.push({ color: 'wild', value: '+12', type: 'wild' });
-            deck.push({ color: 'wild', value: '+12', type: 'wild' });
-        }
-        
-        shuffleDeck();
     }
+}
 
-    function shuffleDeck() {
-        for (let i = deck.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [deck[i], deck[j]] = [deck[j], deck[i]];
-        }
+function doJumpIn(index){
+    if(!gameInProgress||isAnimating) return;
+    isAnimating=true;
+    currentPlayer='player';
+    const card=playerHand[index];
+    playerHand.splice(index,1);
+    discardPile.push(card);
+    currentColor=card.color; currentValue=card.value;
+    const handDiv=document.getElementById('playerHand');
+    const el=handDiv.children[index];
+    showMessage('⚡ Jump-In!');
+    animateCardToCenter(el,card,()=>{
+        renderAll(); handlePlayerEffect(card); isAnimating=false;
+        if(playerHand.length===0) endGame('player');
+    });
+}
+
+function handlePlayerEffect(card){
+    const next=()=>{ setTimeout(()=>computerTurn(),1200); };
+    switch(card.value){
+        case '0':
+            if(settings.allowSpecial07){ swapHands(); showMessage('Hands swapped with CPU! 🔄'); setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn again!'); },1500); }
+            else next(); break;
+        case '7':
+            if(settings.allowSpecial07){ swapHands(); showMessage('You swapped hands with CPU! 🔄'); setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn again!'); },1500); }
+            else next(); break;
+        case 'Skip':
+            showMessage('CPU skipped!');
+            setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn again!'); },1200); break;
+        case 'Reverse':
+            direction*=-1; updateDirectionArrows();
+            showMessage('Direction reversed!');
+            setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn again!'); },1200); break;
+        case '+2':
+            if(settings.allowStacking){ stackedDrawCount+=2; updateInfoBar(); showMessage(`CPU must draw ${stackedDrawCount} or stack!`); renderTableSeats(); setTimeout(()=>computerTurn(),1400); }
+            else { animateDrawPenaltyLocal('computer',2,'#ff416c',()=>{ for(let i=0;i<2;i++) drawForPlayer('computer'); renderAll(); showMessage('CPU draws 2 and is skipped!'); setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn again!'); },1500); }); }
+            break;
+        case '+12':
+            animateDrawPenaltyLocal('computer',12,'#ff8c00',()=>{ for(let i=0;i<12;i++) drawForPlayer('computer'); renderAll(); showMessage('💀 CPU draws 12 cards!'); setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn again!'); },1500); });
+            break;
+        default: next();
     }
+}
 
-    function dealCards() {
-        playerHand = [];
-        computerHand = [];
-        discardPile = [];
-        
-        const cardsToDeal = settings.startingCards;
-        
-        for (let i = 0; i < cardsToDeal; i++) {
-            if (deck.length > 0) playerHand.push(deck.pop());
-            if (deck.length > 0) computerHand.push(deck.pop());
+function swapHands(){ const t=playerHand; playerHand=computerHand; computerHand=t; playerCalledUno=false; computerCalledUno=false; }
+
+function showColorPicker(){
+    document.getElementById('overlay').classList.add('active');
+    document.getElementById('colorPicker').classList.add('active');
+}
+function chooseColor(color){
+    document.getElementById('overlay').classList.remove('active');
+    document.getElementById('colorPicker').classList.remove('active');
+    const {card,index}=pendingWildCard; pendingWildCard=null;
+    discardPile.push(card);
+    currentColor=color; currentValue=card.value;
+    showMessage(`You chose ${color}!`);
+    renderAll();
+    setTimeout(()=>{
+        if(card.value==='Wild+4'){
+            if(settings.allowStacking){ stackedDrawCount+=4; updateInfoBar(); showMessage(`CPU must draw ${stackedDrawCount} or stack!`); setTimeout(()=>computerTurn(),1400); }
+            else { animateDrawPenaltyLocal('computer',4,'#ff416c',()=>{ for(let i=0;i<4;i++) drawForPlayer('computer'); renderAll(); showMessage('CPU draws 4 and is skipped!'); setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn again!'); },1500); }); }
+        } else {
+            setTimeout(()=>computerTurn(),1000);
         }
-        
-        let startCard;
+        isAnimating=false;
+        if(playerHand.length===0) endGame('player');
+    },800);
+}
+
+// ── DRAW ─────────────────────────────────────────────────────
+function drawCard(){
+    if(currentPlayer!=='player'||!gameInProgress||isAnimating) return;
+    if(settings.allowStacking&&stackedDrawCount>0){
+        const n=stackedDrawCount; stackedDrawCount=0;
+        isAnimating=true;
+        triggerPenaltyFlash();
+        animateMultiCards('player',n,()=>{ for(let i=0;i<n;i++) drawForPlayer('player'); renderAll(); showMessage(`You drew ${n} cards!`); isAnimating=false; setTimeout(()=>computerTurn(),1200); });
+        return;
+    }
+    if(settings.drawOnePerTurn){
+        isAnimating=true;
+        if(!deck.length) reshuffle();
+        drawForPlayer('player');
+        animateCardToHand('player',()=>{ renderAll(); showMessage('You drew a card!'); isAnimating=false; setTimeout(()=>computerTurn(),1000); });
+    } else {
+        isAnimating=true;
+        let drawn=0;
         do {
-            if (deck.length === 0) {
-                createDeck();
-            }
-            startCard = deck.pop();
-        } while (startCard.type !== 'number');
-        
-        discardPile.push(startCard);
-        currentColor = startCard.color;
-        currentValue = startCard.value;
-    }
-
-    function renderCard(card, clickHandler = null, isDisabled = false) {
-        const cardDiv = document.createElement('div');
-        const colorClass = card.value === '+12' ? 'plus12' : card.color;
-        cardDiv.className = `card ${colorClass}`;
-        if (isDisabled) cardDiv.classList.add('disabled');
-        
-        const cardInner = document.createElement('div');
-        cardInner.className = 'card-inner';
-        cardInner.textContent = card.value;
-        cardDiv.appendChild(cardInner);
-        
-        if (clickHandler && !isDisabled) {
-            cardDiv.onclick = clickHandler;
-        }
-        
-        return cardDiv;
-    }
-
-    function renderPlayerHand() {
-        const handDiv = document.getElementById('playerHand');
-        handDiv.innerHTML = '';
-        
-        playerHand.forEach((card, index) => {
-            const isPlayable = canPlayCard(card);
-            const isJumpIn = settings.allowJumpIn && card.type === 'number' && 
-                             card.color === currentColor && card.value === currentValue;
-            
-            // Card is clickable if: (1) it's player's turn and playable, OR (2) Jump-In is enabled and it's an exact match
-            const isClickable = (currentPlayer === 'player' && isPlayable) || isJumpIn;
-            
-            const cardDiv = renderCard(card, () => playCard(index), !isClickable);
-            
-            // Add visual indicator for Jump-In cards
-            if (isJumpIn && currentPlayer !== 'player') {
-                cardDiv.style.animation = 'cardPulse 1s ease-in-out infinite';
-                cardDiv.style.border = '4px solid gold';
-            }
-            
-            handDiv.appendChild(cardDiv);
+            if(!deck.length) reshuffle(); if(!deck.length) break;
+            drawForPlayer('player'); drawn++;
+            const top=playerHand[playerHand.length-1];
+            if(top.type==='wild'||top.color===currentColor||top.value===currentValue) break;
+        } while(drawn<MAX_DRAW);
+        animateMultiCards('player',drawn,()=>{
+            const msg=drawn===1?'You drew a card!':`You drew ${drawn} cards!`;
+            showMessage(msg); playerCalledUno=false; renderAll(); isAnimating=false;
+            setTimeout(()=>computerTurn(),1000);
         });
-
-        // Handle O,No button visibility — show only at exactly 1 card and not yet called
-        const unoButton = document.getElementById('unoButton');
-        if (playerHand.length === 1 && !playerCalledUno && !settings.autoUno && gameInProgress) {
-            unoButton.classList.add('active');
-        } else {
-            unoButton.classList.remove('active');
-        }
-
-        // Auto-call O,No if setting is enabled
-        if (settings.autoUno && playerHand.length === 1) {
-            playerCalledUno = true;
-        }
-
-        // Auto-draw stacked cards if it's player's turn and they have no stackable card
-        if (currentPlayer === 'player' && settings.allowStacking && stackedDrawCount > 0 && !isAnimating && gameInProgress) {
-            const hasStackCard = playerHand.some(card => {
-                if (currentValue === '+2'     && card.value === '+2')     return true;
-                if (currentValue === 'Wild+4' && card.value === 'Wild+4') return true;
-                return false;
-            });
-            if (!hasStackCard) {
-                setTimeout(() => drawCard(), 600);
-            }
-        }
     }
+}
 
-    function renderComputerHand() {
-        const computerCardsDiv = document.getElementById('computerCards');
-        computerCardsDiv.innerHTML = '';
-        
-        const cardsToShow = Math.min(computerHand.length, 15);
-        for (let i = 0; i < cardsToShow; i++) {
-            const cardBack = document.createElement('div');
-            cardBack.className = 'card card-back';
-            cardBack.innerHTML = '<div style="color: white; font-size: 2em;">🎴</div>';
-            computerCardsDiv.appendChild(cardBack);
-        }
-        
-        document.getElementById('computerCardCount').textContent = computerHand.length;
-    }
+function drawForPlayer(who){
+    if(!deck.length) reshuffle();
+    if(!deck.length) return;
+    const card=deck.pop();
+    if(who==='player') playerHand.push(card);
+    else computerHand.push(card);
+}
 
-    function renderDiscardPile() {
-        const discardDiv = document.getElementById('discardPile');
-        discardDiv.innerHTML = '';
-        
-        if (discardPile.length > 0) {
-            const topCard = discardPile[discardPile.length - 1];
-            const cardDiv = renderCard(topCard);
-            
-            // If it's a wild card and a color has been chosen, update the border and add indicator
-            if (topCard.type === 'wild' && currentColor) {
-                cardDiv.style.borderColor = getColorHex(currentColor);
-                cardDiv.style.borderWidth = '6px';
-                
-                // Add color indicator circle
-                const colorIndicator = document.createElement('div');
-                colorIndicator.className = 'wild-color-indicator';
-                colorIndicator.style.backgroundColor = getColorHex(currentColor);
-                cardDiv.appendChild(colorIndicator);
-            }
-            
-            discardDiv.appendChild(cardDiv);
-        }
-    }
-    
-    function getColorHex(color) {
-        const colorMap = {
-            'red': '#e74c3c',
-            'blue': '#3498db',
-            'green': '#2ecc71',
-            'yellow': '#f1c40f'
-        };
-        return colorMap[color] || '#ffffff';
-    }
-
-    function updateGameInfo() {
-        document.getElementById('currentPlayer').textContent = currentPlayer === 'player' ? 'You' : 'Computer';
-        document.getElementById('currentColor').textContent = currentColor || '-';
-        document.getElementById('deckCount').textContent = deck.length;
-
-        // Direction indicator
-        const dirEl = document.getElementById('directionIndicator');
-        if (dirEl) dirEl.textContent = direction === 1 ? '▶ Clockwise' : '◀ Counter-Clockwise';
-
-        // O,No ribbon on computer
-        const ribbon = document.getElementById('computerOnoRibbon');
-        if (ribbon) {
-            if (computerCalledUno && computerHand.length === 1) {
-                ribbon.classList.add('visible');
-            } else {
-                ribbon.classList.remove('visible');
-            }
-        }
-
-        // Update stack indicator
-        const stackIndicator = document.getElementById('stackIndicator');
-        if (stackedDrawCount > 0 && stackStartedBy) {
-            const cardType = currentValue === '+2' ? '+2' : '+4';
-            stackIndicator.innerHTML = `
-                <div style="font-size: 1.2em; margin-bottom: 2px;">${cardType} Stack: Draw ${stackedDrawCount}</div>
-                <div style="font-size: 0.85em; opacity: 0.9;">Started by: ${stackStartedBy}</div>
-            `;
-            stackIndicator.classList.add('active');
-        } else {
-            stackIndicator.classList.remove('active');
-        }
-        
-        // Show/hide catch button if computer has 1 card and hasn't called O,No
-        const catchButton = document.getElementById('catchButton');
-        if (computerHand.length === 1 && !computerCalledUno && gameInProgress) {
-            catchButton.style.display = 'inline-block';
-        } else {
-            catchButton.style.display = 'none';
-        }
-    }
-
-    function canPlayCard(card) {
-        if (card.type === 'wild') return true;
-        
-        // Allow stacking +2 on +2 or +4 on +4 if enabled
-        if (settings.allowStacking && stackedDrawCount > 0) {
-            if (currentValue === '+2' && card.value === '+2') return true;
-            if (currentValue === 'Wild+4' && card.value === 'Wild+4') return true;
-            return false; // Can only stack or draw when there's a pending draw
-        }
-        
-        return card.color === currentColor || card.value === currentValue;
-    }
-
-    // Animation helper function: Animate a card from source element to target element
-    function animateCardToCenter(cardElement, card, onComplete) {
-        if (!cardElement) {
-            onComplete();
+// ── COMPUTER ─────────────────────────────────────────────────
+function computerTurn(){
+    if(!gameInProgress) return;
+    currentPlayer='computer'; renderAll(); showMessage("CPU's turn...");
+    // Catch check
+    if(playerHand.length===1&&!playerCalledUno){
+        const pct={easy:0.3,medium:0.5,hard:0.8}[settings.difficulty]||0.5;
+        if(Math.random()<pct){
+            showMessage('CPU caught you! Draw 2 penalty cards! 😱');
+            triggerPenaltyFlash();
+            animateMultiCards('player',2,()=>{ for(let i=0;i<2;i++) drawForPlayer('player'); playerCalledUno=false; renderAll(); setTimeout(()=>doCPUPlay(),1500); });
             return;
         }
-        
-        // Get positions
-        const startRect = cardElement.getBoundingClientRect();
-        const discardPileElement = document.getElementById('discardPile');
-        const endRect = discardPileElement.getBoundingClientRect();
-        
-        // Clone the card for animation
-        const clone = cardElement.cloneNode(true);
-        clone.className = `card ${card.color} card-fly-to-center`;
-        clone.style.left = startRect.left + 'px';
-        clone.style.top = startRect.top + 'px';
-        clone.style.width = startRect.width + 'px';
-        clone.style.height = startRect.height + 'px';
-        clone.style.transform = 'scale(1) rotate(5deg)';
-        clone.style.opacity = '0.9';
-        
-        document.body.appendChild(clone);
-        
-        // Calculate arc motion - card goes up first, then down
-        const midY = Math.min(startRect.top, endRect.top) - 50;
-        
-        // Trigger animation with arc motion
-        requestAnimationFrame(() => {
-            // First animate to arc peak
-            setTimeout(() => {
-                clone.style.left = (startRect.left + endRect.left) / 2 + 'px';
-                clone.style.top = midY + 'px';
-                clone.style.transform = 'scale(1.05) rotate(-3deg)';
-            }, 50);
-            
-            // Then animate to final position
-            setTimeout(() => {
-                clone.style.left = endRect.left + 'px';
-                clone.style.top = endRect.top + 'px';
-                clone.style.transform = 'scale(1.1) rotate(0deg)';
-                clone.style.opacity = '1';
-            }, 300);
-        });
-        
-        // Add landing animation to discard pile
-        setTimeout(() => {
-            discardPileElement.classList.add('discard-pile-pulse');
-            setTimeout(() => {
-                discardPileElement.classList.remove('discard-pile-pulse');
-            }, 300);
-        }, 600);
-        
-        // Clean up after animation
-        setTimeout(() => {
-            clone.remove();
-            onComplete();
-        }, 600);
     }
+    setTimeout(()=>doCPUPlay(),1000);
+}
 
-    // Animation helper function: Animate a card-back from draw pile to hand
-    function animateCardToHand(targetArea, onComplete) {
-        const drawPile = document.getElementById('drawPile');
-        const startRect = drawPile.getBoundingClientRect();
-        
-        // Determine end position based on target area
-        let endRect;
-        if (targetArea === 'player') {
-            const playerHand = document.getElementById('playerHand');
-            endRect = playerHand.getBoundingClientRect();
+function doCPUPlay(){
+    if(!gameInProgress) return;
+    if(computerHand.length===2){
+        const playable=computerHand.filter(c=>canPlay(c));
+        if(playable.length){ computerCalledUno=true; showMessage('CPU says O,No!'); setTimeout(()=>doCPUPlayContinue(),800); return; }
+    }
+    if(computerHand.length!==1) computerCalledUno=false;
+    doCPUPlayContinue();
+}
+
+function doCPUPlayContinue(){
+    if(!gameInProgress) return;
+    let playable=computerHand.filter(c=>canPlay(c));
+    if(settings.difficulty==='easy') playable=playable.length?[playable[Math.floor(Math.random()*playable.length)]]:[];
+    else if(settings.difficulty==='hard') playable.sort((a,b)=>cardScore(b)-cardScore(a));
+    else playable.sort((a,b)=>cardScore(b)-cardScore(a));
+
+    if(playable.length){
+        const card=playable[0];
+        const idx=computerHand.indexOf(card);
+        computerHand.splice(idx,1);
+        discardPile.push(card);
+        if(card.type==='wild'){
+            const best=bestColorForHand(computerHand);
+            currentColor=best; currentValue=card.value;
+            showMessage(`CPU played ${card.value} → chose ${best}!`);
+            renderAll();
+            if(computerHand.length===0){ endGame('computer'); return; }
+            setTimeout(()=>handleCPUEffect(card),1200);
         } else {
-            const computerCards = document.getElementById('computerCards');
-            endRect = computerCards.getBoundingClientRect();
+            currentColor=card.color; currentValue=card.value;
+            showMessage(`CPU played ${card.value} (${card.color})!`);
+            renderAll();
+            if(computerHand.length===0){ endGame('computer'); return; }
+            setTimeout(()=>handleCPUEffect(card),1200);
         }
-        
-        // Create card-back element
-        const cardBack = document.createElement('div');
-        cardBack.className = 'card card-back card-fly-to-hand';
-        cardBack.innerHTML = '<div style="color: white; font-size: 3em;">🎴</div>';
-        cardBack.style.left = startRect.left + 'px';
-        cardBack.style.top = startRect.top + 'px';
-        cardBack.style.width = startRect.width + 'px';
-        cardBack.style.height = startRect.height + 'px';
-        cardBack.style.transform = 'scale(0.8) rotateY(0deg) rotate(-5deg)';
-        cardBack.style.opacity = '0.5';
-        
-        document.body.appendChild(cardBack);
-        
-        // Calculate arc motion
-        const midY = Math.min(startRect.top, endRect.top) - 40;
-        
-        // Trigger animation with arc and flip
-        requestAnimationFrame(() => {
-            // Animate to arc peak with rotation
-            setTimeout(() => {
-                cardBack.style.left = (startRect.left + endRect.left) / 2 + 'px';
-                cardBack.style.top = midY + 'px';
-                cardBack.style.transform = 'scale(0.9) rotateY(90deg) rotate(0deg)';
-                cardBack.style.opacity = '0.7';
-            }, 50);
-            
-            // Animate to final position with flip completion
-            setTimeout(() => {
-                cardBack.style.left = endRect.left + 'px';
-                cardBack.style.top = endRect.top + 'px';
-                cardBack.style.transform = 'scale(1) rotateY(180deg) rotate(5deg)';
-                cardBack.style.opacity = '1';
-            }, 300);
-            
-            // Final settle
-            setTimeout(() => {
-                cardBack.style.transform = 'scale(1) rotateY(180deg) rotate(0deg)';
-            }, 500);
-        });
-        
-        // Clean up after animation
-        setTimeout(() => {
-            cardBack.remove();
-            onComplete();
-        }, 600);
-    }
-
-    // Animation helper function: Animate multiple cards with stagger
-    function animateMultipleCardsToHand(targetArea, count, onComplete) {
-        let completed = 0;
-        
-        function animateNext(index) {
-            if (index >= count) {
-                return;
-            }
-            
-            animateCardToHand(targetArea, () => {
-                completed++;
-                if (completed === count) {
-                    onComplete();
-                }
-            });
-            
-            // Reduced stagger from 250ms to 200ms
-            if (index + 1 < count) {
-                setTimeout(() => animateNext(index + 1), 200);
-            }
-        }
-        
-        animateNext(0);
-    }
-
-    function playCard(index) {
-        if (!gameInProgress) return;
-        if (isAnimating) return; // Prevent rapid clicking during animation
-        
-        const card = playerHand[index];
-        const isJumpIn = settings.allowJumpIn && currentPlayer !== 'player' && 
-                         card.type === 'number' && card.color === currentColor && 
-                         card.value === currentValue;
-        
-        // Check if it's a valid play
-        if (currentPlayer !== 'player' && !isJumpIn) return;
-        
-        if (currentPlayer === 'player' && !canPlayCard(card)) {
-            showMessage("Can't play that card!");
-            return;
-        }
-        
-        // Handle Jump-In
-        if (isJumpIn) {
-            showMessage('Jump-In! You interrupted the computer!');
-            currentPlayer = 'player'; // Take control of the turn
-        }
-        
-        // Set animation lock before starting animation
-        isAnimating = true;
-        
-        // Get the card element before removing it from hand
-        const playerHandDiv = document.getElementById('playerHand');
-        const cardElement = playerHandDiv.children[index];
-        
-        // Animate card to center, then proceed with game logic
-        animateCardToCenter(cardElement, card, () => {
-            playerHand.splice(index, 1);
-            discardPile.push(card);
-            
-            if (card.type === 'wild') {
-                pendingWildCard = card;
-                renderPlayerHand();
-                renderDiscardPile();
-                updateGameInfo();
-                showColorPicker();
-                // Don't release lock yet - will be released in chooseColor()
-            } else {
-                currentColor = card.color;
-                currentValue = card.value;
-                handleCardEffect(card);
-                renderPlayerHand();
-                renderDiscardPile();
-                updateGameInfo();
-                // Release animation lock AFTER rendering (so auto-draw guard works correctly)
-                // Note: stacking +2/+4 paths return early above and handle isAnimating themselves
-                isAnimating = false;
-            }
-            
-            if (playerHand.length === 0) {
-                endGame('player');
-            }
-        });
-    }
-
-    function handleCardEffect(card) {
-        switch(card.value) {
-            case '0':
-                if (settings.allowSpecial07) {
-                    // 0: swap with computer (next player in direction — in 2-player always the computer)
-                    showMessage('You played 0! Swapping hands with computer...');
-                    setTimeout(() => {
-                        const temp = playerHand;
-                        playerHand = computerHand;
-                        computerHand = temp;
-                        // Reset O,No state — whoever now has 1 card must call it themselves
-                        playerCalledUno = false;
-                        computerCalledUno = false;
-                        if (computerHand.length === 1) showMessage('Hands swapped! Computer now has 1 card!');
-                        else if (playerHand.length === 1) showMessage('Hands swapped! You now have 1 card — call O,No!');
-                        else showMessage('Hands swapped!');
-                        renderPlayerHand();
-                        renderComputerHand();
-                        updateGameInfo();
-                        setTimeout(() => {
-                            currentPlayer = 'player';
-                            updateGameInfo();
-                            renderPlayerHand();
-                            showMessage("Your turn again!");
-                        }, 1500);
-                    }, 1000);
-                } else {
-                    switchTurn();
-                }
-                break;
-                
-            case '7':
-                if (settings.allowSpecial07) {
-                    // 7: choose to swap — in 2-player always computer
-                    showMessage('You played 7! Swapping hands with computer...');
-                    setTimeout(() => {
-                        const temp = playerHand;
-                        playerHand = computerHand;
-                        computerHand = temp;
-                        // Reset O,No state on both sides
-                        playerCalledUno = false;
-                        computerCalledUno = false;
-                        if (computerHand.length === 1) showMessage('Hands swapped! Computer now has 1 card!');
-                        else if (playerHand.length === 1) showMessage('Hands swapped! You now have 1 card — call O,No!');
-                        else showMessage('Hands swapped!');
-                        renderPlayerHand();
-                        renderComputerHand();
-                        updateGameInfo();
-                        setTimeout(() => {
-                            currentPlayer = 'player';
-                            updateGameInfo();
-                            renderPlayerHand();
-                            showMessage("Your turn again!");
-                        }, 1500);
-                    }, 1000);
-                } else {
-                    switchTurn();
-                }
-                break;
-                
-            case 'Skip':
-                showMessage('Computer skipped!');
-                setTimeout(() => {
-                    currentPlayer = 'player';
-                    updateGameInfo();
-                    renderPlayerHand();
-                    showMessage("Your turn again!");
-                }, 1000);
-                break;
-                
-            case 'Reverse':
-                direction *= -1;
-                showMessage('Direction reversed!');
-                setTimeout(() => {
-                    currentPlayer = 'player';
-                    updateGameInfo();
-                    renderPlayerHand();
-                    showMessage("Your turn again!");
-                }, 1000);
-                break;
-                
-            case '+2':
-                if (settings.allowStacking) {
-                    if (stackedDrawCount === 0) {
-                        stackStartedBy = 'You';
-                    }
-                    stackedDrawCount += 2;
-                    showMessage(`Computer must draw ${stackedDrawCount} or stack another +2!`);
-                    renderComputerHand();
-                    setTimeout(() => { isAnimating = false; switchTurn(); }, 1500);
-                    return; // keep isAnimating=true until switchTurn
-                } else {
-                    drawCardsForPlayer('computer', 2, () => {
-                        showMessage('Computer draws 2 cards and is skipped!');
-                        setTimeout(() => {
-                            currentPlayer = 'player';
-                            updateGameInfo();
-                            renderPlayerHand();
-                            showMessage("Your turn again!");
-                        }, 1500);
-                    });
-                }
-                break;
-                
-            case '+12':
-                // +12 wild — force computer to draw 12, no stacking
-                drawCardsForPlayer('computer', 12, () => {
-                    showMessage('Computer draws 12 cards! 💀');
-                    setTimeout(() => {
-                        currentPlayer = 'player';
-                        updateGameInfo();
-                        renderPlayerHand();
-                        showMessage('Your turn again!');
-                    }, 1500);
-                });
-                break;
-
-            default:
-                // Regular number card or Wild cards
-                switchTurn();
-        }
-    }
-
-    function drawCardsForPlayer(player, count, callback) {
-        const targetArea = player === 'computer' ? 'computer' : 'player';
-        
-        // Animate cards being drawn
-        animateMultipleCardsToHand(targetArea, count, () => {
-            for (let i = 0; i < count; i++) {
-                if (deck.length === 0) {
-                    reshuffleDeck();
-                }
-                if (deck.length > 0) {
-                    if (player === 'computer') {
-                        computerHand.push(deck.pop());
-                    } else {
-                        playerHand.push(deck.pop());
-                    }
-                }
-            }
-            
-            if (player === 'computer') {
-                renderComputerHand();
-            } else {
-                renderPlayerHand();
-            }
-            updateGameInfo();
-            
-            if (callback) callback();
-        });
-    }
-
-    function reshuffleDeck() {
-        if (discardPile.length <= 1) return;
-        
-        const topCard = discardPile.pop();
-        deck = [...discardPile];
-        discardPile = [topCard];
-        shuffleDeck();
-    }
-
-    function checkTurnEnd() {
-        if (!gameInProgress) return;
-        // No auto-penalty here — the computer catches via computerPlay, and player catches via Catch! button
-        // Just reset calledUno when hand is not 1
-        if (playerHand.length !== 1) playerCalledUno = false;
-        switchTurn();
-    }
-
-    function switchTurn() {
-        if (!gameInProgress) return;
-        
-        currentPlayer = currentPlayer === 'player' ? 'computer' : 'player';
-        updateGameInfo();
-        
-        if (currentPlayer === 'computer') {
-            showMessage("Computer's turn...");
-            setTimeout(computerPlay, 1500);
-        } else {
-            showMessage("Your turn!");
-            // Re-render player hand to enable cards
-            renderPlayerHand();
-        }
-    }
-
-    function computerPlay() {
-        if (!gameInProgress) return;
-        
-        // Computer has a chance to catch player if they have 1 card and didn't call O,no
-        if (playerHand.length === 1 && !playerCalledUno) {
-            // Random chance based on difficulty
-            let catchChance = MEDIUM_CATCH_PROBABILITY;
-            if (settings.difficulty === 'easy') {
-                catchChance = EASY_CATCH_PROBABILITY;
-            } else if (settings.difficulty === 'hard') {
-                catchChance = HARD_CATCH_PROBABILITY;
-            }
-            
-            if (Math.random() < catchChance) {
-                showMessage('Computer caught you! You draw 2 penalty cards!');
-                drawCardsForPlayer('player', 2, () => {
-                    playerCalledUno = false;
-                    updateGameInfo();
-                    // Computer continues their turn
-                    setTimeout(() => continueComputerPlay(), PENALTY_DISPLAY_DELAY_MS);
-                });
-                return;
-            }
-        }
-        
-        continueComputerPlay();
-    }
-    
-    function continueComputerPlay() {
-        if (!gameInProgress) return;
-        
-        let playableCards = computerHand.filter(card => canPlayCard(card));
-        
-        if (settings.difficulty === 'easy') {
-            if (playableCards.length > 0) {
-                playableCards = [playableCards[Math.floor(Math.random() * playableCards.length)]];
-            }
-        } else if (settings.difficulty === 'hard') {
-            playableCards.sort((a, b) => {
-                const aScore = (a.type === 'wild' ? 3 : 0) + (a.value === 'Wild+4' ? 2 : 0) + (a.type === 'action' ? 1 : 0);
-                const bScore = (b.type === 'wild' ? 3 : 0) + (b.value === 'Wild+4' ? 2 : 0) + (b.type === 'action' ? 1 : 0);
-                return bScore - aScore;
+    } else {
+        // CPU must draw
+        if(settings.allowStacking&&stackedDrawCount>0){
+            const n=stackedDrawCount; stackedDrawCount=0;
+            animateDrawPenaltyLocal('computer',n,'#ff416c',()=>{
+                for(let i=0;i<n;i++) drawForPlayer('computer'); renderAll();
+                showMessage(`CPU drew ${n} stacked cards!`);
+                setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn!'); },1500);
             });
         } else {
-            playableCards.sort((a, b) => {
-                if (a.type === 'wild') return -1;
-                if (b.type === 'wild') return 1;
-                if (a.type === 'action') return -1;
-                if (b.type === 'action') return 1;
-                return 0;
-            });
+            let drawn=0;
+            do {
+                if(!deck.length) reshuffle(); if(!deck.length) break;
+                drawForPlayer('computer'); drawn++;
+                const top=computerHand[computerHand.length-1];
+                if(top.type==='wild'||top.color===currentColor||top.value===currentValue) break;
+            } while(drawn<MAX_DRAW);
+            showMessage(`CPU drew ${drawn} card${drawn>1?'s':''}!`);
+            renderAll();
+            setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn!'); },1500);
         }
-        
-        // Computer calls O,No when it will have 1 card after playing
-        // (i.e. currently has 2 cards and will play one)
-        if (computerHand.length === 2 && playableCards.length > 0) {
-            computerCalledUno = true;
-            showMessage('Computer says O,No!');
-            setTimeout(() => computerPlayContinue(playableCards), 1000);
+    }
+}
+
+function handleCPUEffect(card){
+    if(!gameInProgress) return;
+    switch(card.value){
+        case '0':
+            if(settings.allowSpecial07){ swapHands(); showMessage('CPU played 0 — hands swapped! 🔄'); renderAll(); setTimeout(()=>doCPUPlay(),1200); }
+            else playerTurn(); break;
+        case '7':
+            if(settings.allowSpecial07){ swapHands(); showMessage('CPU played 7 — hands swapped! 🔄'); renderAll(); setTimeout(()=>doCPUPlay(),1200); }
+            else playerTurn(); break;
+        case 'Skip':
+            showMessage('You are skipped!');
+            setTimeout(()=>{ currentPlayer='computer'; renderAll(); setTimeout(()=>doCPUPlay(),800); },1000); break;
+        case 'Reverse':
+            direction*=-1; updateDirectionArrows();
+            showMessage('Direction reversed! CPU goes again.');
+            setTimeout(()=>{ currentPlayer='computer'; renderAll(); setTimeout(()=>doCPUPlay(),800); },1000); break;
+        case '+2':
+            if(settings.allowStacking){ stackedDrawCount+=2; updateInfoBar(); showMessage(`You must draw ${stackedDrawCount} or stack!`); renderAll(); playerTurn(); }
+            else { triggerPenaltyFlash(); animateDrawPenaltyLocal('player',2,'#ff416c',()=>{ for(let i=0;i<2;i++) drawForPlayer('player'); renderAll(); showMessage('You draw 2 and are skipped!'); setTimeout(()=>{ currentPlayer='computer'; renderAll(); setTimeout(()=>doCPUPlay(),800); },1500); }); }
+            break;
+        case 'Wild+4':
+            if(settings.allowStacking){ stackedDrawCount+=4; updateInfoBar(); showMessage(`You must draw ${stackedDrawCount} or stack!`); renderAll(); playerTurn(); }
+            else { triggerPenaltyFlash(); animateDrawPenaltyLocal('player',4,'#ff416c',()=>{ for(let i=0;i<4;i++) drawForPlayer('player'); renderAll(); showMessage('You draw 4 and are skipped!'); setTimeout(()=>{ currentPlayer='computer'; renderAll(); setTimeout(()=>doCPUPlay(),800); },1500); }); }
+            break;
+        case '+12':
+            triggerPenaltyFlash(); animateDrawPenaltyLocal('player',12,'#ff8c00',()=>{ for(let i=0;i<12;i++) drawForPlayer('player'); renderAll(); showMessage('💀 CPU played +12! You draw 12 cards!'); setTimeout(()=>{ currentPlayer='computer'; renderAll(); setTimeout(()=>doCPUPlay(),800); },1500); });
+            break;
+        default: playerTurn();
+    }
+}
+
+function playerTurn(){
+    currentPlayer='player'; renderAll(); showMessage('Your turn!');
+}
+
+function cardScore(c){ return c.type==='wild'?3:c.type==='action'?1:0; }
+function bestColorForHand(hand){
+    const cnt={red:0,blue:0,green:0,yellow:0};
+    hand.forEach(c=>{ if(c.color!=='wild') cnt[c.color]++; });
+    return Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0][0]||'red';
+}
+function colorHex(c){ return {red:'#e74c3c',blue:'#3498db',green:'#2ecc71',yellow:'#f1c40f'}[c]||'#fff'; }
+
+// ── O,NO / CATCH ─────────────────────────────────────────────
+function callUno(){
+    if(playerHand.length===1&&gameInProgress){ playerCalledUno=true; showMessage('🔔 O,No!'); renderAll(); }
+}
+function catchComputer(){
+    if(computerHand.length===1&&!computerCalledUno&&gameInProgress){
+        showMessage('You caught CPU! It draws 2 penalty cards!');
+        animateDrawPenaltyLocal('computer',2,'#ff416c',()=>{ for(let i=0;i<2;i++) drawForPlayer('computer'); computerCalledUno=false; renderAll(); });
+    }
+}
+
+// ── GAME OVER / SCOREBOARD ───────────────────────────────────
+function endGame(winner){
+    gameInProgress=false;
+    document.getElementById('unoButton').classList.remove('active');
+    setTimeout(()=>showScoreboard(winner),600);
+}
+
+function showScoreboard(winner){
+    const isPlayerWin=winner==='player';
+    document.getElementById('scoreboardTitle').textContent=isPlayerWin?'🏆 You Won!':'💻 CPU Wins!';
+    document.getElementById('scoreboardSubtitle').textContent=isPlayerWin?'Congratulations! You beat the CPU!':'Better luck next time!';
+
+    const ranks=[{name:'You',hand:isPlayerWin?[]:playerHand,id:'player'},{name:'CPU',hand:isPlayerWin?computerHand:[],id:'computer'}];
+    if(!isPlayerWin) ranks.reverse();
+
+    const rankEmoji=['🥇','🥈'];
+    const rows=document.getElementById('scoreboardRows');
+    rows.innerHTML='';
+    ranks.forEach((p,i)=>{
+        const pts=p.hand.reduce((sum,card)=>{
+            if(card.type==='wild') return sum-1;
+            if(card.type==='action') return sum-2;
+            return sum-3;
+        },0);
+        const ptsClass=pts===0?'zero':'negative';
+        const rankClass=i===0?' rank-1':i===1?' rank-2':'';
+        let cardSummary='';
+        if(p.hand.length>0){
+            const n=p.hand.filter(c=>c.type==='number').length;
+            const a=p.hand.filter(c=>c.type==='action').length;
+            const w=p.hand.filter(c=>c.type==='wild').length;
+            const parts=[n&&`${n} number`,a&&`${a} action`,w&&`${w} wild`].filter(Boolean);
+            cardSummary=`<div class="score-cards">${p.hand.length} cards left: ${parts.join(', ')}</div>`;
         } else {
-            if (computerHand.length !== 1) computerCalledUno = false;
-            computerPlayContinue(playableCards);
+            cardSummary=`<div class="score-cards" style="color:#2ecc71;">🎉 Played all cards!</div>`;
         }
-    }
+        const row=document.createElement('div');
+        row.className=`score-row${rankClass}`;
+        row.innerHTML=`<div class="score-rank">${rankEmoji[i]||`#${i+1}`}</div><div style="flex:1;"><div class="score-name">${p.name}</div>${cardSummary}</div><div class="score-points ${ptsClass}">${pts===0?'+0':pts}</div>`;
+        rows.appendChild(row);
+    });
+    const legend=document.createElement('div');
+    legend.style.cssText='font-size:0.8em;color:var(--text-muted);margin-top:6px;line-height:1.7;';
+    legend.innerHTML='📋 Scoring: Number <strong>−3</strong> &nbsp;|&nbsp; Action <strong>−2</strong> &nbsp;|&nbsp; Wild <strong>−1</strong>';
+    rows.appendChild(legend);
+    showScreen('scoreboardScreen');
+}
 
-    function computerPlayContinue(playableCards) {
-        if (!gameInProgress) return;
-        
-        if (playableCards.length > 0) {
-            const cardToPlay = playableCards[0];
-            const index = computerHand.indexOf(cardToPlay);
-            
-            // Get computer cards area for animation start position
-            const computerCards = document.getElementById('computerCards');
-            const computerRect = computerCards.getBoundingClientRect();
-            const discardPileElement = document.getElementById('discardPile');
-            const discardRect = discardPileElement.getBoundingClientRect();
-            
-            // Create a card element for animation
-            const animCard = renderCard(cardToPlay);
-            animCard.className = `card ${cardToPlay.color} card-fly-to-center`;
-            animCard.style.left = computerRect.left + 'px';
-            animCard.style.top = computerRect.top + 'px';
-            animCard.style.width = '100px';
-            animCard.style.height = '150px';
-            animCard.style.transform = 'scale(1) rotate(5deg)';
-            animCard.style.opacity = '0.9';
-            
-            document.body.appendChild(animCard);
-            
-            // Calculate arc motion
-            const midY = Math.min(computerRect.top, discardRect.top) - 50;
-            
-            // Trigger animation with arc motion
-            requestAnimationFrame(() => {
-                // First animate to arc peak
-                setTimeout(() => {
-                    animCard.style.left = (computerRect.left + discardRect.left) / 2 + 'px';
-                    animCard.style.top = midY + 'px';
-                    animCard.style.transform = 'scale(1.05) rotate(-3deg)';
-                }, 50);
-                
-                // Then animate to final position
-                setTimeout(() => {
-                    animCard.style.left = discardRect.left + 'px';
-                    animCard.style.top = discardRect.top + 'px';
-                    animCard.style.transform = 'scale(1.1) rotate(0deg)';
-                    animCard.style.opacity = '1';
-                }, 100);
+// ── PAUSE ────────────────────────────────────────────────────
+function pauseGame(){
+    if(!gameInProgress) return;
+    document.getElementById('overlay').classList.add('active');
+    document.getElementById('pauseMenu').classList.add('active');
+}
+function resumeGame(){
+    document.getElementById('overlay').classList.remove('active');
+    document.getElementById('pauseMenu').classList.remove('active');
+}
+
+// ── ANIMATIONS ───────────────────────────────────────────────
+function animateCardToCenter(el,card,cb){
+    if(!el){ cb(); return; }
+    const s=el.getBoundingClientRect();
+    const dp=document.getElementById('discardPile');
+    const e=dp.getBoundingClientRect();
+    const clone=document.createElement('div');
+    clone.className=`card ${card.value==='+12'?'plus12':card.color} card-fly-to-center`;
+    clone.innerHTML=`<div class="card-inner">${card.value}</div>`;
+    clone.style.left=s.left+'px'; clone.style.top=s.top+'px';
+    clone.style.width=s.width+'px'; clone.style.height=s.height+'px';
+    clone.style.transform='scale(1) rotate(5deg)'; clone.style.opacity='0.9';
+    document.body.appendChild(clone);
+    const midY=Math.min(s.top,e.top)-50;
+    requestAnimationFrame(()=>{
+        setTimeout(()=>{ clone.style.left=(s.left+e.left)/2+'px'; clone.style.top=midY+'px'; clone.style.transform='scale(1.05) rotate(-3deg)'; },50);
+        setTimeout(()=>{ clone.style.left=e.left+'px'; clone.style.top=e.top+'px'; clone.style.transform='scale(1.1) rotate(0deg)'; clone.style.opacity='1'; },300);
+    });
+    setTimeout(()=>{ dp.classList.add('discard-pile-pulse'); setTimeout(()=>dp.classList.remove('discard-pile-pulse'),300); },600);
+    setTimeout(()=>{ clone.remove(); cb(); },600);
+}
+
+function animateCardToHand(target,cb){
+    const dp=document.getElementById('drawPile');
+    const s=dp.getBoundingClientRect();
+    const ph=document.getElementById('playerHand');
+    const e=ph.getBoundingClientRect();
+    const clone=document.createElement('div');
+    clone.className='card card-back card-fly-to-hand';
+    clone.innerHTML='<div class="card-inner" style="font-size:0.6em;color:rgba(255,255,255,0.7);background:rgba(255,255,255,0.08);font-family:Orbitron,sans-serif;">DRAW</div>';
+    clone.style.left=s.left+'px'; clone.style.top=s.top+'px';
+    clone.style.width=s.width+'px'; clone.style.height=s.height+'px';
+    clone.style.transform='scale(0.8) rotate(-5deg)'; clone.style.opacity='0.5';
+    document.body.appendChild(clone);
+    const midY=Math.min(s.top,e.top)-40;
+    requestAnimationFrame(()=>{
+        setTimeout(()=>{ clone.style.left=(s.left+e.left)/2+'px'; clone.style.top=midY+'px'; clone.style.transform='scale(0.9) rotateY(90deg)'; clone.style.opacity='0.7'; },50);
+        setTimeout(()=>{ clone.style.left=e.left+'px'; clone.style.top=e.top+'px'; clone.style.transform='scale(1) rotateY(180deg) rotate(5deg)'; clone.style.opacity='1'; },300);
+    });
+    setTimeout(()=>{ clone.remove(); cb(); },600);
+}
+
+function animateMultiCards(target,count,cb){
+    let done=0;
+    function next(i){ if(i>=count) return; animateCardToHand(target,()=>{ if(++done===count) cb(); }); if(i+1<count) setTimeout(()=>next(i+1),180); }
+    if(count===0){ cb(); return; }
+    next(0);
+}
+
+/* Draw penalty — fly cards from deck to target seat */
+function animateDrawPenaltyLocal(target,count,accent,cb){
+    const dp=document.getElementById('drawPile');
+    if(!dp){ cb(); return; }
+    const srcRect=dp.getBoundingClientRect();
+    // find target element
+    let endEl=null;
+    if(target==='player') endEl=document.getElementById('playerHand');
+    else {
+        const seats=document.querySelectorAll('.player-seat');
+        for(const s of seats){ if(!s.querySelector('.seat-you-badge')) endEl=s; }
+    }
+    const endRect=endEl?endEl.getBoundingClientRect():srcRect;
+    const endX=endRect.left+endRect.width/2;
+    const endY=endRect.top+endRect.height/2;
+    for(let i=0;i<count;i++){
+        setTimeout(()=>{
+            const card=document.createElement('div');
+            card.className='draw-penalty-card'; card.innerHTML='🎴';
+            card.style.left=srcRect.left+'px'; card.style.top=srcRect.top+'px';
+            card.style.transform='scale(0.85) rotate(-8deg)';
+            card.style.boxShadow=`0 4px 20px rgba(0,0,0,0.5),0 0 20px ${accent}88`;
+            document.body.appendChild(card);
+            const midX=(srcRect.left+endX)/2;
+            const midY=Math.min(srcRect.top,endY)-80;
+            requestAnimationFrame(()=>{
+                setTimeout(()=>{ card.style.transition='left 0.28s ease-out,top 0.28s ease-out,transform 0.28s'; card.style.left=midX+'px'; card.style.top=midY+'px'; card.style.transform=`scale(1.1) rotate(${i%2?'5deg':'-5deg'})`; },30);
+                setTimeout(()=>{ card.style.transition='left 0.28s cubic-bezier(0.34,1.2,0.64,1),top 0.28s cubic-bezier(0.34,1.2,0.64,1),transform 0.28s'; card.style.left=(endX-srcRect.width/2)+'px'; card.style.top=(endY-srcRect.height/2)+'px'; card.style.transform='scale(0.9)'; if(i===count-1&&endEl){ setTimeout(()=>{ endEl.classList.add('victim-shaking'); setTimeout(()=>endEl.classList.remove('victim-shaking'),600); showPenaltyBurst(endX,endY,`+${count} Draw!`,target==='player'?'You draw!':'CPU draws!',accent); },100); } },310);
+                setTimeout(()=>{ card.style.opacity='0'; setTimeout(()=>card.remove(),200); },550);
             });
-            
-            // Add landing animation to discard pile
-            setTimeout(() => {
-                discardPileElement.classList.add('discard-pile-pulse');
-                setTimeout(() => {
-                    discardPileElement.classList.remove('discard-pile-pulse');
-                }, 300);
-            }, 600);
-            
-            // Clean up and proceed with game logic after animation
-            setTimeout(() => {
-                animCard.remove();
-                
-                computerHand.splice(index, 1);
-                discardPile.push(cardToPlay);
-                
-                if (cardToPlay.type === 'wild') {
-                    const colorCounts = { red: 0, blue: 0, green: 0, yellow: 0 };
-                    computerHand.forEach(c => {
-                        if (c.color !== 'wild') colorCounts[c.color]++;
-                    });
-                    
-                    let maxColor = 'red';
-                    let maxCount = 0;
-                    Object.keys(colorCounts).forEach(color => {
-                        if (colorCounts[color] > maxCount) {
-                            maxCount = colorCounts[color];
-                            maxColor = color;
-                        }
-                    });
-                    
-                    currentColor = maxColor;
-                    currentValue = cardToPlay.value;
-                    showMessage(`Computer played ${cardToPlay.value} and chose ${currentColor}!`);
-                    
-                    renderComputerHand();
-                    renderDiscardPile();
-                    updateGameInfo();
-                    
-                    if (computerHand.length === 0) {
-                        endGame('computer');
-                        return;
-                    }
-                    
-                    // Handle Wild+4 / +12 effect
-                    setTimeout(() => {
-                        if (cardToPlay.value === 'Wild+4') {
-                            if (settings.allowStacking) {
-                                if (stackedDrawCount === 0) stackStartedBy = 'Computer';
-                                stackedDrawCount += 4;
-                                showMessage(`You must draw ${stackedDrawCount} or stack another +4!`);
-                                renderPlayerHand();
-                                setTimeout(() => switchTurn(), 1500);
-                            } else {
-                                drawCardsForPlayer('player', 4, () => {
-                                    showMessage('You draw 4 cards and are skipped!');
-                                    setTimeout(() => { currentPlayer = 'computer'; updateGameInfo(); setTimeout(computerPlay, 500); }, 1500);
-                                });
-                            }
-                        } else if (cardToPlay.value === '+12') {
-                            drawCardsForPlayer('player', 12, () => {
-                                showMessage('💀 Computer played +12! You draw 12 cards!');
-                                setTimeout(() => { currentPlayer = 'computer'; updateGameInfo(); setTimeout(computerPlay, 500); }, 1500);
-                            });
-                        } else {
-                            // Regular Wild - switch to player
-                            switchTurn();
-                        }
-                    }, 1500);
-                } else {
-                    currentColor = cardToPlay.color;
-                    currentValue = cardToPlay.value;
-                    showMessage(`Computer played ${cardToPlay.value} ${cardToPlay.color}!`);
-                    
-                    renderComputerHand();
-                    renderDiscardPile();
-                    updateGameInfo();
-                
-                if (computerHand.length === 0) {
-                    endGame('computer');
-                    return;
-                }
-                
-                setTimeout(() => handleComputerCardEffect(cardToPlay), 1500);
-                }
-            }, 600); // End of animation setTimeout
-        } else {
-            // Computer can't play - must draw
-            if (settings.allowStacking && stackedDrawCount > 0) {
-                // Computer must draw all stacked cards
-                for (let i = 0; i < stackedDrawCount; i++) {
-                    if (deck.length === 0) reshuffleDeck();
-                    if (deck.length > 0) computerHand.push(deck.pop());
-                }
-                showMessage(`Computer drew ${stackedDrawCount} cards!`);
-                stackedDrawCount = 0; // Reset stack
-                stackStartedBy = null; // Reset who started the stack
-                renderComputerHand();
-                updateGameInfo();
-                
-                setTimeout(() => switchTurn(), 1500);
-            } else {
-                // Regular draw - draw until we find a matching color or wild
-                let cardsDrawn = 0;
-                let matchFound = false;
-                
-                // Draw cards until we find a match
-                while (!matchFound && cardsDrawn < MAX_DRAW_ATTEMPTS) {
-                    if (deck.length === 0) reshuffleDeck();
-                    if (deck.length === 0) break; // No more cards available
-                    
-                    const drawnCard = deck.pop();
-                    computerHand.push(drawnCard);
-                    cardsDrawn++;
-                    
-                    // Check if the drawn card matches the current color or is wild
-                    if (drawnCard.type === 'wild' || drawnCard.color === currentColor) {
-                        matchFound = true;
-                    }
-                }
-                
-                if (cardsDrawn > 0) {
-                    const message = cardsDrawn === 1 
-                        ? 'Computer drew a card!' 
-                        : `Computer drew ${cardsDrawn} cards!`;
-                    showMessage(message);
-                    renderComputerHand();
-                    updateGameInfo();
-                }
-                
-                setTimeout(() => {
-                    if (computerHand.length === 1 && !computerCalledUno) {
-                        showMessage('Computer forgot to call O,No! Draws 2 cards!');
-                        drawCardsForPlayer('computer', 2, () => {
-                            switchTurn();
-                        });
-                    } else {
-                        switchTurn();
-                    }
-                }, 1500);
-            }
-        }
+            if(i===count-1) setTimeout(cb,800);
+        },i*140);
     }
+}
 
-    function handleComputerCardEffect(card) {
-        if (!gameInProgress) return;
-        
-        switch(card.value) {
-            case '0':
-                if (settings.allowSpecial07) {
-                    showMessage('Computer played 0! Swapping hands...');
-                    setTimeout(() => {
-                        const temp = playerHand;
-                        playerHand = computerHand;
-                        computerHand = temp;
-                        playerCalledUno = false;
-                        computerCalledUno = false;
-                        if (playerHand.length === 1) showMessage('Hands swapped! You now have 1 card — call O,No!');
-                        else if (computerHand.length === 1) showMessage('Hands swapped! Computer now has 1 card!');
-                        else showMessage('Hands swapped!');
-                        renderPlayerHand();
-                        renderComputerHand();
-                        updateGameInfo();
-                        setTimeout(() => { currentPlayer = 'computer'; updateGameInfo(); setTimeout(computerPlay, 500); }, 1500);
-                    }, 1000);
-                } else {
-                    switchTurn();
-                }
-                break;
-                
-            case '7':
-                if (settings.allowSpecial07) {
-                    showMessage('Computer played 7! Swapping hands...');
-                    setTimeout(() => {
-                        const temp = playerHand;
-                        playerHand = computerHand;
-                        computerHand = temp;
-                        playerCalledUno = false;
-                        computerCalledUno = false;
-                        if (playerHand.length === 1) showMessage('Hands swapped! You now have 1 card — call O,No!');
-                        else if (computerHand.length === 1) showMessage('Hands swapped! Computer now has 1 card!');
-                        else showMessage('Hands swapped!');
-                        renderPlayerHand();
-                        renderComputerHand();
-                        updateGameInfo();
-                        setTimeout(() => { currentPlayer = 'computer'; updateGameInfo(); setTimeout(computerPlay, 500); }, 1500);
-                    }, 1000);
-                } else {
-                    switchTurn();
-                }
-                break;
-                
-            case 'Skip':
-                showMessage('You are skipped!');
-                // Player is skipped, computer goes again
-                setTimeout(() => {
-                    currentPlayer = 'computer';
-                    updateGameInfo();
-                    setTimeout(computerPlay, 500);
-                }, 1000);
-                break;
-                
-            case 'Reverse':
-                direction *= -1;
-                showMessage('Direction reversed!');
-                // In 2-player game, reverse acts like skip - computer goes again
-                setTimeout(() => {
-                    currentPlayer = 'computer';
-                    updateGameInfo();
-                    setTimeout(computerPlay, 500);
-                }, 1000);
-                break;
-                
-            case '+2':
-                if (settings.allowStacking) {
-                    if (stackedDrawCount === 0) {
-                        stackStartedBy = 'Computer';
-                    }
-                    stackedDrawCount += 2;
-                    showMessage(`You must draw ${stackedDrawCount} or stack another +2!`);
-                    renderPlayerHand();
-                    setTimeout(() => switchTurn(), 1500);
-                } else {
-                    drawCardsForPlayer('player', 2, () => {
-                        showMessage('You draw 2 cards and are skipped!');
-                        // Player draws and is skipped, computer goes again
-                        setTimeout(() => {
-                            currentPlayer = 'computer';
-                            updateGameInfo();
-                            setTimeout(computerPlay, 500);
-                        }, 1500);
-                    });
-                }
-                break;
-                
-            case '+12':
-                // +12 wild — force player to draw 12, no stacking
-                drawCardsForPlayer('player', 12, () => {
-                    showMessage('💀 Computer played +12! You draw 12 cards!');
-                    setTimeout(() => {
-                        currentPlayer = 'computer';
-                        updateGameInfo();
-                        setTimeout(computerPlay, 500);
-                    }, 1500);
-                });
-                break;
+function showPenaltyBurst(x,y,label,who,color){
+    const burst=document.createElement('div');
+    burst.className='penalty-burst';
+    burst.style.left=(x-80)+'px'; burst.style.top=(y-55)+'px';
+    burst.innerHTML=`<div class="penalty-burst-badge" style="background:linear-gradient(135deg,${color},${color}cc);">${label}</div><div class="penalty-burst-sub">${who}</div>`;
+    document.body.appendChild(burst);
+    setTimeout(()=>burst.remove(),1300);
+}
 
-            default:
-                // Regular number card or Wild cards - switch to player's turn
-                switchTurn();
-        }
-    }
+function triggerPenaltyFlash(){
+    const f=document.getElementById('penaltyFlash');
+    if(!f) return;
+    f.classList.remove('flashing'); void f.offsetWidth; f.classList.add('flashing');
+    setTimeout(()=>f.classList.remove('flashing'),800);
+}
 
-    function drawCard() {
-        if (currentPlayer !== 'player' || !gameInProgress) return;
-        if (isAnimating) return;
+function showMessage(msg){ document.getElementById('message').textContent=msg; }
 
-        // If there's a stacked draw count, player must draw all cards
-        if (settings.allowStacking && stackedDrawCount > 0) {
-            const count = stackedDrawCount;
-            isAnimating = true;
-            animateMultipleCardsToHand('player', count, () => {
-                for (let i = 0; i < count; i++) {
-                    if (deck.length === 0) reshuffleDeck();
-                    if (deck.length > 0) playerHand.push(deck.pop());
-                }
-                showMessage(`You drew ${count} cards!`);
-                stackedDrawCount = 0;
-                stackStartedBy = null;
-                playerCalledUno = false; // hand grew, O,No state gone
-                renderPlayerHand();
-                updateGameInfo();
-                isAnimating = false;
-                setTimeout(() => { currentPlayer = 'computer'; updateGameInfo(); setTimeout(computerPlay, 1000); }, 1500);
-            });
-            return;
-        }
+// ── RESIZE ───────────────────────────────────────────────────
+window.addEventListener('resize',()=>{ if(gameInProgress) renderTableSeats(); });
 
-        if (settings.drawOnePerTurn) {
-            // Draw exactly one card per turn
-            if (deck.length === 0) reshuffleDeck();
-            if (deck.length === 0) { showMessage('No cards available!'); return; }
-            const drawnCard = deck.pop();
-            playerHand.push(drawnCard);
-            isAnimating = true;
-            animateCardToHand('player', () => {
-                const canPlay = drawnCard.type === 'wild' || drawnCard.color === currentColor || drawnCard.value === currentValue;
-                showMessage(canPlay ? 'You drew a card — you can play it!' : 'You drew a card!');
-                playerCalledUno = playerHand.length === 1 ? playerCalledUno : false;
-                renderPlayerHand();
-                updateGameInfo();
-                isAnimating = false;
-                if (!canPlay) setTimeout(() => switchTurn(), 1000);
-                // if canPlay, player can choose to play it or pass — they click the card
-            });
-        } else {
-            // Draw until match (classic mode)
-            let cardsDrawn = 0;
-            let matchFound = false;
-            while (!matchFound && cardsDrawn < MAX_DRAW_ATTEMPTS) {
-                if (deck.length === 0) reshuffleDeck();
-                if (deck.length === 0) break;
-                const drawnCard = deck.pop();
-                playerHand.push(drawnCard);
-                cardsDrawn++;
-                if (drawnCard.type === 'wild' || drawnCard.color === currentColor || drawnCard.value === currentValue) {
-                    matchFound = true;
-                }
-            }
-            if (cardsDrawn > 0) {
-                isAnimating = true;
-                animateMultipleCardsToHand('player', cardsDrawn, () => {
-                    const message = cardsDrawn === 1
-                        ? 'You drew a card!'
-                        : `You drew ${cardsDrawn} cards until finding a matching color!`;
-                    showMessage(message);
-                    playerCalledUno = false; // hand grew
-                    renderPlayerHand();
-                    updateGameInfo();
-                    isAnimating = false;
-                    setTimeout(() => switchTurn(), 1000);
-                });
-            } else {
-                showMessage('No cards available!');
-            }
-        }
-    }
-
-    function showColorPicker() {
-        document.getElementById('overlay').classList.add('active');
-        document.getElementById('colorPicker').classList.add('active');
-    }
-
-    function chooseColor(color) {
-        currentColor = color;
-        currentValue = pendingWildCard.value;
-        
-        document.getElementById('overlay').classList.remove('active');
-        document.getElementById('colorPicker').classList.remove('active');
-        
-        showMessage(`You chose ${color}!`);
-        updateGameInfo();
-        renderDiscardPile(); // Re-render to show color change on wild card
-        
-        const wildCard = pendingWildCard;
-        pendingWildCard = null;
-        
-        // Handle the wild card effect after color is chosen
-        setTimeout(() => {
-            if (wildCard.value === 'Wild+4') {
-                if (settings.allowStacking) {
-                    if (stackedDrawCount === 0) {
-                        stackStartedBy = 'You';
-                    }
-                    stackedDrawCount += 4;
-                    showMessage(`Computer must draw ${stackedDrawCount} or stack another +4!`);
-                    renderComputerHand();
-                    setTimeout(() => { isAnimating = false; switchTurn(); }, 1500);
-                    return; // keep isAnimating=true until switchTurn
-                } else {
-                    // Draw 4 for opponent and skip their turn
-                    drawCardsForPlayer('computer', 4, () => {
-                        showMessage('Computer draws 4 cards and is skipped!');
-                        setTimeout(() => {
-                            currentPlayer = 'player';
-                            updateGameInfo();
-                            renderPlayerHand();
-                            showMessage("Your turn again!");
-                        }, 1500);
-                    });
-                }
-            } else {
-                // Regular Wild - just switch turns normally
-                switchTurn();
-            }
-            
-            // Release animation lock after wild card effect completes
-            isAnimating = false;
-        }, 1000);
-    }
-
-    function callUno() {
-        if (playerHand.length === 1 && gameInProgress) {
-            playerCalledUno = true;
-            showMessage('🔔 O,No!');
-            document.getElementById('unoButton').classList.remove('active');
-        }
-    }
-    
-    function catchComputer() {
-        if (computerHand.length === 1 && !computerCalledUno && gameInProgress) {
-            showMessage('You caught the computer! Computer draws 2 penalty cards!');
-            drawCardsForPlayer('computer', 2, () => {
-                computerCalledUno = false;
-                updateGameInfo();
-            });
-        }
-    }
-
-    function showMessage(msg) {
-        document.getElementById('message').textContent = msg;
-    }
-
-    function endGame(winner) {
-        gameInProgress = false;
-        const gameOverDiv = document.getElementById('gameOver');
-        const overlay = document.getElementById('overlay');
-        
-        document.getElementById('unoButton').classList.remove('active', 'pulse');
-        
-        if (winner === 'player') {
-            document.getElementById('winnerText').textContent = '🎉 You Win! 🎉';
-            document.getElementById('winnerMessage').textContent = 'Congratulations! You beat the computer!';
-        } else {
-            document.getElementById('winnerText').textContent = '💻 Computer Wins! 💻';
-            document.getElementById('winnerMessage').textContent = 'Better luck next time!';
-        }
-        
-        overlay.classList.add('active');
-        gameOverDiv.classList.add('active');
-    }
-
-    function startNewGame() {
-        // Close all overlays and menus
-        document.getElementById('gameOver').classList.remove('active');
-        document.getElementById('overlay').classList.remove('active');
-        document.getElementById('pauseMenu').classList.remove('active');
-        document.getElementById('colorPicker').classList.remove('active');
-        document.getElementById('unoButton').classList.remove('active', 'pulse');
-        
-        // Reset ALL game state variables
-        currentPlayer = 'player';
-        direction = 1;
-        playerCalledUno = false;
-        computerCalledUno = false;
-        pendingWildCard = null;
-        gameInProgress = true;
-        currentColor = null;
-        currentValue = null;
-        stackedDrawCount = 0;
-        stackStartedBy = null;
-        isAnimating = false;
-        
-        // Create fresh deck and deal
-        createDeck();
-        dealCards();
-        
-        // Render everything
-        renderPlayerHand();
-        renderComputerHand();
-        renderDiscardPile();
-        updateGameInfo();
-        showMessage('New game started! Your turn.');
-    }
-
-    // Initialize settings on page load
-    loadSettings();
-    // =============================================
-    //  DARK MODE
-    // =============================================
-    (function initTheme() {
-        const saved = localStorage.getItem('ono-theme') || 'light';
-        applyTheme(saved);
-    })();
-    function applyTheme(theme) {
-        document.documentElement.setAttribute('data-theme', theme);
-        const knob = document.querySelector('#darkModeToggle .toggle-knob');
-        if (knob) knob.textContent = theme === 'dark' ? '\u{1F319}' : '\u2600\uFE0F';
-    }
-    function toggleDarkMode() {
-        const current = document.documentElement.getAttribute('data-theme') || 'light';
-        const next = current === 'dark' ? 'light' : 'dark';
-        localStorage.setItem('ono-theme', next);
-        applyTheme(next);
-    }
+// ── INIT ─────────────────────────────────────────────────────
+loadSettings();
 </script>
 
-<!-- Dark Mode Toggle -->
-<button id="darkModeToggle" onclick="toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
-    <div class="toggle-knob">☀️</div>
-</button>
+<!-- Jump-in card glow keyframe injected inline -->
+<style>
+@keyframes cardJumpInPulse {
+    0%,100% { box-shadow:0 0 18px rgba(241,196,15,0.9); transform:translateY(0) scale(1); }
+    50%      { box-shadow:0 0 28px rgba(241,196,15,1);   transform:translateY(-8px) scale(1.06); }
+}
+</style>
 </body>
 </html>
