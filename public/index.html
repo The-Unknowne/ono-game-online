@@ -1239,50 +1239,7 @@
     /* =============================================
        DARK MODE TOGGLE BUTTON
     ============================================= */
-    #darkModeToggle {
-        position: fixed;
-        top: 16px;
-        right: 16px;
-        z-index: 9000;
-        width: 48px;
-        height: 28px;
-        border-radius: 14px;
-        border: none;
-        cursor: pointer;
-        background: var(--surface-glass-strong);
-        backdrop-filter: blur(8px);
-        border: 1.5px solid rgba(255,255,255,0.25);
-        display: flex;
-        align-items: center;
-        padding: 3px;
-        transition: background 0.3s, border-color 0.3s;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.25);
-    }
-
-    #darkModeToggle:hover { opacity: 0.85; }
-
-    #darkModeToggle .toggle-knob {
-        width: 20px;
-        height: 20px;
-        border-radius: 50%;
-        background: white;
-        transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), background 0.3s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 11px;
-        box-shadow: 0 1px 6px rgba(0,0,0,0.35);
-    }
-
-    html[data-theme="dark"] #darkModeToggle {
-        background: rgba(140,100,255,0.25);
-        border-color: rgba(140,100,255,0.4);
-    }
-
-    html[data-theme="dark"] #darkModeToggle .toggle-knob {
-        transform: translateX(20px);
-        background: #a78bfa;
-    }
+    /* old #darkModeToggle removed — replaced by #settingsGearBtn + #settingsFloatPanel */
 
     .controls {
         display: flex;
@@ -2225,10 +2182,40 @@
 <!-- Jump-In Banner -->
 <div id="jumpInBanner">⚡ JUMP IN!</div>
 
-<!-- Dark Mode Toggle -->
-<button id="darkModeToggle" onclick="toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
-    <div class="toggle-knob">☀️</div>
-</button>
+<!-- Floating Settings Panel -->
+<button id="settingsGearBtn" onclick="toggleSettingsPanel()" title="Settings" aria-label="Open settings">⚙️</button>
+<div id="settingsFloatPanel" role="dialog" aria-label="Settings panel">
+    <div class="sfp-title">Settings</div>
+
+    <div class="sfp-row">
+        <div><div class="sfp-label">🌙 Dark Mode</div></div>
+        <label class="sfp-toggle">
+            <input type="checkbox" id="sfpDarkToggle" onchange="sfpSetTheme(this.checked)">
+            <span class="sfp-toggle-track"></span>
+        </label>
+    </div>
+
+    <div class="sfp-divider"></div>
+
+    <div class="sfp-row sfp-volume-row">
+        <div class="sfp-top">
+            <div class="sfp-label">🔊 Volume</div>
+            <div class="sfp-label" id="sfpVolLabel">70%</div>
+        </div>
+        <input type="range" id="sfpVolume" min="0" max="100" value="70" oninput="sfpSetVolume(this.value)">
+    </div>
+
+    <div class="sfp-divider"></div>
+
+    <div class="sfp-row" style="flex-direction:column; align-items:stretch; gap:6px;">
+        <div class="sfp-label">🎨 Background</div>
+        <select id="sfpBgSelect" onchange="sfpSetBg(this.value)">
+            <option value="static">Static</option>
+            <option value="color-cycle">Color Cycling</option>
+            <option value="pulsing">Pulsing</option>
+        </select>
+    </div>
+</div>
 
 <button class="uno-button" id="unoButton" onclick="callUno()">O,NO!</button>
 
@@ -2282,8 +2269,9 @@
 
     function applyTheme(theme) {
         document.documentElement.setAttribute('data-theme', theme);
-        const knob = document.querySelector('#darkModeToggle .toggle-knob');
-        if (knob) knob.textContent = theme === 'dark' ? '🌙' : '☀️';
+        // sync panel toggle
+        const cb = document.getElementById('sfpDarkToggle');
+        if (cb) cb.checked = (theme === 'dark');
     }
 
     function toggleDarkMode() {
@@ -2292,6 +2280,7 @@
         localStorage.setItem('ono-theme', next);
         applyTheme(next);
     }
+
     // Background animation settings
     function loadBackgroundAnimation() {
         const savedAnimation = localStorage.getItem('onoBackgroundAnimation');
@@ -2304,6 +2293,51 @@
         document.body.classList.remove('bg-static', 'bg-color-cycle', 'bg-pulsing');
         document.body.classList.add({ 'color-cycle': 'bg-color-cycle', 'pulsing': 'bg-pulsing' }[animation] || 'bg-static');
     }
+
+    // ── FLOATING SETTINGS PANEL ─────────────────────────────────────────────
+    let _sfpOpen = false;
+    function toggleSettingsPanel() {
+        _sfpOpen = !_sfpOpen;
+        document.getElementById('settingsFloatPanel').classList.toggle('open', _sfpOpen);
+        if (_sfpOpen) sfpSyncState();
+    }
+    function sfpSyncState() {
+        const theme = document.documentElement.getAttribute('data-theme') || 'light';
+        document.getElementById('sfpDarkToggle').checked = (theme === 'dark');
+        const vol = parseFloat(localStorage.getItem('ono-volume') || '0.7') * 100;
+        const volEl = document.getElementById('sfpVolume');
+        if (volEl) { volEl.value = vol; sfpUpdateVolSlider(vol); }
+        document.getElementById('sfpVolLabel').textContent = Math.round(vol) + '%';
+        const bg = localStorage.getItem('onoBackgroundAnimation') || 'static';
+        document.getElementById('sfpBgSelect').value = bg;
+    }
+    function sfpSetTheme(isDark) {
+        const t = isDark ? 'dark' : 'light';
+        localStorage.setItem('ono-theme', t);
+        applyTheme(t);
+    }
+    function sfpSetVolume(val) {
+        const v = parseInt(val) / 100;
+        localStorage.setItem('ono-volume', v);
+        Object.values(SFX).forEach(a => { try { a.volume = v; } catch(e) {} });
+        document.getElementById('sfpVolLabel').textContent = Math.round(val) + '%';
+        sfpUpdateVolSlider(val);
+    }
+    function sfpUpdateVolSlider(val) {
+        const el = document.getElementById('sfpVolume');
+        if (el) el.style.setProperty('--vol', val + '%');
+    }
+    function sfpSetBg(val) {
+        localStorage.setItem('onoBackgroundAnimation', val);
+        applyBackgroundAnimation(val);
+    }
+    document.addEventListener('click', function(e) {
+        if (_sfpOpen && !document.getElementById('settingsFloatPanel').contains(e.target)
+            && e.target.id !== 'settingsGearBtn') {
+            _sfpOpen = false;
+            document.getElementById('settingsFloatPanel').classList.remove('open');
+        }
+    });
 
     // Shared popup helper
     function _openPopup(title, message, buttons) {
@@ -2546,10 +2580,12 @@
 
     // Initialize on page load
     window.addEventListener('DOMContentLoaded', () => {
-        // Re-apply theme now that DOM is ready (sets toggle knob emoji correctly)
         const savedTheme = localStorage.getItem('ono-theme') || 'light';
         applyTheme(savedTheme);
         loadBackgroundAnimation();
+        // Apply saved volume to SFX
+        const savedVol = parseFloat(localStorage.getItem('ono-volume') || '0.7');
+        Object.values(SFX).forEach(a => { try { a.volume = savedVol; } catch(e) {} });
         initializeSocket();
     });
 
