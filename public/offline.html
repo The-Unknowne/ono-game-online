@@ -62,7 +62,8 @@
 
         body {
             font-family: 'Nunito', sans-serif;
-            background: linear-gradient(135deg, var(--bg-grad-a) 0%, var(--bg-grad-b) 100%);
+            background-color: var(--bg-grad-a);
+            background-image: linear-gradient(135deg, var(--bg-grad-a) 0%, var(--bg-grad-b) 100%);
             background-attachment: fixed;
             min-height: 100vh;
             display: flex;
@@ -705,20 +706,28 @@ let settings = {
 };
 
 // ── THEME ────────────────────────────────────────────────────
-(function() {
-    const t = localStorage.getItem('ono-theme')||'light';
-    applyTheme(t);
-})();
 function applyTheme(t){
     document.documentElement.setAttribute('data-theme',t);
     const k=document.querySelector('#darkModeToggle .toggle-knob');
     if(k) k.textContent = t==='dark'?'🌙':'☀️';
+    // Force body background to use the updated CSS variables
+    const a = t==='dark' ? '#0d0d1a' : '#667eea';
+    const b = t==='dark' ? '#1a0a2e' : '#764ba2';
+    document.body.style.setProperty('--bg-grad-a', a);
+    document.body.style.setProperty('--bg-grad-b', b);
+    // Re-apply animation class so background gradient refreshes
+    applyBgAnim();
 }
 function toggleDarkMode(){
     const c=document.documentElement.getAttribute('data-theme')||'light';
     const n=c==='dark'?'light':'dark';
     localStorage.setItem('ono-theme',n); applyTheme(n);
 }
+// Init theme after DOM ready
+document.addEventListener('DOMContentLoaded', function(){
+    const t = localStorage.getItem('ono-theme')||'light';
+    applyTheme(t);
+});
 
 // ── SETTINGS ─────────────────────────────────────────────────
 function loadSettings(){
@@ -728,8 +737,17 @@ function loadSettings(){
 }
 function applyBgAnim(){
     document.body.classList.remove('bg-static','bg-color-cycle','bg-pulsing');
+    const anim=settings.backgroundAnimation||'static';
     const map={'color-cycle':'bg-color-cycle','pulsing':'bg-pulsing'};
-    document.body.classList.add(map[settings.backgroundAnimation]||'bg-static');
+    document.body.classList.add(map[anim]||'bg-static');
+    // Force body background to use resolved variable values (fixes dark mode)
+    const a=getComputedStyle(document.documentElement).getPropertyValue('--bg-grad-a').trim();
+    const b=getComputedStyle(document.documentElement).getPropertyValue('--bg-grad-b').trim();
+    if(anim==='pulsing'){
+        document.body.style.backgroundImage=`linear-gradient(-45deg,${a},${b},${a},${b})`;
+    } else {
+        document.body.style.backgroundImage=`linear-gradient(135deg,${a} 0%,${b} 100%)`;
+    }
 }
 function showSettingsScreen(){
     ['difficulty','startingCards','backgroundAnimation'].forEach(id=>{
