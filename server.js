@@ -481,7 +481,24 @@ io.on('connection', socket => {
         broadcastGameState(room);
 
         if (result.winner !== null) {
-            io.to(roomId).emit('gameOver', { winner: room.players[result.winner].name, winnerId: room.players[result.winner].id });
+            // Calculate scores: winner gets 0, others scored by remaining hand
+            // Normal card = -3, Action/Draw card = -2, Wild = -1
+            const scores = room.players.map(p => {
+                if (p.hand.length === 0) return { name: p.name, id: p.id, score: 0, hand: [] };
+                const score = p.hand.reduce((sum, card) => {
+                    if (card.type === 'wild')   return sum - 1;
+                    if (card.type === 'action') return sum - 2;
+                    return sum - 3;
+                }, 0);
+                return { name: p.name, id: p.id, score, hand: p.hand };
+            });
+            // Sort by score descending (least negative = best = winner first)
+            const sorted = [...scores].sort((a, b) => b.score - a.score);
+            io.to(roomId).emit('gameOver', {
+                winner: room.players[result.winner].name,
+                winnerId: room.players[result.winner].id,
+                scores: sorted
+            });
             rooms.delete(roomId);
         }
     });
