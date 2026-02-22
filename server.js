@@ -188,7 +188,13 @@ class GameRoom {
 
             case 'Reverse':
                 this.direction *= -1;
-                this.players.length === 2 ? this.skipNextPlayer() : this.advanceTurn();
+                if (this.players.length === 2) {
+                    // In 2-player, Reverse acts like Skip: current player plays again.
+                    // Just reset hasDrawnThisTurn without advancing.
+                    this.hasDrawnThisTurn = false;
+                } else {
+                    this.advanceTurn();
+                }
                 break;
 
             case '+2':
