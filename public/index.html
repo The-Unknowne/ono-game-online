@@ -2143,7 +2143,80 @@
     </div>
 </div>
 
-<div id="penaltyFlash"></div>
+<!-- Scoreboard Screen -->
+<div id="scoreboardScreen" class="screen">
+    <div class="menu-container" style="max-width:520px;">
+        <div id="scoreboardTitle" style="font-size:2.2em;font-weight:900;margin-bottom:6px;color:var(--menu-h1);font-family:'Orbitron',sans-serif;"></div>
+        <div id="scoreboardSubtitle" style="font-size:1.1em;color:var(--text-muted);margin-bottom:28px;"></div>
+        <div id="scoreboardRows" style="display:flex;flex-direction:column;gap:12px;margin-bottom:28px;"></div>
+        <button class="menu-button online" onclick="showMainMenu()">🏠 Main Menu</button>
+    </div>
+</div>
+
+<style>
+.score-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--surface-glass);
+    border: 2px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
+    padding: 14px 18px;
+    transition: transform 0.2s;
+}
+.score-row.rank-1 {
+    background: rgba(241,196,15,0.15);
+    border-color: rgba(241,196,15,0.5);
+    box-shadow: 0 0 18px rgba(241,196,15,0.25);
+}
+.score-row.rank-2 {
+    background: rgba(192,192,192,0.12);
+    border-color: rgba(192,192,192,0.4);
+}
+.score-row.rank-3 {
+    background: rgba(205,127,50,0.12);
+    border-color: rgba(205,127,50,0.35);
+}
+.score-rank {
+    font-size: 1.7em;
+    width: 36px;
+    text-align: center;
+    flex-shrink: 0;
+}
+.score-name {
+    flex: 1;
+    font-weight: 800;
+    font-size: 1.1em;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.score-you-tag {
+    font-size: 0.72em;
+    background: rgba(102,126,234,0.3);
+    color: #a78bfa;
+    border-radius: 6px;
+    padding: 2px 7px;
+    font-weight: 700;
+}
+.score-points {
+    font-size: 1.35em;
+    font-weight: 900;
+    font-family: 'Orbitron', sans-serif;
+    color: var(--text-primary);
+    min-width: 54px;
+    text-align: right;
+}
+.score-points.zero { color: #2ecc71; }
+.score-points.negative { color: #e74c3c; }
+.score-cards {
+    font-size: 0.78em;
+    color: var(--text-muted);
+    margin-top: 3px;
+}
+</style>
+
 
 <!-- Jump-In Banner -->
 <div id="jumpInBanner">⚡ JUMP IN!</div>
@@ -2412,14 +2485,7 @@
         });
 
         socket.on('gameOver', (data) => {
-            const isWinner = data.winnerId === socket.id;
-            setTimeout(() => {
-                showPopup(
-                    isWinner ? 'You Won!' : 'You Lost!',
-                    isWinner ? '🎉 Congratulations!' : '😢 Game Over'
-                );
-                showMainMenu();
-            }, 500);
+            setTimeout(() => showScoreboard(data), 600);
         });
 
         socket.on('opponentDisconnected', () => {
@@ -3541,7 +3607,65 @@
         }
     }
 
-    function showMessage(msg) {
+    function showScoreboard(data) {
+        const isWinner = data.winnerId === socket.id;
+        const scores   = data.scores || [];
+
+        // Title & subtitle
+        document.getElementById('scoreboardTitle').textContent    = isWinner ? '🏆 You Won!' : '😢 Game Over';
+        document.getElementById('scoreboardSubtitle').textContent = `${data.winner} won the round!`;
+
+        const rankEmoji = ['🥇','🥈','🥉'];
+        const rows = document.getElementById('scoreboardRows');
+        rows.innerHTML = '';
+
+        scores.forEach((player, i) => {
+            const isYou     = player.id === socket.id;
+            const rankClass = i < 3 ? ` rank-${i + 1}` : '';
+            const pts       = player.score;
+            const ptsClass  = pts === 0 ? 'zero' : 'negative';
+
+            // Summarise remaining cards
+            let cardSummary = '';
+            if (player.hand && player.hand.length > 0) {
+                const n = player.hand.filter(c => c.type === 'number').length;
+                const a = player.hand.filter(c => c.type === 'action').length;
+                const w = player.hand.filter(c => c.type === 'wild').length;
+                const parts = [];
+                if (n) parts.push(`${n} number`);
+                if (a) parts.push(`${a} action`);
+                if (w) parts.push(`${w} wild`);
+                cardSummary = `<div class="score-cards">${player.hand.length} cards left: ${parts.join(', ')}</div>`;
+            } else {
+                cardSummary = `<div class="score-cards" style="color:#2ecc71;">🎉 Played all cards!</div>`;
+            }
+
+            const row = document.createElement('div');
+            row.className = `score-row${rankClass}`;
+            row.innerHTML = `
+                <div class="score-rank">${rankEmoji[i] || `#${i+1}`}</div>
+                <div style="flex:1;">
+                    <div class="score-name">
+                        ${player.name}
+                        ${isYou ? '<span class="score-you-tag">YOU</span>' : ''}
+                    </div>
+                    ${cardSummary}
+                </div>
+                <div class="score-points ${ptsClass}">${pts === 0 ? '+0' : pts}</div>
+            `;
+            rows.appendChild(row);
+        });
+
+        // Scoring legend
+        const legend = document.createElement('div');
+        legend.style.cssText = 'font-size:0.8em;color:var(--text-muted);margin-top:6px;line-height:1.7;';
+        legend.innerHTML = '📋 Scoring: Number card <strong>−3</strong> &nbsp;|&nbsp; Action/Draw <strong>−2</strong> &nbsp;|&nbsp; Wild <strong>−1</strong>';
+        rows.appendChild(legend);
+
+        showScreen('scoreboardScreen');
+    }
+
+
         document.getElementById('message').textContent = msg;
     }
 
