@@ -392,80 +392,179 @@
         }
 
         /* ── DARK MODE TOGGLE ── */
-        /* ── FLOATING SETTINGS PANEL ── */
+        /* ═══════════════════════════════════════════════════
+           FLOATING SETTINGS  ─  matches menu-container style
+           ═══════════════════════════════════════════════════ */
+
+        /* ── Trigger button (top-right corner) ─────────── */
         #settingsGearBtn {
-            position:fixed; top:14px; right:14px; z-index:9100;
-            width:42px; height:42px; border-radius:50%; border:none; cursor:pointer;
-            background:var(--surface-glass-strong); backdrop-filter:blur(10px);
-            border:1.5px solid rgba(255,255,255,0.28);
-            display:flex; align-items:center; justify-content:center;
-            font-size:20px; box-shadow:0 2px 14px rgba(0,0,0,0.28);
-            transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1), background 0.3s;
+            position: fixed;
+            top: 14px; right: 14px;
+            z-index: 9100;
+            display: flex; align-items: center; gap: 8px;
+            padding: 11px 22px;
+            border: none; border-radius: 50px; cursor: pointer;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 800; font-size: 0.95em;
+            box-shadow: 0 4px 18px rgba(102,126,234,0.55);
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+            -webkit-tap-highlight-color: transparent;
         }
-        #settingsGearBtn:hover { transform:rotate(45deg); }
-        html[data-theme="dark"] #settingsGearBtn { background:rgba(140,100,255,0.22); border-color:rgba(140,100,255,0.4); }
+        #settingsGearBtn:hover  { transform: translateY(-2px); box-shadow: 0 7px 26px rgba(102,126,234,0.7); }
+        #settingsGearBtn:active { transform: translateY(1px); }
+        #settingsGearBtn .sg-icon {
+            display: inline-block; font-size: 1.1em;
+            transition: transform 0.45s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        #settingsGearBtn:hover .sg-icon { transform: rotate(90deg); }
+        html[data-theme="dark"] #settingsGearBtn {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            box-shadow: 0 4px 18px rgba(124,58,237,0.55);
+        }
 
+        /* ── Floating panel (same feel as .menu-container) ─ */
         #settingsFloatPanel {
-            position:fixed; top:66px; right:14px; z-index:9099;
-            width:260px; border-radius:18px;
-            background:var(--surface-glass-strong); backdrop-filter:blur(18px);
-            border:1.5px solid rgba(255,255,255,0.22);
-            box-shadow:0 8px 32px rgba(0,0,0,0.32);
-            padding:18px 20px 16px;
-            transform:translateY(-12px) scale(0.95);
-            opacity:0; pointer-events:none;
-            transition:transform 0.28s cubic-bezier(0.34,1.56,0.64,1), opacity 0.22s ease;
+            position: fixed;
+            top: 62px; right: 14px;
+            z-index: 9099;
+            width: 320px;
+            max-height: calc(100vh - 80px);
+            overflow-y: auto;
+            border-radius: 28px;
+            background: var(--surface);
+            box-shadow: var(--menu-shadow);
+            /* enter animation */
+            transform: translateY(-16px) scale(0.95);
+            opacity: 0;
+            pointer-events: none;
+            transition: transform 0.32s cubic-bezier(0.34,1.56,0.64,1),
+                        opacity    0.22s ease;
         }
-        #settingsFloatPanel.open { transform:translateY(0) scale(1); opacity:1; pointer-events:auto; }
-        html[data-theme="dark"] #settingsFloatPanel { background:rgba(18,10,36,0.88); border-color:rgba(140,100,255,0.3); }
-
-        .sfp-title { font-size:0.78em; font-weight:700; letter-spacing:1.5px; text-transform:uppercase;
-            color:var(--text-muted); margin-bottom:14px; }
-        .sfp-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
-        .sfp-label { font-size:0.92em; font-weight:600; color:var(--text-primary); }
-        .sfp-sublabel { font-size:0.76em; color:var(--text-muted); margin-top:1px; }
-
-        /* dark mode mini toggle inside panel */
-        .sfp-toggle { position:relative; width:44px; height:24px; flex-shrink:0; }
-        .sfp-toggle input { opacity:0; width:0; height:0; }
-        .sfp-toggle-track {
-            position:absolute; inset:0; border-radius:12px; cursor:pointer;
-            background:rgba(120,120,140,0.35); transition:background 0.3s;
+        #settingsFloatPanel.open {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+            pointer-events: auto;
         }
-        .sfp-toggle input:checked + .sfp-toggle-track { background:#7c3aed; }
-        .sfp-toggle-track::after {
-            content:''; position:absolute; top:3px; left:3px;
-            width:18px; height:18px; border-radius:50%; background:white;
-            transition:transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
-            box-shadow:0 1px 4px rgba(0,0,0,0.3);
-        }
-        .sfp-toggle input:checked + .sfp-toggle-track::after { transform:translateX(20px); }
 
-        /* volume slider */
-        .sfp-volume-row { flex-direction:column; align-items:stretch; gap:6px; }
-        .sfp-volume-row .sfp-top { display:flex; justify-content:space-between; align-items:center; }
+        /* ── Panel header — Orbitron h2 like menus ────── */
+        .sfp-header {
+            padding: 24px 26px 20px;
+            text-align: center;
+            border-bottom: 2px solid var(--input-border, rgba(102,126,234,0.12));
+        }
+        .sfp-header h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.25em; font-weight: 700;
+            color: var(--menu-h1);
+            margin: 0; letter-spacing: 1px;
+        }
+        html[data-theme="dark"] .sfp-header {
+            border-color: rgba(255,255,255,0.08);
+        }
+
+        /* ── Panel body ────────────────────────────────── */
+        .sfp-body {
+            padding: 20px 26px 24px;
+            display: flex; flex-direction: column; gap: 20px;
+        }
+
+        /* tiny uppercase section label */
+        .sfp-sec {
+            font-size: 0.68em; font-weight: 900;
+            letter-spacing: 2.5px; text-transform: uppercase;
+            color: var(--text-muted); margin-bottom: 6px;
+        }
+
+        /* setting row card — tinted, matches setting-item feel */
+        .sfp-card {
+            display: flex; align-items: center;
+            justify-content: space-between;
+            background: var(--input-bg, rgba(102,126,234,0.07));
+            border: 2px solid var(--input-border, rgba(102,126,234,0.14));
+            border-radius: 16px; padding: 14px 18px;
+        }
+        html[data-theme="dark"] .sfp-card {
+            background: rgba(255,255,255,0.04);
+            border-color: rgba(255,255,255,0.09);
+        }
+        .sfp-card-lbl { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 1em; color: var(--text-primary); }
+        .sfp-card-sub { font-size: 0.78em; color: var(--text-muted); margin-top: 3px; }
+
+        /* volume card */
+        .sfp-vol-card {
+            background: var(--input-bg, rgba(102,126,234,0.07));
+            border: 2px solid var(--input-border, rgba(102,126,234,0.14));
+            border-radius: 16px; padding: 14px 18px;
+            display: flex; flex-direction: column; gap: 12px;
+        }
+        html[data-theme="dark"] .sfp-vol-card {
+            background: rgba(255,255,255,0.04);
+            border-color: rgba(255,255,255,0.09);
+        }
+        .sfp-vol-top { display: flex; justify-content: space-between; align-items: center; }
+        .sfp-vol-pct {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.05em; font-weight: 700;
+            color: var(--menu-h1);
+        }
         input[type=range]#sfpVolume {
-            width:100%; height:5px; border-radius:3px; appearance:none;
-            background:linear-gradient(to right, #7c3aed var(--vol,70%), rgba(120,120,140,0.3) var(--vol,70%));
-            cursor:pointer; outline:none; border:none;
+            -webkit-appearance: none; appearance: none;
+            width: 100%; height: 6px; border-radius: 3px;
+            border: none; outline: none; cursor: pointer;
+            background: linear-gradient(
+                to right,
+                #667eea var(--vol, 70%),
+                var(--input-border, rgba(102,126,234,0.2)) var(--vol, 70%)
+            );
         }
         input[type=range]#sfpVolume::-webkit-slider-thumb {
-            appearance:none; width:16px; height:16px; border-radius:50%;
-            background:#7c3aed; box-shadow:0 1px 5px rgba(0,0,0,0.35); cursor:pointer;
+            -webkit-appearance: none;
+            width: 22px; height: 22px; border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            box-shadow: 0 2px 8px rgba(102,126,234,0.55);
+            cursor: pointer;
         }
         input[type=range]#sfpVolume::-moz-range-thumb {
-            width:16px; height:16px; border-radius:50%; border:none;
-            background:#7c3aed; box-shadow:0 1px 5px rgba(0,0,0,0.35); cursor:pointer;
+            width: 22px; height: 22px; border-radius: 50%; border: none;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            box-shadow: 0 2px 8px rgba(102,126,234,0.55);
+            cursor: pointer;
         }
 
-        /* background select inside panel */
-        #sfpBgSelect {
-            width:100%; padding:6px 10px; border-radius:8px; font-size:0.88em;
-            background:var(--input-bg,rgba(255,255,255,0.12)); color:var(--text-primary);
-            border:1.5px solid rgba(255,255,255,0.2); cursor:pointer; outline:none;
+        /* select card */
+        .sfp-sel-card {
+            background: var(--input-bg, rgba(102,126,234,0.07));
+            border: 2px solid var(--input-border, rgba(102,126,234,0.14));
+            border-radius: 16px; padding: 14px 18px;
+            display: flex; flex-direction: column; gap: 10px;
         }
-        html[data-theme="dark"] #sfpBgSelect { background:rgba(255,255,255,0.07); border-color:rgba(140,100,255,0.3); }
-        .sfp-divider { height:1px; background:rgba(255,255,255,0.12); margin:10px 0 14px; }
+        html[data-theme="dark"] .sfp-sel-card {
+            background: rgba(255,255,255,0.04);
+            border-color: rgba(255,255,255,0.09);
+        }
+        #sfpBgSelect {
+            width: 100%; padding: 11px 14px; border-radius: 10px;
+            font-size: 1em; font-family: 'Nunito', sans-serif; font-weight: 700;
+            background: var(--input-bg); color: var(--input-text);
+            border: 2px solid var(--input-border); cursor: pointer; outline: none;
+        }
+
+        /* close button — matches .menu-button */
+        .sfp-close-btn {
+            display: block; width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff; border: none;
+            padding: 16px; font-size: 1.1em; font-weight: 800;
+            border-radius: 14px; cursor: pointer;
+            font-family: 'Nunito', sans-serif;
+            box-shadow: 0 5px 16px rgba(102,126,234,0.45);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .sfp-close-btn:hover  { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(102,126,234,0.6); }
+        .sfp-close-btn:active { transform: translateY(1px); }
 
         /* ── OVERLAYS / POPUPS ── */
         .overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:999; }
@@ -603,7 +702,8 @@
 </head>
 <body>
 
-<!-- ── SCREENS ─────────────────────────────────────────────── -->
+
+<!-- Main Menu Screen -->
 <div id="mainMenuScreen" class="screen active">
     <div class="menu-container">
         <h1>🎴 O,No 🎴</h1>
@@ -614,6 +714,7 @@
     </div>
 </div>
 
+<!-- Settings Screen -->
 <div id="settingsScreen" class="screen">
     <div class="menu-container">
         <h2>⚙️ Settings</h2>
@@ -647,7 +748,7 @@
     </div>
 </div>
 
-<!-- Game Screen (uses same oval layout as online) -->
+<!-- Game Screen -->
 <div id="gameScreen" class="screen">
     <div class="game-table-wrapper">
         <div class="game-info">
@@ -708,38 +809,59 @@
 <!-- Penalty Flash -->
 <div id="penaltyFlash"></div>
 
-<!-- Floating Settings Panel -->
-<button id="settingsGearBtn" onclick="toggleSettingsPanel()" title="Settings" aria-label="Open settings">⚙️</button>
-<div id="settingsFloatPanel" role="dialog" aria-label="Settings panel">
-    <div class="sfp-title">Settings</div>
+<!-- ⚙️ Floating Settings Button + Panel -->
+<button id="settingsGearBtn" onclick="toggleSettingsPanel()"
+        title="Open Settings" aria-label="Open Settings">
+    <span class="sg-icon">⚙️</span> Settings
+</button>
 
-    <div class="sfp-row">
-        <div><div class="sfp-label">🌙 Dark Mode</div></div>
-        <label class="sfp-toggle">
-            <input type="checkbox" id="sfpDarkToggle" onchange="sfpSetTheme(this.checked)">
-            <span class="sfp-toggle-track"></span>
-        </label>
-    </div>
+<div id="settingsFloatPanel" role="dialog" aria-label="Quick Settings">
+    <div class="sfp-header"><h2>⚙️ Settings</h2></div>
+    <div class="sfp-body">
 
-    <div class="sfp-divider"></div>
-
-    <div class="sfp-row sfp-volume-row">
-        <div class="sfp-top">
-            <div class="sfp-label">🔊 Volume</div>
-            <div class="sfp-label" id="sfpVolLabel">70%</div>
+        <!-- Appearance -->
+        <div>
+            <div class="sfp-sec">Appearance</div>
+            <div class="sfp-card">
+                <div>
+                    <div class="sfp-card-lbl">🌙 Dark Mode</div>
+                    <div class="sfp-card-sub">Switch theme</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="sfpDarkToggle"
+                           onchange="sfpSetTheme(this.checked)">
+                    <span class="slider-toggle"></span>
+                </label>
+            </div>
         </div>
-        <input type="range" id="sfpVolume" min="0" max="100" value="70" oninput="sfpSetVolume(this.value)">
-    </div>
 
-    <div class="sfp-divider"></div>
+        <!-- Background -->
+        <div>
+            <div class="sfp-sec">Background</div>
+            <div class="sfp-sel-card">
+                <div class="sfp-card-lbl">🎨 Animation Style</div>
+                <select id="sfpBgSelect" onchange="sfpSetBg(this.value)">
+                    <option value="static">Static</option>
+                    <option value="color-cycle">Color Cycling</option>
+                    <option value="pulsing">Pulsing</option>
+                </select>
+            </div>
+        </div>
 
-    <div class="sfp-row" style="flex-direction:column; align-items:stretch; gap:6px;">
-        <div class="sfp-label">🎨 Background</div>
-        <select id="sfpBgSelect" onchange="sfpSetBg(this.value)">
-            <option value="static">Static</option>
-            <option value="color-cycle">Color Cycling</option>
-            <option value="pulsing">Pulsing</option>
-        </select>
+        <!-- Audio -->
+        <div>
+            <div class="sfp-sec">Audio</div>
+            <div class="sfp-vol-card">
+                <div class="sfp-vol-top">
+                    <div class="sfp-card-lbl">🔊 Volume</div>
+                    <div class="sfp-vol-pct" id="sfpVolLabel">70%</div>
+                </div>
+                <input type="range" id="sfpVolume" min="0" max="100" value="70"
+                       oninput="sfpSetVolume(this.value)">
+            </div>
+        </div>
+
+        <button class="sfp-close-btn" onclick="toggleSettingsPanel()">✕ Close</button>
     </div>
 </div>
 
@@ -795,20 +917,21 @@ let settings = {
 // ── THEME ────────────────────────────────────────────────────
 function applyTheme(t){
     document.documentElement.setAttribute('data-theme',t);
-
-    // Force body background to use the updated CSS variables
     const a = t==='dark' ? '#0d0d1a' : '#667eea';
     const b = t==='dark' ? '#1a0a2e' : '#764ba2';
     document.body.style.setProperty('--bg-grad-a', a);
     document.body.style.setProperty('--bg-grad-b', b);
-    // Re-apply animation class so background gradient refreshes
     applyBgAnim();
+    const cb=document.getElementById('sfpDarkToggle');
+    if(cb) cb.checked=(t==='dark');
 }
 function toggleDarkMode(){
     const c=document.documentElement.getAttribute('data-theme')||'light';
     const n=c==='dark'?'light':'dark';
     localStorage.setItem('ono-theme',n); applyTheme(n);
 }
+
+
 // Init theme after DOM ready
 document.addEventListener('DOMContentLoaded', function(){
     const t = localStorage.getItem('ono-theme')||'light';
@@ -1559,6 +1682,61 @@ function playSound(name) {
 }
 
 // ── INIT ─────────────────────────────────────────────────────
+
+// ── FLOATING SETTINGS PANEL ──────────────────────────────────────────
+let _sfpOpen = false;
+
+function toggleSettingsPanel() {
+    _sfpOpen = !_sfpOpen;
+    const panel = document.getElementById('settingsFloatPanel');
+    panel.classList.toggle('open', _sfpOpen);
+    if (_sfpOpen) _sfpSync();
+}
+function _sfpSync() {
+    const t = document.documentElement.getAttribute('data-theme') || 'light';
+    const cb = document.getElementById('sfpDarkToggle');
+    if (cb) cb.checked = (t === 'dark');
+
+    const v = Math.round(parseFloat(localStorage.getItem('ono-volume') || '0.7') * 100);
+    const sl = document.getElementById('sfpVolume');
+    if (sl) { sl.value = v; sl.style.setProperty('--vol', v + '%'); }
+    const lbl = document.getElementById('sfpVolLabel');
+    if (lbl) lbl.textContent = v + '%';
+
+    const bg = localStorage.getItem('onoBackgroundAnimation') || settings.backgroundAnimation || 'static';
+    const sel = document.getElementById('sfpBgSelect');
+    if (sel) sel.value = bg;
+}
+function sfpSetTheme(on) {
+    const t = on ? 'dark' : 'light';
+    localStorage.setItem('ono-theme', t);
+    applyTheme(t);
+}
+function sfpSetVolume(val) {
+    const v = parseInt(val) / 100;
+    localStorage.setItem('ono-volume', v);
+    Object.values(SFX).forEach(a => { try { a.volume = v; } catch(e) {} });
+    const lbl = document.getElementById('sfpVolLabel');
+    if (lbl) lbl.textContent = Math.round(val) + '%';
+    const sl = document.getElementById('sfpVolume');
+    if (sl) sl.style.setProperty('--vol', Math.round(val) + '%');
+}
+function sfpSetBg(val) {
+    settings.backgroundAnimation = val;
+    localStorage.setItem('onoBackgroundAnimation', val);
+    localStorage.setItem('onoGameSettings', JSON.stringify(settings));
+    applyBgAnim();
+}
+document.addEventListener('click', function(e) {
+    if (!_sfpOpen) return;
+    const panel = document.getElementById('settingsFloatPanel');
+    const btn   = document.getElementById('settingsGearBtn');
+    if (panel && !panel.contains(e.target) && btn && !btn.contains(e.target)) {
+        _sfpOpen = false;
+        panel.classList.remove('open');
+    }
+});
+
 loadSettings();
 // Apply saved volume to SFX
 (function(){
