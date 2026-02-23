@@ -823,6 +823,9 @@ function applyTheme(t){
     document.body.style.setProperty('--bg-grad-a', a);
     document.body.style.setProperty('--bg-grad-b', b);
     applyBgAnim();
+    const cb=document.getElementById(\'sfpDarkToggle\');
+    if(cb) cb.checked=(t===\'dark\');
+    // sync panel checkbox
     const cb=document.getElementById('sfpDarkToggle');
     if(cb) cb.checked=(t==='dark');
 }
