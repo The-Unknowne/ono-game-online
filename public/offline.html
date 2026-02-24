@@ -161,6 +161,121 @@
         input:checked + .slider-toggle { background:#2ecc71; }
         input:checked + .slider-toggle:before { transform:translateX(26px); }
 
+
+        /* ── MERCY MODE THEME ───────────────────────────────────── */
+        html[data-mercy="1"] {
+            --bg-grad-a: #7b0d0d;
+            --bg-grad-b: #3d0000;
+            --menu-h1: #ff6b6b;
+            --menu-shadow: 0 20px 60px rgba(180,0,0,0.6), 0 0 0 1px rgba(255,100,100,0.1);
+        }
+        html[data-theme="dark"][data-mercy="1"] {
+            --bg-grad-a: #3d0000;
+            --bg-grad-b: #1a0000;
+            --menu-h1: #ff9999;
+            --menu-shadow: 0 20px 80px rgba(180,0,0,0.8), 0 0 0 1px rgba(255,100,100,0.12);
+        }
+        html[data-mercy="1"] #settingsGearBtn {
+            background: linear-gradient(135deg, #c0392b, #922b21) !important;
+            box-shadow: 0 4px 18px rgba(192,57,43,0.55) !important;
+        }
+        html[data-mercy="1"] .menu-button {
+            background: linear-gradient(135deg, #c0392b, #922b21);
+            box-shadow: 0 6px 15px rgba(192,57,43,0.4);
+        }
+        html[data-mercy="1"] .menu-button.green {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            box-shadow: 0 6px 15px rgba(231,76,60,0.4);
+        }
+        html[data-mercy="1"] .menu-button.settings {
+            background: linear-gradient(135deg, #922b21, #7b241c);
+            box-shadow: 0 6px 15px rgba(146,43,33,0.4);
+        }
+        html[data-mercy="1"] .sfp-header h2 { color: #ff6b6b; }
+        html[data-mercy="1"] .sfp-close-btn,
+        html[data-mercy="1"] #modePickerBtn {
+            background: linear-gradient(135deg, #c0392b, #922b21) !important;
+            box-shadow: 0 4px 14px rgba(192,57,43,0.45) !important;
+        }
+        html[data-mercy="1"] .sfp-vol-pct { color: #ff6b6b; }
+        html[data-mercy="1"] input[type=range]#sfpVolume {
+            background: linear-gradient(to right, #c0392b var(--vol,70%), var(--input-border,rgba(192,57,43,0.2)) var(--vol,70%));
+        }
+        html[data-mercy="1"] input[type=range]#sfpVolume::-webkit-slider-thumb,
+        html[data-mercy="1"] input[type=range]#sfpVolume::-moz-range-thumb {
+            background: linear-gradient(135deg,#e74c3c,#c0392b);
+        }
+
+        /* Mercy card styles */
+        .card.mercy-draw      { background: linear-gradient(145deg,#6a0dad,#9b59b6) !important; }
+        .card.mercy-draw-big  { background: linear-gradient(145deg,#3a0080,#7c3aed) !important; }
+        .card.mercy-skipall   { background: linear-gradient(145deg,#c0392b,#e74c3c) !important; }
+        .card.mercy-roulette  { background: linear-gradient(145deg,#b7185e,#e91e63) !important; }
+        .card.mercy-draw .card-inner, .card.mercy-draw-big .card-inner,
+        .card.mercy-skipall .card-inner, .card.mercy-roulette .card-inner {
+            color: #fff !important; background: rgba(0,0,0,0.25) !important;
+            font-size: 0.65em; letter-spacing: 0.5px;
+        }
+
+        /* Mode picker styles (same as index) */
+        .mode-picker-wrapper {
+            margin-top: 8px; overflow: hidden;
+            transition: max-height 0.45s cubic-bezier(0.4,0,0.2,1), opacity 0.35s ease;
+            max-height: 0; opacity: 0;
+        }
+        .mode-picker-wrapper.open { max-height: 600px; opacity: 1; }
+        .mode-picker-label {
+            font-size: 0.72em; font-weight: 900; letter-spacing: 2.5px;
+            text-transform: uppercase; color: var(--text-muted);
+            margin: 14px 0 10px; text-align: center;
+        }
+        .mode-cards { display: flex; flex-direction: column; gap: 10px; margin-bottom: 6px; }
+        .mode-card {
+            border-radius: 18px; padding: 16px 20px; cursor: pointer; text-align: left;
+            border: 2.5px solid transparent;
+            background: var(--input-bg, rgba(102,126,234,0.07));
+            transition: transform 0.18s ease, border-color 0.2s, box-shadow 0.2s, background 0.2s;
+            position: relative; overflow: hidden;
+        }
+        .mode-card::before {
+            content: ''; position: absolute; inset: 0;
+            background: var(--mode-accent, linear-gradient(135deg,#667eea,#764ba2));
+            opacity: 0; transition: opacity 0.2s; border-radius: 16px;
+        }
+        .mode-card:hover  { transform: translateY(-2px); }
+        .mode-card:active { transform: translateY(1px); }
+        .mode-card.selected { border-color: transparent; box-shadow: 0 6px 24px rgba(102,126,234,0.4); }
+        .mode-card.selected::before { opacity: 1; }
+        .mode-card.selected .mode-card-inner * { color: #fff !important; }
+        .mode-card.mercy { --mode-accent: linear-gradient(135deg,#e74c3c,#c0392b); }
+        .mode-card.mercy.selected { box-shadow: 0 6px 24px rgba(231,76,60,0.45); }
+        .mode-card-inner { position: relative; z-index: 1; }
+        .mode-card-title {
+            font-family: 'Orbitron', sans-serif; font-size: 1em; font-weight: 700;
+            color: var(--text-primary); margin-bottom: 4px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .mode-card-badge {
+            font-family: 'Nunito', sans-serif; font-size: 0.68em; font-weight: 800;
+            letter-spacing: 1.5px; text-transform: uppercase;
+            background: rgba(102,126,234,0.15); color: #667eea;
+            padding: 2px 8px; border-radius: 20px;
+        }
+        .mode-card.mercy .mode-card-badge { background: rgba(231,76,60,0.12); color: #e74c3c; }
+        .mode-card.selected .mode-card-badge { background: rgba(255,255,255,0.25); color: #fff; }
+        .mode-card-desc { font-size: 0.82em; color: var(--text-muted); line-height: 1.5; margin-top: 2px; }
+        .mode-card-rules { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+        .mode-rule-tag {
+            font-size: 0.72em; font-weight: 700;
+            background: rgba(102,126,234,0.1); color: #667eea;
+            border-radius: 20px; padding: 3px 10px; border: 1px solid rgba(102,126,234,0.2);
+        }
+        .mode-card.mercy .mode-rule-tag { background: rgba(231,76,60,0.1); color: #e74c3c; border-color: rgba(231,76,60,0.2); }
+        .mode-card.selected .mode-rule-tag { background: rgba(255,255,255,0.18); color: #fff; border-color: rgba(255,255,255,0.3); }
+        html[data-theme="dark"] .mode-card { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.07); }
+        .mode-chevron { display: inline-block; margin-left: 6px; font-size: 0.75em; transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1); vertical-align: middle; }
+        .mode-chevron.open { transform: rotate(180deg); }
+
         /* ── GAME TABLE (OVAL LAYOUT) ── */
         .game-table-wrapper {
             display:flex; flex-direction:column; align-items:center;
@@ -707,7 +822,46 @@
 <div id="mainMenuScreen" class="screen active">
     <div class="menu-container">
         <h1>🎴 O,No 🎴</h1>
-        <p style="margin-bottom:30px;color:var(--text-muted);">Classic Card Game vs Computer</p>
+        <p style="margin-bottom:20px;color:var(--text-muted);">Classic Card Game vs Computer</p>
+
+        <!-- Game Mode Picker -->
+        <button class="menu-button" id="modePickerBtn" onclick="toggleModePicker()"
+                style="background:linear-gradient(135deg,#f093fb,#f5576c);box-shadow:0 6px 18px rgba(240,147,251,0.4);margin-bottom:6px;">
+            🎲 Game Mode: <span id="modeLabel">Original</span>
+            <span class="mode-chevron" id="modeChevron">▼</span>
+        </button>
+        <div class="mode-picker-wrapper" id="modePickerPanel">
+            <div class="mode-picker-label">Select a game mode</div>
+            <div class="mode-cards">
+                <div class="mode-card selected" id="modeCard-original" onclick="selectMode('original')">
+                    <div class="mode-card-inner">
+                        <div class="mode-card-title">🃏 Original <span class="mode-card-badge">Classic</span></div>
+                        <div class="mode-card-desc">The standard O,No experience. Familiar rules, pure card-game fun.</div>
+                        <div class="mode-card-rules">
+                            <span class="mode-rule-tag">+2 / +4</span>
+                            <span class="mode-rule-tag">Skip & Reverse</span>
+                            <span class="mode-rule-tag">Wild Cards</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="mode-card mercy" id="modeCard-mercy" onclick="selectMode('mercy')">
+                    <div class="mode-card-inner">
+                        <div class="mode-card-title">💀 Please Have Mercy <span class="mode-card-badge">Chaos</span></div>
+                        <div class="mode-card-desc">Brutal chaos mode. Stack devastating draw cards, get knocked out at 25 cards, and survive new special wilds.</div>
+                        <div class="mode-card-rules">
+                            <span class="mode-rule-tag">☠️ Mercy Rule (25 cards)</span>
+                            <span class="mode-rule-tag">🔥 Stack +2/+4/+6/+10</span>
+                            <span class="mode-rule-tag">🎯 Draw Until Play</span>
+                            <span class="mode-rule-tag">↔️ 7s & 0s</span>
+                            <span class="mode-rule-tag">⚡ Skip Everyone</span>
+                            <span class="mode-rule-tag">🃏 Wild +6 / +10</span>
+                            <span class="mode-rule-tag">🎰 Color Roulette</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <button class="menu-button green" onclick="startGame()">▶ Play Game</button>
         <button class="menu-button settings" onclick="showSettingsScreen()">⚙️ Settings</button>
         <button class="menu-button quit" onclick="confirmQuit()">🏠 Back to Home</button>
@@ -893,6 +1047,45 @@
 </div>
 
 <script>
+
+// ── GAME MODE PICKER ──────────────────────────────────────────
+let selectedGameMode = 'original';
+
+function toggleModePicker(){
+    const panel   = document.getElementById('modePickerPanel');
+    const chevron = document.getElementById('modeChevron');
+    const isOpen  = panel.classList.toggle('open');
+    chevron.classList.toggle('open', isOpen);
+}
+function selectMode(mode){
+    selectedGameMode = mode;
+    document.querySelectorAll('.mode-card').forEach(c=>c.classList.remove('selected'));
+    document.getElementById('modeCard-'+mode).classList.add('selected');
+    const labels = { original:'Original', mercy:'Please Have Mercy' };
+    document.getElementById('modeLabel').textContent = labels[mode]||mode;
+    document.getElementById('modePickerPanel').classList.remove('open');
+    document.getElementById('modeChevron').classList.remove('open');
+    // Apply red mercy theme immediately on selection
+    applyMercyTheme(mode === 'mercy');
+}
+function isMercy(){ return selectedGameMode === 'mercy'; }
+
+function applyMercyTheme(on){
+    document.documentElement.setAttribute('data-mercy', on ? '1' : '0');
+    // Force background to re-resolve with mercy colours
+    const a = getComputedStyle(document.documentElement).getPropertyValue('--bg-grad-a').trim();
+    const b = getComputedStyle(document.documentElement).getPropertyValue('--bg-grad-b').trim();
+    document.body.style.backgroundImage = `linear-gradient(135deg,${a} 0%,${b} 100%)`;
+    const btnPicker = document.getElementById('modePickerBtn');
+    if(btnPicker && on){
+        btnPicker.style.background = 'linear-gradient(135deg,#e74c3c,#c0392b)';
+        btnPicker.style.boxShadow  = '0 6px 18px rgba(231,76,60,0.45)';
+    } else if(btnPicker){
+        btnPicker.style.background = 'linear-gradient(135deg,#f093fb,#f5576c)';
+        btnPicker.style.boxShadow  = '0 6px 18px rgba(240,147,251,0.4)';
+    }
+}
+
 // ── CONSTANTS ───────────────────────────────────────────────
 const COLORS  = ['red','blue','green','yellow'];
 const NUMBERS = ['0','1','2','3','4','5','6','7','8','9'];
@@ -911,7 +1104,7 @@ let prevStackCount=0;
 let settings = {
     difficulty:'medium', startingCards:7, allowStacking:false,
     allowSpecial07:false, allowJumpIn:false, allowPlus12:false,
-    drawOnePerTurn:false, backgroundAnimation:'static', soundEffects:true
+    drawOnePerTurn:false, backgroundAnimation:'static', soundEffects:true, gameMode:'original'
 };
 
 // ── THEME ────────────────────────────────────────────────────
@@ -1019,7 +1212,11 @@ function confirmQuit(){
 }
 
 // ── GAME INIT ────────────────────────────────────────────────
-function startGame(){ showScreen('gameScreen'); startNewGame(); }
+function startGame(){
+    settings.gameMode = selectedGameMode;
+    applyMercyTheme(isMercy());
+    showScreen('gameScreen'); startNewGame();
+}
 
 function startNewGame(){
     document.getElementById('overlay').classList.remove('active');
@@ -1054,6 +1251,14 @@ function createDeck(){
     if(settings.allowPlus12){
         deck.push({color:'wild',value:'+12',type:'wild'});
         deck.push({color:'wild',value:'+12',type:'wild'});
+    }
+    if(isMercy()){
+        for(let i=0;i<2;i++){
+            deck.push({color:'wild',value:'Wild+6',  type:'wild'});
+            deck.push({color:'wild',value:'Wild+10', type:'wild'});
+            deck.push({color:'wild',value:'SkipAll', type:'wild'});
+            deck.push({color:'wild',value:'Roulette',type:'wild'});
+        }
     }
     shuffle(deck);
 }
@@ -1178,9 +1383,12 @@ function renderDiscardPile(){
 
 function createCardEl(card){
     const div=document.createElement('div');
-    div.className=`card ${card.value==='+12'?'plus12':card.color}`;
+    const MERCY_CLASS={'Wild+6':'wild mercy-draw','Wild+10':'wild mercy-draw-big','SkipAll':'wild mercy-skipall','Roulette':'wild mercy-roulette'};
+    const cls = card.value==='+12' ? 'plus12' : (MERCY_CLASS[card.value] || card.color);
+    div.className=`card ${cls}`;
+    const LABELS={'Wild+4':'+4','Wild+6':'+6','Wild+10':'+10','+12':'+12','SkipAll':'SKIP ALL','Roulette':'ROULETTE','Wild':'WILD'};
     const inner=document.createElement('div');
-    inner.className='card-inner'; inner.textContent=card.value;
+    inner.className='card-inner'; inner.textContent=LABELS[card.value]||card.value;
     div.appendChild(inner);
     return div;
 }
@@ -1218,7 +1426,9 @@ function renderPlayerHand(){
 // ── CARD LOGIC ───────────────────────────────────────────────
 function canPlay(card){
     if(card.type==='wild') return true;
-    if(settings.allowStacking&&stackedDrawCount>0){
+    const stacking = settings.allowStacking || isMercy();
+    if(stacking&&stackedDrawCount>0){
+        if(isMercy()) return ['+2','Wild+4','Wild+6','Wild+10'].includes(card.value);
         return (currentValue==='+2'&&card.value==='+2')||(currentValue==='Wild+4'&&card.value==='Wild+4');
     }
     return card.color===currentColor||card.value===currentValue;
@@ -1271,26 +1481,54 @@ function doJumpIn(index){
 
 function handlePlayerEffect(card){
     const next=()=>{ setTimeout(()=>computerTurn(),1200); };
+    const use07 = settings.allowSpecial07 || isMercy();
+    const stacking = settings.allowStacking || isMercy();
     switch(card.value){
         case '0':
-            if(settings.allowSpecial07){ swapHands(); showMessage('Hands swapped with CPU! 🔄'); setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn again!'); },1500); }
+            if(use07){ swapHands(); showMessage('Hands swapped with CPU! 🔄'); setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn again!'); },1500); }
             else next(); break;
         case '7':
-            if(settings.allowSpecial07){ swapHands(); showMessage('You swapped hands with CPU! 🔄'); setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn again!'); },1500); }
+            if(use07){ swapHands(); showMessage('You swapped hands with CPU! 🔄'); setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn again!'); },1500); }
             else next(); break;
         case 'Skip':
-            playSound('skip');
-            showMessage('CPU skipped!');
+            playSound('skip'); showMessage('CPU skipped!');
             setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn again!'); },1200); break;
         case 'Reverse':
-            direction*=-1; updateDirectionArrows();
-            playSound('skip');
-            showMessage('Direction reversed!');
+            direction*=-1; updateDirectionArrows(); playSound('skip'); showMessage('Direction reversed!');
             setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn again!'); },1200); break;
         case '+2':
-            if(settings.allowStacking){ stackedDrawCount+=2; updateInfoBar(); showMessage(`CPU must draw ${stackedDrawCount} or stack!`); renderTableSeats(); setTimeout(()=>computerTurn(),1400); }
+            if(stacking){ stackedDrawCount+=2; updateInfoBar(); showMessage(`CPU must draw ${stackedDrawCount} or stack!`); renderTableSeats(); setTimeout(()=>computerTurn(),1400); }
             else { playSound('playDraw'); animateDrawPenaltyLocal('computer',2,'#ff416c',()=>{ for(let i=0;i<2;i++) drawForPlayer('computer'); renderAll(); showMessage('CPU draws 2 and is skipped!'); setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn again!'); },1500); }); }
             break;
+        case 'Wild+4':
+            if(stacking){ stackedDrawCount+=4; updateInfoBar(); showMessage(`CPU must draw ${stackedDrawCount} or stack!`); setTimeout(()=>computerTurn(),1400); }
+            else { playSound('playDraw'); animateDrawPenaltyLocal('computer',4,'#ff416c',()=>{ for(let i=0;i<4;i++) drawForPlayer('computer'); renderAll(); showMessage('CPU draws 4 and is skipped!'); setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn again!'); },1500); }); }
+            break;
+        case 'Wild+6':
+            if(stacking){ stackedDrawCount+=6; updateInfoBar(); showMessage(`CPU must draw ${stackedDrawCount} or stack!`); setTimeout(()=>computerTurn(),1400); }
+            else { playSound('playDraw'); animateDrawPenaltyLocal('computer',6,'#9b59b6',()=>{ for(let i=0;i<6;i++) drawForPlayer('computer'); renderAll(); showMessage('CPU draws 6!'); setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn again!'); },1500); }); }
+            break;
+        case 'Wild+10':
+            if(stacking){ stackedDrawCount+=10; updateInfoBar(); showMessage(`CPU must draw ${stackedDrawCount} or stack!`); setTimeout(()=>computerTurn(),1400); }
+            else { playSound('playDraw'); animateDrawPenaltyLocal('computer',10,'#7c3aed',()=>{ for(let i=0;i<10;i++) drawForPlayer('computer'); renderAll(); showMessage('💀 CPU draws 10!'); setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn again!'); },1500); }); }
+            break;
+        case 'SkipAll':
+            playSound('skip'); showMessage('⚡ Skip All! You go again!');
+            setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn again!'); },1200); break;
+        case 'Roulette':{
+            // CPU draws cards until it finds chosen color
+            const targetColor = currentColor;
+            let drawn=0; let found=false;
+            while(drawn<50&&!found){
+                drawForPlayer('computer'); drawn++;
+                const top=computerHand[computerHand.length-1];
+                if(top&&(top.color===targetColor||top.type==='wild')) found=true;
+            }
+            playSound('draw');
+            renderAll(); showMessage(`🎰 Roulette! CPU draws ${drawn} card${drawn>1?'s':''}!`);
+            checkMercyKnockout('computer');
+            setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn!'); },1800); break;
+        }
         case '+12':
             playSound('playDraw'); animateDrawPenaltyLocal('computer',12,'#ff8c00',()=>{ for(let i=0;i<12;i++) drawForPlayer('computer'); renderAll(); showMessage('💀 CPU draws 12 cards!'); setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn again!'); },1500); });
             break;
@@ -1313,9 +1551,31 @@ function chooseColor(color){
     showMessage(`You chose ${color}!`);
     renderAll();
     setTimeout(()=>{
+        const stacking2 = settings.allowStacking || isMercy();
         if(card.value==='Wild+4'){
-            if(settings.allowStacking){ stackedDrawCount+=4; updateInfoBar(); showMessage(`CPU must draw ${stackedDrawCount} or stack!`); setTimeout(()=>computerTurn(),1400); }
+            if(stacking2){ stackedDrawCount+=4; updateInfoBar(); showMessage(`CPU must draw ${stackedDrawCount} or stack!`); setTimeout(()=>computerTurn(),1400); }
             else { playSound('playDraw'); animateDrawPenaltyLocal('computer',4,'#ff416c',()=>{ for(let i=0;i<4;i++) drawForPlayer('computer'); renderAll(); showMessage('CPU draws 4 and is skipped!'); setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn again!'); },1500); }); }
+        } else if(card.value==='Wild+6'){
+            if(stacking2){ stackedDrawCount+=6; updateInfoBar(); showMessage(`CPU must draw ${stackedDrawCount} or stack!`); setTimeout(()=>computerTurn(),1400); }
+            else { playSound('playDraw'); animateDrawPenaltyLocal('computer',6,'#9b59b6',()=>{ for(let i=0;i<6;i++) drawForPlayer('computer'); renderAll(); showMessage('CPU draws 6!'); setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn again!'); },1500); }); }
+        } else if(card.value==='Wild+10'){
+            if(stacking2){ stackedDrawCount+=10; updateInfoBar(); showMessage(`CPU must draw ${stackedDrawCount} or stack!`); setTimeout(()=>computerTurn(),1400); }
+            else { playSound('playDraw'); animateDrawPenaltyLocal('computer',10,'#7c3aed',()=>{ for(let i=0;i<10;i++) drawForPlayer('computer'); renderAll(); showMessage('💀 CPU draws 10!'); setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn again!'); },1500); }); }
+        } else if(card.value==='SkipAll'){
+            playSound('skip'); showMessage('⚡ Skip All! Your turn again!');
+            setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn!'); },1200);
+        } else if(card.value==='Roulette'){
+            // Player chose color — CPU (next) draws until they get that color
+            const targetColor = currentColor;
+            let drawn=0; let found=false;
+            while(drawn<50&&!found){
+                drawForPlayer('computer'); drawn++;
+                const top=computerHand[computerHand.length-1];
+                if(top&&(top.color===targetColor||top.type==='wild')) found=true;
+            }
+            playSound('draw'); renderAll(); showMessage(`🎰 Roulette! CPU draws ${drawn} card${drawn>1?'s':''}!`);
+            checkMercyKnockout('computer');
+            if(gameInProgress) setTimeout(()=>computerTurn(),1600);
         } else {
             setTimeout(()=>computerTurn(),1000);
         }
@@ -1327,12 +1587,13 @@ function chooseColor(color){
 // ── DRAW ─────────────────────────────────────────────────────
 function drawCard(){
     if(currentPlayer!=='player'||!gameInProgress||isAnimating) return;
-    if(settings.allowStacking&&stackedDrawCount>0){
+    const _stacking = settings.allowStacking || isMercy();
+    if(_stacking&&stackedDrawCount>0){
         const n=stackedDrawCount; stackedDrawCount=0;
         isAnimating=true;
         triggerPenaltyFlash();
         playSound('draw');
-        animateMultiCards('player',n,()=>{ for(let i=0;i<n;i++) drawForPlayer('player'); renderAll(); showMessage(`You drew ${n} cards!`); isAnimating=false; setTimeout(()=>computerTurn(),1200); });
+        animateMultiCards('player',n,()=>{ for(let i=0;i<n;i++) drawForPlayer('player'); renderAll(); showMessage(`You drew ${n} cards!`); isAnimating=false; if(!checkMercyKnockout('player')) setTimeout(()=>computerTurn(),1200); });
         return;
     }
     if(settings.drawOnePerTurn){
@@ -1422,7 +1683,8 @@ function doCPUPlayContinue(){
         }
     } else {
         // CPU must draw
-        if(settings.allowStacking&&stackedDrawCount>0){
+        const _stacking = settings.allowStacking || isMercy();
+    if(_stacking&&stackedDrawCount>0){
             const n=stackedDrawCount; stackedDrawCount=0;
             animateDrawPenaltyLocal('computer',n,'#ff416c',()=>{
                 for(let i=0;i<n;i++) drawForPlayer('computer'); renderAll();
@@ -1444,34 +1706,77 @@ function doCPUPlayContinue(){
     }
 }
 
+function checkMercyKnockout(who){
+    if(!isMercy()) return false;
+    const hand = who==='player' ? playerHand : computerHand;
+    if(hand.length>=25){
+        const msg = who==='player'
+            ? '☠️ You were knocked out! (25+ cards)'
+            : '☠️ CPU was knocked out! (25+ cards)';
+        showMessage(msg);
+        triggerPenaltyFlash();
+        if(who==='player'){ playerHand=[]; }
+        else { computerHand=[]; }
+        renderAll();
+        setTimeout(()=>endGame(who==='player'?'computer':'player'),1500);
+        return true;
+    }
+    return false;
+}
+
 function handleCPUEffect(card){
     if(!gameInProgress) return;
+    const use07 = settings.allowSpecial07 || isMercy();
+    const stacking = settings.allowStacking || isMercy();
     switch(card.value){
         case '0':
-            if(settings.allowSpecial07){ swapHands(); showMessage('CPU played 0 — hands swapped! 🔄'); renderAll(); setTimeout(()=>doCPUPlay(),1200); }
+            if(use07){ swapHands(); showMessage('CPU played 0 — hands swapped! 🔄'); renderAll(); setTimeout(()=>doCPUPlay(),1200); }
             else playerTurn(); break;
         case '7':
-            if(settings.allowSpecial07){ swapHands(); showMessage('CPU played 7 — hands swapped! 🔄'); renderAll(); setTimeout(()=>doCPUPlay(),1200); }
+            if(use07){ swapHands(); showMessage('CPU played 7 — hands swapped! 🔄'); renderAll(); setTimeout(()=>doCPUPlay(),1200); }
             else playerTurn(); break;
         case 'Skip':
-            playSound('skip');
-            showMessage('You are skipped!');
+            playSound('skip'); showMessage('You are skipped!');
             setTimeout(()=>{ currentPlayer='computer'; renderAll(); setTimeout(()=>doCPUPlay(),800); },1000); break;
         case 'Reverse':
-            direction*=-1; updateDirectionArrows();
-            playSound('skip');
-            showMessage('Direction reversed! CPU goes again.');
+            direction*=-1; updateDirectionArrows(); playSound('skip'); showMessage('Direction reversed! CPU goes again.');
             setTimeout(()=>{ currentPlayer='computer'; renderAll(); setTimeout(()=>doCPUPlay(),800); },1000); break;
         case '+2':
-            if(settings.allowStacking){ stackedDrawCount+=2; updateInfoBar(); showMessage(`You must draw ${stackedDrawCount} or stack!`); renderAll(); playerTurn(); }
+            if(stacking){ stackedDrawCount+=2; updateInfoBar(); showMessage(`You must draw ${stackedDrawCount} or stack!`); renderAll(); playerTurn(); }
             else { playSound('playDraw'); triggerPenaltyFlash(); animateDrawPenaltyLocal('player',2,'#ff416c',()=>{ for(let i=0;i<2;i++) drawForPlayer('player'); renderAll(); showMessage('You draw 2 and are skipped!'); setTimeout(()=>{ currentPlayer='computer'; renderAll(); setTimeout(()=>doCPUPlay(),800); },1500); }); }
             break;
         case 'Wild+4':
-            if(settings.allowStacking){ stackedDrawCount+=4; updateInfoBar(); showMessage(`You must draw ${stackedDrawCount} or stack!`); renderAll(); playerTurn(); }
+            if(stacking){ stackedDrawCount+=4; updateInfoBar(); showMessage(`You must draw ${stackedDrawCount} or stack!`); renderAll(); playerTurn(); }
             else { playSound('playDraw'); triggerPenaltyFlash(); animateDrawPenaltyLocal('player',4,'#ff416c',()=>{ for(let i=0;i<4;i++) drawForPlayer('player'); renderAll(); showMessage('You draw 4 and are skipped!'); setTimeout(()=>{ currentPlayer='computer'; renderAll(); setTimeout(()=>doCPUPlay(),800); },1500); }); }
             break;
+        case 'Wild+6':
+            if(stacking){ stackedDrawCount+=6; updateInfoBar(); showMessage(`You must draw ${stackedDrawCount} or stack!`); renderAll(); playerTurn(); }
+            else { playSound('playDraw'); triggerPenaltyFlash(); animateDrawPenaltyLocal('player',6,'#9b59b6',()=>{ for(let i=0;i<6;i++) drawForPlayer('player'); renderAll(); showMessage('You draw 6!'); checkMercyKnockout('player'); setTimeout(()=>{ if(gameInProgress){ currentPlayer='computer'; renderAll(); setTimeout(()=>doCPUPlay(),800); }},1500); }); }
+            break;
+        case 'Wild+10':
+            if(stacking){ stackedDrawCount+=10; updateInfoBar(); showMessage(`You must draw ${stackedDrawCount} or stack!`); renderAll(); playerTurn(); }
+            else { playSound('playDraw'); triggerPenaltyFlash(); animateDrawPenaltyLocal('player',10,'#7c3aed',()=>{ for(let i=0;i<10;i++) drawForPlayer('player'); renderAll(); showMessage('💀 You draw 10!'); checkMercyKnockout('player'); setTimeout(()=>{ if(gameInProgress){ currentPlayer='computer'; renderAll(); setTimeout(()=>doCPUPlay(),800); }},1500); }); }
+            break;
+        case 'SkipAll':
+            playSound('skip'); showMessage('⚡ CPU Skip All! CPU goes again!');
+            setTimeout(()=>{ currentPlayer='computer'; renderAll(); setTimeout(()=>doCPUPlay(),800); },1000); break;
+        case 'Roulette':{
+            const targetColor = currentColor;
+            let drawn=0; let found=false;
+            while(drawn<50&&!found){
+                drawForPlayer('player'); drawn++;
+                const top=playerHand[playerHand.length-1];
+                if(top&&(top.color===targetColor||top.type==='wild')) found=true;
+            }
+            playSound('draw'); triggerPenaltyFlash();
+            renderAll(); showMessage(`🎰 CPU Roulette! You draw ${drawn} card${drawn>1?'s':''}!`);
+            if(!checkMercyKnockout('player')){
+                setTimeout(()=>{ currentPlayer='computer'; renderAll(); setTimeout(()=>doCPUPlay(),800); },1800);
+            }
+            break;
+        }
         case '+12':
-            playSound('playDraw'); triggerPenaltyFlash(); animateDrawPenaltyLocal('player',12,'#ff8c00',()=>{ for(let i=0;i<12;i++) drawForPlayer('player'); renderAll(); showMessage('💀 CPU played +12! You draw 12 cards!'); setTimeout(()=>{ currentPlayer='computer'; renderAll(); setTimeout(()=>doCPUPlay(),800); },1500); });
+            playSound('playDraw'); triggerPenaltyFlash(); animateDrawPenaltyLocal('player',12,'#ff8c00',()=>{ for(let i=0;i<12;i++) drawForPlayer('player'); renderAll(); showMessage('💀 CPU played +12! You draw 12 cards!'); checkMercyKnockout('player'); setTimeout(()=>{ if(gameInProgress){ currentPlayer='computer'; renderAll(); setTimeout(()=>doCPUPlay(),800); }},1500); });
             break;
         default: playerTurn();
     }
