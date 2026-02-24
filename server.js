@@ -40,7 +40,11 @@ class GameRoom {
         this.gameStarted      = false;
         this.pendingSwap7     = null;
         this._lastSwapEvent   = null;
+        this.knockedOut       = [];   // player ids eliminated in mercy mode
+        this.pendingRoulette  = null; // { targetIndex, targetColor }
     }
+
+    isMercy() { return this.settings.gameMode === 'mercy'; }
 
     createDeck() {
         const COLORS  = ['red', 'blue', 'green', 'yellow'];
@@ -61,6 +65,15 @@ class GameRoom {
         if (this.settings.allowPlus12) {
             this.deck.push({ color: 'wild', value: '+12', type: 'wild' });
             this.deck.push({ color: 'wild', value: '+12', type: 'wild' });
+        }
+        if (this.isMercy()) {
+            // Mercy mode extra wilds: 2× Wild+6, 2× Wild+10, 2× SkipAll, 2× Roulette
+            for (let i = 0; i < 2; i++) {
+                this.deck.push({ color: 'wild', value: 'Wild+6',   type: 'wild' });
+                this.deck.push({ color: 'wild', value: 'Wild+10',  type: 'wild' });
+                this.deck.push({ color: 'wild', value: 'SkipAll',  type: 'wild' });
+                this.deck.push({ color: 'wild', value: 'Roulette', type: 'wild' });
+            }
         }
         this.shuffleDeck();
     }
@@ -94,8 +107,10 @@ class GameRoom {
             yourIndex:         index,
             allPlayers:        this.players.map((p, i) => ({
                 id: p.id, name: p.name, cardCount: p.hand.length,
-                isYou: i === index, isCurrent: i === cur, calledUno: p.calledUno
+                isYou: i === index, isCurrent: i === cur, calledUno: p.calledUno,
+                knockedOut: this.knockedOut.includes(p.id)
             })),
+            knockedOut:        this.knockedOut,
             currentPlayer:     cur,
             currentPlayerName: this.players[cur]?.name || 'Unknown',
             isYourTurn:        index === cur,
@@ -112,7 +127,11 @@ class GameRoom {
 
     canPlayCard(card) {
         if (!card) return false;
-        if (this.settings.allowStacking && this.stackedDrawCount > 0) {
+        const mercy = this.isMercy();
+        const stacking = this.settings.allowStacking || mercy;
+        if (stacking && this.stackedDrawCount > 0) {
+            const DRAW_CARDS = ['+2', 'Wild+4', 'Wild+6', 'Wild+10'];
+            if (mercy) return DRAW_CARDS.includes(card.value);
             return (this.currentValue === '+2'     && card.value === '+2') ||
                    (this.currentValue === 'Wild+4' && card.value === 'Wild+4');
         }
@@ -158,7 +177,7 @@ class GameRoom {
 
         this.checkUnoAfterPlay(playerIndex);
 
-        const PENALTY = { '+2': 2, 'Wild+4': 4, '+12': 12 };
+        const PENALTY = { '+2': 2, 'Wild+4': 4, '+12': 12, 'Wild+6': 6, 'Wild+10': 10 };
         let drawAnimation = null;
         if (PENALTY[card.value]) {
             const nextIdx = this.getNextPlayerIndex(playerIndex);
@@ -173,15 +192,35 @@ class GameRoom {
             };
         }
 
+        // Mercy: check knockouts after any card play (stacked draw resolved)
+        let newlyKnocked = [];
+        if (this.isMercy()) newlyKnocked = this.checkMercyKnockouts();
+
+        // Determine winner
+        let winner = null;
+        if (player.hand.length === 0) {
+            winner = playerIndex; // emptied hand
+        } else if (this.isMercy()) {
+            const active = this.activePlayers();
+            if (active.length === 1) {
+                winner = this.players.findIndex(p => p.id === active[0].id);
+            } else if (active.length === 0) {
+                winner = playerIndex; // fallback
+            }
+        }
+
         return {
-            success:      true,
-            winner:       player.hand.length === 0 ? playerIndex : null,
-            swapHappened: this._lastSwapEvent || null,
-            drawAnimation
+            success:       true,
+            winner,
+            swapHappened:  this._lastSwapEvent || null,
+            drawAnimation,
+            newlyKnocked
         };
     }
 
     handleCardEffect(card, playerIndex) {
+        const mercy = this.isMercy();
+        const stacking = this.settings.allowStacking || mercy;
         switch (card.value) {
             case 'Skip':
                 this.skipNextPlayer();
@@ -190,8 +229,6 @@ class GameRoom {
             case 'Reverse':
                 this.direction *= -1;
                 if (this.players.length === 2) {
-                    // In 2-player, Reverse acts like Skip: current player plays again.
-                    // Just reset hasDrawnThisTurn without advancing.
                     this.hasDrawnThisTurn = false;
                 } else {
                     this.advanceTurn();
@@ -199,17 +236,54 @@ class GameRoom {
                 break;
 
             case '+2':
-                if (this.settings.allowStacking) { this.stackedDrawCount += 2; this.advanceTurn(); }
+                if (stacking) { this.stackedDrawCount += 2; this.advanceTurn(); }
                 else { this.drawCards(this.getNextPlayerIndex(), 2); this.skipNextPlayer(); }
                 break;
 
             case 'Wild+4':
-                if (this.settings.allowStacking) { this.stackedDrawCount += 4; this.advanceTurn(); }
+                if (stacking) { this.stackedDrawCount += 4; this.advanceTurn(); }
                 else { this.drawCards(this.getNextPlayerIndex(), 4); this.skipNextPlayer(); }
                 break;
 
+            case 'Wild+6':
+                if (stacking) { this.stackedDrawCount += 6; this.advanceTurn(); }
+                else { this.drawCards(this.getNextPlayerIndex(), 6); this.skipNextPlayer(); }
+                break;
+
+            case 'Wild+10':
+                if (stacking) { this.stackedDrawCount += 10; this.advanceTurn(); }
+                else { this.drawCards(this.getNextPlayerIndex(), 10); this.skipNextPlayer(); }
+                break;
+
+            case 'SkipAll': {
+                // Skip every other player — current player goes again
+                const active = this.activePlayers().filter(p => p.id !== this.players[playerIndex].id);
+                // just advance turn back to current player (skip everyone else)
+                this.hasDrawnThisTurn = false;
+                // No advanceTurn — current player keeps their turn
+                break;
+            }
+
+            case 'Roulette': {
+                // Next player draws until they pick up a card of the chosen color
+                // chosenColor is stored in currentColor when wild was played
+                const targetColor = this.currentColor;
+                const nextIdx = this.getNextPlayerIndex(playerIndex);
+                let drawn = 0;
+                let found = false;
+                while (drawn < 50 && !found) {
+                    this.drawCards(nextIdx, 1);
+                    drawn++;
+                    const lastCard = this.players[nextIdx].hand.at(-1);
+                    if (lastCard && (lastCard.color === targetColor || lastCard.type === 'wild')) found = true;
+                }
+                if (mercy) this.checkMercyKnockouts();
+                this.skipNextPlayer();
+                break;
+            }
+
             case '0':
-                if (this.settings.allowSpecial07) {
+                if (this.settings.allowSpecial07 || this.isMercy()) {
                     const nextIdx = this.getNextPlayerIndex(playerIndex);
                     this.swapHands(playerIndex, nextIdx);
                     this.players[playerIndex].calledUno = false;
@@ -227,7 +301,7 @@ class GameRoom {
                 break;
 
             case '7':
-                if (this.settings.allowSpecial07) {
+                if (this.settings.allowSpecial07 || this.isMercy()) {
                     this.pendingSwap7 = { playerId: this.players[playerIndex].id };
                     return 'needSwapTarget';
                 }
@@ -253,7 +327,14 @@ class GameRoom {
 
     getNextPlayerIndex(fromIndex = null) {
         const index = fromIndex !== null ? fromIndex : this.currentPlayer;
-        return (index + this.direction + this.players.length) % this.players.length;
+        let next = (index + this.direction + this.players.length) % this.players.length;
+        if (this.isMercy()) {
+            let guard = 0;
+            while (this.knockedOut.includes(this.players[next]?.id) && guard++ < this.players.length) {
+                next = (next + this.direction + this.players.length) % this.players.length;
+            }
+        }
+        return next;
     }
 
     swapHands(a, b) {
@@ -292,7 +373,24 @@ class GameRoom {
             this.stackedDrawCount = 0;
             this.players[pi].calledUno = false;
             this.advanceTurn();
+            // Mercy: check knockout after stacked draw
+            if (this.isMercy()) this.checkMercyKnockouts();
             return { success: true, drewStacked: true, stackCount: count };
+        }
+
+        if (this.isMercy()) {
+            // Draw until you find a playable card
+            let drawn = 0;
+            let canPlay = false;
+            do {
+                this.drawCards(pi, 1);
+                drawn++;
+                canPlay = this.canPlayCard(this.players[pi].hand.at(-1));
+            } while (!canPlay && this.deck.length > 0 && drawn < 50);
+            this.hasDrawnThisTurn = true;
+            if (this.players[pi].hand.length > 1) this.players[pi].calledUno = false;
+            this.checkMercyKnockouts();
+            return { success: true, canPlayDrawn: canPlay, cardsDrawn: drawn };
         }
 
         this.hasDrawnThisTurn = true;
@@ -302,6 +400,42 @@ class GameRoom {
         if (!canPlay) this.advanceTurn();
         if (this.players[pi].hand.length > 1) this.players[pi].calledUno = false;
         return { success: true, canPlayDrawn: canPlay, cardsDrawn: 1 };
+    }
+
+    checkMercyKnockouts() {
+        if (!this.isMercy()) return [];
+        const newlyKnocked = [];
+        this.players.forEach(p => {
+            if (!this.knockedOut.includes(p.id) && p.hand.length >= 25) {
+                this.knockedOut.push(p.id);
+                newlyKnocked.push({ id: p.id, name: p.name });
+                p.hand = []; // clear hand
+            }
+        });
+        // If current player just got knocked out, advance turn
+        if (this.knockedOut.includes(this.players[this.currentPlayer]?.id)) {
+            this.advanceTurn();
+            // Skip over other knocked-out players
+            let guard = 0;
+            while (this.knockedOut.includes(this.players[this.currentPlayer]?.id) && guard++ < this.players.length) {
+                this.advanceTurn();
+            }
+        }
+        return newlyKnocked;
+    }
+
+    activePlayers() {
+        return this.players.filter(p => !this.knockedOut.includes(p.id));
+    }
+
+    getNextActivePlayerIndex(fromIndex = null) {
+        const idx = fromIndex !== null ? fromIndex : this.currentPlayer;
+        let next = (idx + this.direction + this.players.length) % this.players.length;
+        let guard = 0;
+        while (this.knockedOut.includes(this.players[next]?.id) && guard++ < this.players.length) {
+            next = (next + this.direction + this.players.length) % this.players.length;
+        }
+        return next;
     }
 
     callUno(playerId) {
@@ -479,6 +613,11 @@ io.on('connection', socket => {
         }
 
         if (result.drawAnimation) io.to(roomId).emit('drawAnimation', result.drawAnimation);
+        if (result.newlyKnocked && result.newlyKnocked.length > 0) {
+            result.newlyKnocked.forEach(p => {
+                io.to(roomId).emit('playerKnockedOut', { playerId: p.id, playerName: p.name });
+            });
+        }
         if (result.swapHappened) {
             io.to(roomId).emit('swapHappened', result.swapHappened);
             if (result.swapHappened.unoTransfer)
@@ -530,6 +669,29 @@ io.on('connection', socket => {
         if (result.drewStacked) {
             const p = room.players.find(p => p.id === socket.id);
             io.to(roomId).emit('drawAnimation', { victimId: socket.id, victimName: p?.name, playerId: null, count: result.stackCount, cardValue: 'stack' });
+        }
+        // Mercy: check if someone got knocked out from drawing
+        if (room.isMercy && room.isMercy()) {
+            const knocked = room.checkMercyKnockouts();
+            knocked.forEach(p => io.to(roomId).emit('playerKnockedOut', { playerId: p.id, playerName: p.name }));
+            // Check last-player-standing win
+            const active = room.activePlayers();
+            if (active.length === 1) {
+                const wi = room.players.findIndex(p => p.id === active[0].id);
+                const scores = room.players.map(p => {
+                    const score = p.hand.reduce((sum, card) => {
+                        if (card.type === 'wild')   return sum - 1;
+                        if (card.type === 'action') return sum - 2;
+                        return sum - 3;
+                    }, 0);
+                    return { name: p.name, id: p.id, score, hand: p.hand };
+                });
+                io.to(roomId).emit('gameOver', { winner: active[0].name, winnerId: active[0].id, scores, reason: 'last-standing' });
+                rematchQueues.set(roomId, { players: room.players.map(p=>({id:p.id,name:p.name})), settings: room.settings, votes: new Set(), total: room.players.length });
+                setTimeout(() => rematchQueues.delete(roomId), 60000);
+                rooms.delete(roomId);
+                return;
+            }
         }
 
         room.players.forEach(p => {
