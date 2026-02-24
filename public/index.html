@@ -1413,6 +1413,193 @@
         .sfp-close-btn:active { transform: translateY(1px); }
 
 
+
+    /* ── MERCY MODE RED THEME ─────────────────────────────── */
+        html[data-mercy="1"] {
+            --bg-grad-a: #7b0d0d;
+            --bg-grad-b: #3d0000;
+            --menu-h1: #ff6b6b;
+            --menu-shadow: 0 20px 60px rgba(180,0,0,0.6), 0 0 0 1px rgba(255,100,100,0.1);
+        }
+        html[data-theme="dark"][data-mercy="1"] {
+            --bg-grad-a: #3d0000;
+            --bg-grad-b: #1a0000;
+            --menu-h1: #ff9999;
+            --menu-shadow: 0 20px 80px rgba(180,0,0,0.8), 0 0 0 1px rgba(255,100,100,0.12);
+        }
+        html[data-mercy="1"] .menu-button {
+            background: linear-gradient(135deg, #c0392b, #922b21);
+            box-shadow: 0 6px 15px rgba(192,57,43,0.4);
+        }
+        html[data-mercy="1"] .menu-button.online {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            box-shadow: 0 6px 18px rgba(231,76,60,0.45);
+        }
+        html[data-mercy="1"] .menu-button.create {
+            background: linear-gradient(135deg, #c0392b, #922b21);
+            box-shadow: 0 6px 15px rgba(192,57,43,0.4);
+        }
+        html[data-mercy="1"] #settingsGearBtn {
+            background: linear-gradient(135deg, #c0392b, #922b21) !important;
+            box-shadow: 0 4px 18px rgba(192,57,43,0.55) !important;
+        }
+        html[data-mercy="1"] .sfp-close-btn {
+            background: linear-gradient(135deg, #c0392b, #922b21) !important;
+        }
+        html[data-mercy="1"] .sfp-vol-pct { color: #ff6b6b; }
+        html[data-mercy="1"] input[type=range]#sfpVolume {
+            background: linear-gradient(to right, #c0392b var(--vol,70%), rgba(192,57,43,0.2) var(--vol,70%));
+        }
+        html[data-mercy="1"] input[type=range]#sfpVolume::-webkit-slider-thumb,
+        html[data-mercy="1"] input[type=range]#sfpVolume::-moz-range-thumb {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+        html[data-mercy="1"] #modePickerBtn {
+            background: linear-gradient(135deg, #e74c3c, #c0392b) !important;
+            box-shadow: 0 6px 18px rgba(231,76,60,0.45) !important;
+        }
+
+    /* ═══════════════════════════════════════════
+       GAME MODE PICKER  (expanding panel)
+       ═══════════════════════════════════════════ */
+    .mode-picker-wrapper {
+        margin-top: 8px;
+        overflow: hidden;
+        transition: max-height 0.45s cubic-bezier(0.4,0,0.2,1), opacity 0.35s ease;
+        max-height: 0; opacity: 0;
+    }
+    .mode-picker-wrapper.open {
+        max-height: 600px; opacity: 1;
+    }
+
+    .mode-picker-label {
+        font-size: 0.72em; font-weight: 900; letter-spacing: 2.5px;
+        text-transform: uppercase; color: var(--text-muted);
+        margin: 14px 0 10px; text-align: center;
+    }
+
+    .mode-cards {
+        display: flex; flex-direction: column; gap: 10px;
+        margin-bottom: 6px;
+    }
+
+    .mode-card {
+        border-radius: 18px; padding: 16px 20px;
+        cursor: pointer; text-align: left;
+        border: 2.5px solid transparent;
+        background: var(--input-bg, rgba(102,126,234,0.07));
+        transition: transform 0.18s ease, border-color 0.2s, box-shadow 0.2s, background 0.2s;
+        position: relative; overflow: hidden;
+    }
+    .mode-card::before {
+        content: ''; position: absolute; inset: 0;
+        background: var(--mode-accent, linear-gradient(135deg,#667eea,#764ba2));
+        opacity: 0; transition: opacity 0.2s;
+        border-radius: 16px;
+    }
+    .mode-card:hover  { transform: translateY(-2px); }
+    .mode-card:active { transform: translateY(1px); }
+
+    .mode-card.selected {
+        border-color: transparent;
+        box-shadow: 0 6px 24px rgba(102,126,234,0.4);
+    }
+    .mode-card.selected::before { opacity: 1; }
+    .mode-card.selected .mode-card-inner * { color: #fff !important; }
+
+    /* mercy card accent */
+    .mode-card.mercy { --mode-accent: linear-gradient(135deg,#e74c3c,#c0392b); }
+    .mode-card.mercy.selected { box-shadow: 0 6px 24px rgba(231,76,60,0.45); }
+
+    .mode-card-inner { position: relative; z-index: 1; }
+    .mode-card-title {
+        font-family: 'Orbitron', sans-serif; font-size: 1em; font-weight: 700;
+        color: var(--text-primary); margin-bottom: 4px;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .mode-card-badge {
+        font-family: 'Nunito', sans-serif; font-size: 0.68em; font-weight: 800;
+        letter-spacing: 1.5px; text-transform: uppercase;
+        background: rgba(102,126,234,0.15); color: #667eea;
+        padding: 2px 8px; border-radius: 20px;
+    }
+    .mode-card.mercy .mode-card-badge {
+        background: rgba(231,76,60,0.12); color: #e74c3c;
+    }
+    .mode-card.selected .mode-card-badge {
+        background: rgba(255,255,255,0.25); color: #fff;
+    }
+    .mode-card-desc {
+        font-size: 0.82em; color: var(--text-muted); line-height: 1.5;
+        margin-top: 2px;
+    }
+    .mode-card-rules {
+        margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px;
+    }
+    .mode-rule-tag {
+        font-size: 0.72em; font-weight: 700;
+        background: rgba(102,126,234,0.1); color: #667eea;
+        border-radius: 20px; padding: 3px 10px;
+        border: 1px solid rgba(102,126,234,0.2);
+    }
+    .mode-card.mercy .mode-rule-tag {
+        background: rgba(231,76,60,0.1); color: #e74c3c;
+        border-color: rgba(231,76,60,0.2);
+    }
+    .mode-card.selected .mode-rule-tag {
+        background: rgba(255,255,255,0.18); color: #fff;
+        border-color: rgba(255,255,255,0.3);
+    }
+
+    html[data-theme="dark"] .mode-card {
+        background: rgba(255,255,255,0.04);
+        border-color: rgba(255,255,255,0.07);
+    }
+    html[data-theme="dark"] .mode-card:not(.selected) { border-color: rgba(255,255,255,0.07); }
+
+    /* chevron on the trigger button */
+    .mode-chevron {
+        display: inline-block; margin-left: 6px; font-size: 0.75em;
+        transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+        vertical-align: middle;
+    }
+    .mode-chevron.open { transform: rotate(180deg); }
+
+
+    /* ── MERCY MODE — knocked-out seats ─────────────── */
+    .player-seat.knocked-out {
+        opacity: 0.4; filter: grayscale(1);
+        border-color: rgba(231,76,60,0.3) !important;
+        position: relative;
+    }
+    .player-seat.knocked-out::after {
+        content: '☠️ OUT'; position: absolute; top: 50%; left: 50%;
+        transform: translate(-50%,-50%);
+        font-size: 0.75em; font-weight: 900; color: #e74c3c;
+        letter-spacing: 1px; pointer-events: none;
+    }
+
+    /* Mercy wild card colours */
+    .card.mercy-draw      { background: linear-gradient(145deg,#6a0dad,#9b59b6) !important; }
+    .card.mercy-draw-big  { background: linear-gradient(145deg,#3a0080,#7c3aed) !important; }
+    .card.mercy-skipall   { background: linear-gradient(145deg,#c0392b,#e74c3c) !important; }
+    .card.mercy-roulette  { background: linear-gradient(145deg,#b7185e,#e91e63) !important; }
+    .card.mercy-draw .card-inner, .card.mercy-draw-big .card-inner,
+    .card.mercy-skipall .card-inner, .card.mercy-roulette .card-inner {
+        color: #fff; background: rgba(0,0,0,0.25); font-size: 0.65em; letter-spacing: 0.5px;
+    }
+
+    /* Toast notification */
+    #gameToast {
+        position: fixed; top: 70px; left: 50%; transform: translateX(-50%) translateY(-20px);
+        padding: 12px 24px; border-radius: 40px; z-index: 9200;
+        font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 1em;
+        color: #fff; box-shadow: 0 6px 24px rgba(0,0,0,0.4);
+        opacity: 0; transition: opacity 0.3s, transform 0.3s;
+        pointer-events: none; white-space: nowrap;
+    }
+    #gameToast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
     .controls {
         display: flex;
         justify-content: center;
@@ -2031,7 +2218,63 @@
     <div id="mainMenu" class="screen active">
         <div class="menu-container">
             <h1>🎴 O,No 🎴</h1>
-            <p style="margin-bottom: 30px; color: var(--text-muted);">Choose Game Mode</p>
+            <p style="margin-bottom: 20px; color: var(--text-muted);">Choose how you want to play</p>
+
+            <!-- Game mode toggle trigger -->
+            <button class="menu-button" id="modePickerBtn"
+                    onclick="toggleModePicker()"
+                    style="background:linear-gradient(135deg,#f093fb,#f5576c);box-shadow:0 6px 18px rgba(240,147,251,0.4);margin-bottom:6px;">
+                🎲 Game Mode: <span id="modeLabel">Original</span>
+                <span class="mode-chevron" id="modeChevron">▼</span>
+            </button>
+
+            <!-- Expanding mode picker -->
+            <div class="mode-picker-wrapper" id="modePickerPanel">
+                <div class="mode-picker-label">Select a game mode</div>
+                <div class="mode-cards">
+
+                    <div class="mode-card selected" id="modeCard-original"
+                         onclick="selectMode('original')">
+                        <div class="mode-card-inner">
+                            <div class="mode-card-title">
+                                🃏 Original
+                                <span class="mode-card-badge">Classic</span>
+                            </div>
+                            <div class="mode-card-desc">The standard O,No experience. Familiar rules, pure card-game fun.</div>
+                            <div class="mode-card-rules">
+                                <span class="mode-rule-tag">+2 / +4</span>
+                                <span class="mode-rule-tag">Skip & Reverse</span>
+                                <span class="mode-rule-tag">Wild Cards</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mode-card mercy" id="modeCard-mercy"
+                         onclick="selectMode('mercy')">
+                        <div class="mode-card-inner">
+                            <div class="mode-card-title">
+                                💀 Please Have Mercy
+                                <span class="mode-card-badge">Chaos</span>
+                            </div>
+                            <div class="mode-card-desc">
+                                Brutal chaos mode. Stack devastating draw cards, get knocked out at 25 cards,
+                                and survive new special wilds. Last player standing wins.
+                            </div>
+                            <div class="mode-card-rules">
+                                <span class="mode-rule-tag">☠️ Mercy Rule (25 cards)</span>
+                                <span class="mode-rule-tag">🔥 Stack +2/+4/+6/+10</span>
+                                <span class="mode-rule-tag">🎯 Draw Until Play</span>
+                                <span class="mode-rule-tag">↔️ 7s & 0s</span>
+                                <span class="mode-rule-tag">⚡ Skip Everyone</span>
+                                <span class="mode-rule-tag">🃏 Wild +6 / +10</span>
+                                <span class="mode-rule-tag">🎰 Color Roulette</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
             <button class="menu-button online" onclick="showOnlineMenu()">🌐 Play Online</button>
             <button class="menu-button offline" onclick="playOffline()">🤖 Play vs Computer</button>
         </div>
@@ -2356,6 +2599,8 @@
 
 
 <!-- ⚙️ Floating Settings Button + Panel -->
+<div id="gameToast"></div>
+
 <button id="settingsGearBtn" onclick="toggleSettingsPanel()"
         title="Open Settings" aria-label="Open Settings">
     <span class="sg-icon">⚙️</span> Settings
@@ -2522,6 +2767,19 @@
         popup.classList.add('active');
     }
 
+
+    function showToast(msg, color) {
+        const t = document.getElementById('gameToast');
+        if (!t) return;
+        t.textContent = msg;
+        t.style.background = color || '#333';
+        t.classList.remove('show');
+        void t.offsetWidth; // reflow
+        t.classList.add('show');
+        clearTimeout(t._timer);
+        t._timer = setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
     function showPopup(message, title = '') {
         _openPopup(title, message, [{ label: 'OK', primary: true }]);
     }
@@ -2683,6 +2941,17 @@
             animateDrawPenalty(data, isVictim);
         });
 
+        socket.on('playerKnockedOut', ({ playerId, playerName }) => {
+            const isMe = playerId === socket.id;
+            const msg  = isMe
+                ? '☠️ You were knocked out! (25+ cards)'
+                : `☠️ ${playerName} was knocked out!`;
+            showToast(msg, isMe ? '#e74c3c' : '#f39c12');
+            if (isMe) triggerPenaltyFlash();
+            const seat = document.querySelector(`.player-seat[data-player-id="${playerId}"]`);
+            if (seat) seat.classList.add('knocked-out');
+        });
+
         socket.on('gameOver', (data) => {
             setTimeout(() => showScoreboard(data), 600);
         });
@@ -2842,6 +3111,37 @@
         showScreen('createLobby');
     }
 
+
+
+    function applyMercyTheme(on) {
+        document.documentElement.setAttribute('data-mercy', on ? '1' : '0');
+        // Force background repaint with new CSS variable values
+        const a = getComputedStyle(document.documentElement).getPropertyValue('--bg-grad-a').trim();
+        const b = getComputedStyle(document.documentElement).getPropertyValue('--bg-grad-b').trim();
+        document.body.style.backgroundImage = `linear-gradient(135deg,${a} 0%,${b} 100%)`;
+    }
+
+    // ── GAME MODE PICKER ─────────────────────────────────────────────────────
+    let selectedGameMode = 'original';
+
+    function toggleModePicker() {
+        const panel   = document.getElementById('modePickerPanel');
+        const chevron = document.getElementById('modeChevron');
+        const isOpen  = panel.classList.toggle('open');
+        chevron.classList.toggle('open', isOpen);
+    }
+
+    function selectMode(mode) {
+        selectedGameMode = mode;
+        document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
+        document.getElementById('modeCard-' + mode).classList.add('selected');
+        const labels = { original: 'Original', mercy: 'Please Have Mercy' };
+        document.getElementById('modeLabel').textContent = labels[mode] || mode;
+        document.getElementById('modePickerPanel').classList.remove('open');
+        document.getElementById('modeChevron').classList.remove('open');
+        applyMercyTheme(mode === 'mercy');
+    }
+
     function playOffline() {
         window.location.href = '/offline.html';
     }
@@ -2907,10 +3207,10 @@
             maxPlayers: parseInt(document.getElementById('maxPlayers').value),
             startingCards: parseInt(document.getElementById('startingCards').value),
             allowStacking: document.getElementById('allowStacking').checked,
-
             allowPlus12: document.getElementById('allowPlus12').checked,
             allowJumpIn: document.getElementById('allowJumpIn').checked,
-            drawUntilMatch: document.getElementById('drawUntilMatch').checked
+            drawUntilMatch: document.getElementById('drawUntilMatch').checked,
+            gameMode: selectedGameMode || 'original'
         };
 
         socket.emit('createLobby', {
@@ -2961,6 +3261,7 @@
             settings.allowPlus12                && '💀 +12 Card Enabled (rare wild)',
             settings.allowJumpIn                && '✅ Jump-In Enabled',
             settings.drawUntilMatch !== false   && '✅ Draw Until Match Enabled',
+            settings.gameMode === 'mercy'          && '💀 Please Have Mercy Mode',
         ].filter(Boolean);
 
         const rulesRows = activeRules.length
@@ -3242,7 +3543,10 @@
             // Auto-draw stacked cards if it's your turn, there's a stack,
             // and you have no card that can stack on it
             if (gameState.isYourTurn && gameState.stackedDrawCount > 0 && !isWaitingForServer) {
+                const MERCY_DRAW_CARDS = ['+2', 'Wild+4', 'Wild+6', 'Wild+10'];
+                const isMercyMode = gameState.settings && gameState.settings.gameMode === 'mercy';
                 const hasStackCard = gameState.yourHand && gameState.yourHand.some(card => {
+                    if (isMercyMode) return MERCY_DRAW_CARDS.includes(card.value);
                     if (gameState.currentValue === '+2'     && card.value === '+2')     return true;
                     if (gameState.currentValue === 'Wild+4' && card.value === 'Wild+4') return true;
                     return false;
@@ -3434,15 +3738,16 @@
 
     function createCardElement(card) {
         const cardDiv = document.createElement('div');
-        // +12 gets its own CSS class instead of 'wild'
-        const colorClass = card.value === '+12' ? 'plus12' : card.color;
-        cardDiv.className = `card ${colorClass}`;
-        
+        const MERCY_CLASS = { 'Wild+6': 'wild mercy-draw', 'Wild+10': 'wild mercy-draw-big', 'SkipAll': 'wild mercy-skipall', 'Roulette': 'wild mercy-roulette' };
+        const colorClass = card.value === '+12' ? 'plus12' : (MERCY_CLASS[card.value] ? '' : card.color);
+        cardDiv.className = `card ${MERCY_CLASS[card.value] || colorClass}`;
+
+        const LABELS = { 'Wild+4': '+4', 'Wild+6': '+6', 'Wild+10': '+10', '+12': '+12', 'SkipAll': 'SKIP ALL', 'Roulette': 'ROULETTE', 'Wild': 'WILD' };
         const cardInner = document.createElement('div');
         cardInner.className = 'card-inner';
-        cardInner.textContent = card.value;
+        cardInner.textContent = LABELS[card.value] || card.value;
         cardDiv.appendChild(cardInner);
-        
+
         return cardDiv;
     }
 
@@ -3646,15 +3951,22 @@
         const endY = endRect.top  + endRect.height / 2;
 
         // Penalty badge colors
-        const isBig  = cardValue === 'Wild+4' || cardValue === '+12' || count >= 4;
-        const accent = cardValue === '+12' ? '#ff8c00' : isBig ? '#ff4b2b' : '#ff416c';
-        const label  = cardValue === 'stack'
-            ? `Draw ${count}!`
-            : cardValue === '+12'
-                ? '💀 +12 Draw!'
-                : stacking
-                    ? cardValue === 'Wild+4' ? '+4 Stacked!' : '+2 Stacked!'
-                    : cardValue === 'Wild+4' ? '+4 Draw!' : '+2 Draw!';
+        const isBig  = count >= 4 || ['Wild+4','Wild+6','Wild+10','+12'].includes(cardValue);
+        const accent = cardValue === '+12' ? '#ff8c00'
+                     : cardValue === 'Wild+10' ? '#7c3aed'
+                     : cardValue === 'Wild+6'  ? '#9b59b6'
+                     : cardValue === 'Roulette' ? '#e91e63'
+                     : isBig ? '#ff4b2b' : '#ff416c';
+        const CARD_LABELS = {
+            'stack':    `Draw ${count}!`,
+            '+12':      `💀 +12 Draw!`,
+            'Wild+4':   stacking ? '+4 Stacked!' : '+4 Draw!',
+            'Wild+6':   stacking ? '+6 Stacked!' : '+6 Draw!',
+            'Wild+10':  stacking ? '+10 Stacked!' : '+10 Draw!',
+            '+2':       stacking ? '+2 Stacked!' : '+2 Draw!',
+            'Roulette': `🎰 Roulette! Draw ${count}`,
+        };
+        const label = CARD_LABELS[cardValue] || `Draw ${count}!`;
 
         // Stagger cards
         for (let i = 0; i < count; i++) {
