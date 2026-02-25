@@ -747,7 +747,8 @@ io.on('connection', socket => {
             io.to(p.id).emit('rematchVoteUpdate', {
                 votes: q.votes.size,
                 total: q.total,
-                voterName
+                voterName,
+                voterId: socket.id
             });
         });
 
