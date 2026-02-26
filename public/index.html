@@ -2839,12 +2839,10 @@ title="Open Settings" aria-label="Open Settings">
         socket.on('connect', () => {
             console.log('Connected to server');
             reconnectAttempts = 0;
-            // Attempt auto-rejoin if we were in a game
-            const rejoinToken = localStorage.getItem('ono-rejoinToken');
-            const rejoinRoom  = localStorage.getItem('ono-rejoinRoom');
-            const rejoinName  = localStorage.getItem('ono-rejoinName');
-            if (rejoinToken && rejoinRoom && rejoinName) {
-                console.log('[Rejoin] Attempting to rejoin room', rejoinRoom);
+            // If a rejoin was queued by the prompt, send it now
+            if (window._pendingRejoin) {
+                const { rejoinRoom, rejoinName, rejoinToken } = window._pendingRejoin;
+                window._pendingRejoin = null;
                 socket.emit('rejoinGame', { roomId: rejoinRoom, playerName: rejoinName, rejoinToken });
             }
         });
@@ -3140,7 +3138,42 @@ title="Open Settings" aria-label="Open Settings">
         // Apply saved volume to SFX
         const savedVol = parseFloat(localStorage.getItem('ono-volume') || '0.7');
         Object.values(SFX).forEach(a => { try { a.volume = savedVol; } catch(e) {} });
-        initializeSocket();
+
+        // Check if player left a game and offer to rejoin
+        const rejoinToken = localStorage.getItem('ono-rejoinToken');
+        const rejoinRoom  = localStorage.getItem('ono-rejoinRoom');
+        const rejoinName  = localStorage.getItem('ono-rejoinName');
+
+        if (rejoinToken && rejoinRoom && rejoinName) {
+            // Show rejoin prompt before connecting so we can act on the answer
+            _openPopup(
+                '🔄 Rejoin Game?',
+                `You left a game as <strong>${rejoinName}</strong>.<br>Would you like to rejoin?`,
+                [
+                    {
+                        label: 'No thanks',
+                        primary: false,
+                        cb: () => {
+                            localStorage.removeItem('ono-rejoinToken');
+                            localStorage.removeItem('ono-rejoinRoom');
+                            localStorage.removeItem('ono-rejoinName');
+                            initializeSocket();
+                        }
+                    },
+                    {
+                        label: '🔄 Rejoin',
+                        primary: true,
+                        cb: () => {
+                            // Queue the rejoin to fire as soon as socket connects
+                            window._pendingRejoin = { rejoinRoom, rejoinName, rejoinToken };
+                            initializeSocket();
+                        }
+                    }
+                ]
+            );
+        } else {
+            initializeSocket();
+        }
     });
 
     // Re-render seats on resize so oval positions stay accurate
