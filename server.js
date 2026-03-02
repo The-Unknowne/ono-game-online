@@ -43,8 +43,9 @@ class GameRoom {
         this._lastSwapEvent   = null;
         this.knockedOut       = [];   // player ids eliminated in mercy mode
         this.pendingRoulette  = null; // { targetIndex, targetColor }
-        this.glitchSpectators = []; // player ids made spectator by GlitchedOut
-        this.glitchScrambled  = []; // {playerId, expiresAt} scrambled by ScrambleCard
+        this.glitchSpectators  = []; // player ids eliminated by GlitchedOut
+        this.glitchScrambled   = []; // {playerId, expiresAt} scrambled by ScrambleCard
+        this.glitchPlayerDraws = {}; // playerId -> total cards drawn (for GlitchedOut gate)
     }
 
     isMercy() { return this.settings.gameMode === 'mercy'; }
@@ -147,7 +148,8 @@ class GameRoom {
             rejoinToken:       this.players[index]?.rejoinToken || null,
             glitchSpectators:  this.glitchSpectators || [],
             isSpectator:       (this.glitchSpectators || []).includes(this.players[index]?.id),
-            glitchScrambled:   this.isGlitchScrambledFor(this.players[index]?.id)
+            glitchScrambled:   this.isGlitchScrambledFor(this.players[index]?.id),
+            isEliminated:      (this.glitchSpectators||[]).includes(this.players[index]?.id)
         };
     }
 
@@ -233,6 +235,15 @@ class GameRoom {
             if (active.length === 1) {
                 winner = this.players.findIndex(p => p.id === active[0].id);
             } else if (active.length === 0) {
+                winner = playerIndex; // fallback
+            }
+        }
+        // Glitch: check if GlitchedOut eliminated enough players to end game
+        if (winner === null && this.isGlitch() && this._glitchedOutTargetId) {
+            const alive = this.players.filter(p => !(this.glitchSpectators||[]).includes(p.id));
+            if (alive.length === 1) {
+                winner = this.players.findIndex(p => p.id === alive[0].id);
+            } else if (alive.length === 0) {
                 winner = playerIndex; // fallback
             }
         }
@@ -361,7 +372,11 @@ class GameRoom {
             }
 
             case 'PopupAd': {
-                // Handled client-side; server just advances turn
+                // Server triggers popup ads for next player
+                const popupTargetIdx = this.getNextPlayerIndex(playerIndex);
+                const popupTargetId  = this.players[popupTargetIdx]?.id;
+                this._glitchPopupAdTargetId = popupTargetId;
+                this._glitchPopupAdCount    = Math.floor(Math.random() * 20) + 1;
                 this.advanceTurn();
                 break;
             }
@@ -386,13 +401,16 @@ class GameRoom {
             }
 
             case 'GlitchedOut': {
-                // Next player becomes spectator
+                // Next player is eliminated — they lose
                 const nextSpectIdx = this.getNextPlayerIndex(playerIndex);
                 const nextSpectId  = this.players[nextSpectIdx]?.id;
+                this._glitchedOutTargetId = nextSpectId;
+                // Mark them eliminated (reuse glitchSpectators list for tracking)
                 if (nextSpectId && !(this.glitchSpectators||[]).includes(nextSpectId)) {
                     this.glitchSpectators = [...(this.glitchSpectators||[]), nextSpectId];
                 }
-                this._glitchedOutTargetId = nextSpectId;
+                // Clear their hand so they can't play — they're eliminated
+                if (nextSpectIdx !== -1) this.players[nextSpectIdx].hand = [];
                 this.advanceTurn();
                 break;
             }
@@ -463,11 +481,28 @@ class GameRoom {
         return { success: true, swapperName: this.players[pi].name, targetName: this.players[ti].name };
     }
 
-    drawCards(playerIndex, count) {
-        const hand = this.players[playerIndex].hand;
+    drawCards(playerIndex, count, isPlayerDraw = false) {
+        const hand     = this.players[playerIndex].hand;
+        const playerId = this.players[playerIndex]?.id;
         for (let i = 0; i < count; i++) {
             if (this.deck.length === 0) this.reshuffleDeck();
-            if (this.deck.length > 0)   hand.push(this.deck.pop());
+            if (this.deck.length === 0) break;
+            // Track player draw count for GlitchedOut gate
+            if (isPlayerDraw && playerId) {
+                this.glitchPlayerDraws[playerId] = (this.glitchPlayerDraws[playerId] || 0) + 1;
+            }
+            // GlitchedOut gate: only accessible after 50+ draws by this player
+            let topCard = this.deck[this.deck.length - 1];
+            if (topCard && topCard.value === 'GlitchedOut') {
+                const draws = this.glitchPlayerDraws[playerId] || 0;
+                if (draws < 50 && this.deck.length > 1) {
+                    // Re-bury it, take next card instead
+                    const go = this.deck.pop();
+                    const insertAt = Math.floor(Math.random() * Math.max(1, this.deck.length - 10));
+                    this.deck.splice(insertAt, 0, go);
+                }
+            }
+            hand.push(this.deck.pop());
         }
     }
 
@@ -488,30 +523,19 @@ class GameRoom {
             return { success: true, drewStacked: true, stackCount: count };
         }
 
-        if (this.isGlitch()) {
-            for (let i = 0; i < 2; i++) {
-                this.deck.push({ color: 'wild', value: 'RandDraw',     type: 'wild', glitch: true });
-                this.deck.push({ color: 'wild', value: 'PopupAd',      type: 'wild', glitch: true });
-                this.deck.push({ color: 'wild', value: 'PeekHand',     type: 'wild', glitch: true });
-                this.deck.push({ color: 'wild', value: 'ScrambleCard', type: 'wild', glitch: true });
-            }
-            // GlitchedOut: 1 card buried deep
-            this.deck.push({ color: 'wild', value: 'GlitchedOut', type: 'wild', glitch: true, rare: true });
-            this.shuffleDeck();
-            // Bury GlitchedOut in the bottom 15% of deck
-            const goIdx = this.deck.findIndex(d => d.value === 'GlitchedOut');
-            if (goIdx !== -1) {
-                const [go] = this.deck.splice(goIdx, 1);
-                const pos  = Math.floor(this.deck.length * 0.12);
-                this.deck.splice(pos, 0, go);
-            }
-        }
         if (this.isGlitch() && this.stackedDrawCount === 0) {
             // Glitch mode: random 1-10 cards
             const n = Math.floor(Math.random() * 10) + 1;
-            this.drawCards(pi, n);
+            this.drawCards(pi, n, true); // isPlayerDraw=true for GlitchedOut gate
             this.players[pi].calledUno = false;
             this.hasDrawnThisTurn = true;
+            // Check if player drew GlitchedOut
+            const lastCard = this.players[pi].hand.at(-1);
+            if (lastCard && lastCard.value === 'GlitchedOut') {
+                // Remove it from hand and eliminate this player
+                this.players[pi].hand.pop();
+                this._glitchedOutDrawnBy = this.players[pi].id;
+            }
             this.advanceTurn();
             return { success: true, cardsDrawn: n, glitchRandDraw: true };
         }
@@ -755,6 +779,15 @@ io.on('connection', socket => {
         if (result.drawAnimation) io.to(roomId).emit('drawAnimation', result.drawAnimation);
 
         // Glitch special card emissions
+        if (room._glitchPopupAdTargetId) {
+            io.to(room._glitchPopupAdTargetId).emit('glitchPopupAd', { count: room._glitchPopupAdCount });
+            io.to(roomId).emit('glitchPopupAdAnnounce', {
+                targetName: room.players.find(p=>p.id===room._glitchPopupAdTargetId)?.name,
+                count: room._glitchPopupAdCount
+            });
+            room._glitchPopupAdTargetId = null;
+            room._glitchPopupAdCount    = null;
+        }
         if (room._glitchRandDrawCount) {
             io.to(roomId).emit('glitchRandDraw', { count: room._glitchRandDrawCount, victimId: room.players[room.getNextPlayerIndex ? (() => { try { return room.players.findIndex(p=>p.id!==socket.id) } catch(e){return -1} })() : -1]?.id });
             room._glitchRandDrawCount = null;
@@ -830,6 +863,40 @@ io.on('connection', socket => {
         const result = room.drawCard(socket.id);
         if (!result.success) { socket.emit('error', result.error); return; }
 
+        // Glitch: player drew GlitchedOut — they are eliminated
+        if (room._glitchedOutDrawnBy) {
+            const victim = room.players.find(p => p.id === room._glitchedOutDrawnBy);
+            room._glitchedOutDrawnBy = null;
+            if (victim) {
+                // Add them to eliminated list
+                if (!(room.glitchSpectators||[]).includes(victim.id)) {
+                    room.glitchSpectators = [...(room.glitchSpectators||[]), victim.id];
+                    victim.hand = [];
+                }
+                // Tell victim they lost
+                io.to(victim.id).emit('glitchedOutDrawn');
+                // Tell everyone else
+                io.to(roomId).emit('glitchedOutAnnounce', { targetId: victim.id, targetName: victim.name, drawn: true });
+                // Check if only 1 player remains → game over
+                const alive = room.players.filter(p => !(room.glitchSpectators||[]).includes(p.id));
+                if (alive.length === 1) {
+                    const scores = room.players.map(p => {
+                        const score = p.hand.reduce((sum, c) => {
+                            if (c.type === 'wild') return sum - 1;
+                            if (c.type === 'action') return sum - 2;
+                            return sum - 3;
+                        }, 0);
+                        return { name: p.name, id: p.id, score, hand: p.hand };
+                    });
+                    io.to(roomId).emit('gameOver', { winner: alive[0].name, winnerId: alive[0].id, scores, reason: 'glitched-out' });
+                    rematchQueues.set(roomId, { players: room.players.map(p=>({id:p.id,name:p.name})), settings: room.settings, votes: new Set(), total: room.players.length });
+                    setTimeout(() => rematchQueues.delete(roomId), 60000);
+                    rooms.delete(roomId);
+                    return;
+                }
+            }
+        }
+
         if (result.drewStacked) {
             const p = room.players.find(p => p.id === socket.id);
             io.to(roomId).emit('drawAnimation', { victimId: socket.id, victimName: p?.name, playerId: null, count: result.stackCount, cardValue: 'stack' });
@@ -863,16 +930,6 @@ io.on('connection', socket => {
             if (result.cardsDrawn) state.lastDrawInfo = { cardsDrawn: result.cardsDrawn, playerId: socket.id };
             io.to(p.id).emit('gameState', state);
         });
-    });
-
-    // Glitch: client tells server popup ad card was played — server triggers ads for next player
-    socket.on('glitchPopupAd', ({ roomId, count }) => {
-        const room = rooms.get(roomId);
-        if (!room) return;
-        const playerIdx = room.players.findIndex(p => p.id === socket.id);
-        const nextIdx   = room.getNextPlayerIndex(playerIdx);
-        const nextId    = room.players[nextIdx]?.id;
-        if (nextId) io.to(nextId).emit('glitchPopupAd', { count });
     });
 
     socket.on('chooseSwapTarget', ({ roomId, targetId }) => {
