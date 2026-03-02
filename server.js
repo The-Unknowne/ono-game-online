@@ -43,9 +43,12 @@ class GameRoom {
         this._lastSwapEvent   = null;
         this.knockedOut       = [];   // player ids eliminated in mercy mode
         this.pendingRoulette  = null; // { targetIndex, targetColor }
+        this.glitchSpectators = []; // player ids made spectator by GlitchedOut
+        this.glitchScrambled  = []; // {playerId, expiresAt} scrambled by ScrambleCard
     }
 
     isMercy() { return this.settings.gameMode === 'mercy'; }
+    isGlitch() { return this.settings.gameMode === 'glitch'; }
 
     createDeck() {
         const COLORS  = ['red', 'blue', 'green', 'yellow'];
@@ -66,6 +69,24 @@ class GameRoom {
         if (this.settings.allowPlus12) {
             this.deck.push({ color: 'wild', value: '+12', type: 'wild' });
             this.deck.push({ color: 'wild', value: '+12', type: 'wild' });
+        }
+        if (this.isGlitch()) {
+            for (let i = 0; i < 2; i++) {
+                this.deck.push({ color: 'wild', value: 'RandDraw',     type: 'wild', glitch: true });
+                this.deck.push({ color: 'wild', value: 'PopupAd',      type: 'wild', glitch: true });
+                this.deck.push({ color: 'wild', value: 'PeekHand',     type: 'wild', glitch: true });
+                this.deck.push({ color: 'wild', value: 'ScrambleCard', type: 'wild', glitch: true });
+            }
+            // GlitchedOut: 1 card buried deep
+            this.deck.push({ color: 'wild', value: 'GlitchedOut', type: 'wild', glitch: true, rare: true });
+            this.shuffleDeck();
+            // Bury GlitchedOut in the bottom 15% of deck
+            const goIdx = this.deck.findIndex(d => d.value === 'GlitchedOut');
+            if (goIdx !== -1) {
+                const [go] = this.deck.splice(goIdx, 1);
+                const pos  = Math.floor(this.deck.length * 0.12);
+                this.deck.splice(pos, 0, go);
+            }
         }
         if (this.isMercy()) {
             // Mercy mode extra wilds: 2 Wild+6, 2 Wild+10, 2 SkipAll, 2 Roulette
@@ -123,7 +144,10 @@ class GameRoom {
             settings:          this.settings,
             stackedDrawCount:  this.stackedDrawCount,
             hasDrawnThisTurn:  this.hasDrawnThisTurn,
-            rejoinToken:       this.players[index]?.rejoinToken || null
+            rejoinToken:       this.players[index]?.rejoinToken || null,
+            glitchSpectators:  this.glitchSpectators || [],
+            isSpectator:       (this.glitchSpectators || []).includes(this.players[index]?.id),
+            glitchScrambled:   this.isGlitchScrambledFor(this.players[index]?.id)
         };
     }
 
@@ -137,7 +161,8 @@ class GameRoom {
             return (this.currentValue === '+2'     && card.value === '+2') ||
                    (this.currentValue === 'Wild+4' && card.value === 'Wild+4');
         }
-        return card.type === 'wild' || card.color === this.currentColor || card.value === this.currentValue;
+        if (card.type === 'wild') return true;
+        return card.color === this.currentColor || card.value === this.currentValue;
     }
 
     playCard(playerId, cardIndex, chosenColor) {
@@ -148,6 +173,7 @@ class GameRoom {
         const player = this.players[playerIndex];
         const card   = player.hand[cardIndex];
         if (!card) return { success: false, error: 'Invalid card' };
+        if ((this.glitchSpectators||[]).includes(playerId)) return { success: false, error: 'You are a spectator' };
 
         if (playerIndex !== this.currentPlayer) {
             const { allowJumpIn } = this.settings;
@@ -325,9 +351,62 @@ class GameRoom {
                 this.skipNextPlayer();
                 break;
 
+            case 'RandDraw': {
+                const n = Math.floor(Math.random() * 10) + 1;
+                const nextIdx = this.getNextPlayerIndex(playerIndex);
+                this.drawCards(nextIdx, n);
+                this.skipNextPlayer();
+                this._glitchRandDrawCount = n;
+                break;
+            }
+
+            case 'PopupAd': {
+                // Handled client-side; server just advances turn
+                this.advanceTurn();
+                break;
+            }
+
+            case 'PeekHand': {
+                // Server sends opponent hand to player who played it; advances turn
+                this._glitchPeek = true;
+                this.advanceTurn();
+                break;
+            }
+
+            case 'ScrambleCard': {
+                // Mark next player as scrambled for 90 seconds
+                const nextP = this.players[this.getNextPlayerIndex(playerIndex)];
+                if (nextP) {
+                    this.glitchScrambled = (this.glitchScrambled||[]).filter(e => e.playerId !== nextP.id);
+                    this.glitchScrambled.push({ playerId: nextP.id, expiresAt: Date.now() + 90000 });
+                    this._glitchScrambleTargetId = nextP.id;
+                }
+                this.advanceTurn();
+                break;
+            }
+
+            case 'GlitchedOut': {
+                // Next player becomes spectator
+                const nextSpectIdx = this.getNextPlayerIndex(playerIndex);
+                const nextSpectId  = this.players[nextSpectIdx]?.id;
+                if (nextSpectId && !(this.glitchSpectators||[]).includes(nextSpectId)) {
+                    this.glitchSpectators = [...(this.glitchSpectators||[]), nextSpectId];
+                }
+                this._glitchedOutTargetId = nextSpectId;
+                this.advanceTurn();
+                break;
+            }
+
             default:
                 this.advanceTurn();
         }
+    }
+
+    isGlitchScrambledFor(playerId) {
+        if (!playerId) return false;
+        const now = Date.now();
+        this.glitchScrambled = (this.glitchScrambled||[]).filter(e => e.expiresAt > now);
+        return (this.glitchScrambled||[]).some(e => e.playerId === playerId);
     }
 
     skipNextPlayer()  { this.advanceTurn(); this.advanceTurn(); }
@@ -340,6 +419,24 @@ class GameRoom {
     getNextPlayerIndex(fromIndex = null) {
         const index = fromIndex !== null ? fromIndex : this.currentPlayer;
         let next = (index + this.direction + this.players.length) % this.players.length;
+        if (this.isGlitch()) {
+            for (let i = 0; i < 2; i++) {
+                this.deck.push({ color: 'wild', value: 'RandDraw',     type: 'wild', glitch: true });
+                this.deck.push({ color: 'wild', value: 'PopupAd',      type: 'wild', glitch: true });
+                this.deck.push({ color: 'wild', value: 'PeekHand',     type: 'wild', glitch: true });
+                this.deck.push({ color: 'wild', value: 'ScrambleCard', type: 'wild', glitch: true });
+            }
+            // GlitchedOut: 1 card buried deep
+            this.deck.push({ color: 'wild', value: 'GlitchedOut', type: 'wild', glitch: true, rare: true });
+            this.shuffleDeck();
+            // Bury GlitchedOut in the bottom 15% of deck
+            const goIdx = this.deck.findIndex(d => d.value === 'GlitchedOut');
+            if (goIdx !== -1) {
+                const [go] = this.deck.splice(goIdx, 1);
+                const pos  = Math.floor(this.deck.length * 0.12);
+                this.deck.splice(pos, 0, go);
+            }
+        }
         if (this.isMercy()) {
             let guard = 0;
             while (this.knockedOut.includes(this.players[next]?.id) && guard++ < this.players.length) {
@@ -376,6 +473,7 @@ class GameRoom {
 
     drawCard(playerId) {
         const pi = this.players.findIndex(p => p.id === playerId);
+        if ((this.glitchSpectators||[]).includes(playerId)) return { success: false, error: 'You are a spectator' };
         if (pi === -1 || pi !== this.currentPlayer) return { success: false, error: 'Not your turn' };
         if (this.hasDrawnThisTurn)                  return { success: false, error: 'You can only draw once per turn' };
 
@@ -388,6 +486,34 @@ class GameRoom {
             // Mercy: check knockout after stacked draw
             if (this.isMercy()) this.checkMercyKnockouts();
             return { success: true, drewStacked: true, stackCount: count };
+        }
+
+        if (this.isGlitch()) {
+            for (let i = 0; i < 2; i++) {
+                this.deck.push({ color: 'wild', value: 'RandDraw',     type: 'wild', glitch: true });
+                this.deck.push({ color: 'wild', value: 'PopupAd',      type: 'wild', glitch: true });
+                this.deck.push({ color: 'wild', value: 'PeekHand',     type: 'wild', glitch: true });
+                this.deck.push({ color: 'wild', value: 'ScrambleCard', type: 'wild', glitch: true });
+            }
+            // GlitchedOut: 1 card buried deep
+            this.deck.push({ color: 'wild', value: 'GlitchedOut', type: 'wild', glitch: true, rare: true });
+            this.shuffleDeck();
+            // Bury GlitchedOut in the bottom 15% of deck
+            const goIdx = this.deck.findIndex(d => d.value === 'GlitchedOut');
+            if (goIdx !== -1) {
+                const [go] = this.deck.splice(goIdx, 1);
+                const pos  = Math.floor(this.deck.length * 0.12);
+                this.deck.splice(pos, 0, go);
+            }
+        }
+        if (this.isGlitch() && this.stackedDrawCount === 0) {
+            // Glitch mode: random 1-10 cards
+            const n = Math.floor(Math.random() * 10) + 1;
+            this.drawCards(pi, n);
+            this.players[pi].calledUno = false;
+            this.hasDrawnThisTurn = true;
+            this.advanceTurn();
+            return { success: true, cardsDrawn: n, glitchRandDraw: true };
         }
 
         if (this.isMercy()) {
@@ -627,6 +753,30 @@ io.on('connection', socket => {
         }
 
         if (result.drawAnimation) io.to(roomId).emit('drawAnimation', result.drawAnimation);
+
+        // Glitch special card emissions
+        if (room._glitchRandDrawCount) {
+            io.to(roomId).emit('glitchRandDraw', { count: room._glitchRandDrawCount, victimId: room.players[room.getNextPlayerIndex ? (() => { try { return room.players.findIndex(p=>p.id!==socket.id) } catch(e){return -1} })() : -1]?.id });
+            room._glitchRandDrawCount = null;
+        }
+        if (room._glitchPeek) {
+            // Send peek: show next player's hand to the player who played PeekHand
+            const peekTargetIdx = room.players.findIndex(p => p.id !== socket.id);
+            if (peekTargetIdx !== -1) {
+                socket.emit('glitchPeek', { hand: room.players[peekTargetIdx].hand, playerName: room.players[peekTargetIdx].name });
+            }
+            room._glitchPeek = null;
+        }
+        if (room._glitchScrambleTargetId) {
+            io.to(room._glitchScrambleTargetId).emit('glitchScramble', { duration: 90000 });
+            io.to(roomId).emit('glitchScrambleAnnounce', { targetId: room._glitchScrambleTargetId, targetName: room.players.find(p=>p.id===room._glitchScrambleTargetId)?.name });
+            room._glitchScrambleTargetId = null;
+        }
+        if (room._glitchedOutTargetId) {
+            io.to(room._glitchedOutTargetId).emit('glitchedOut');
+            io.to(roomId).emit('glitchedOutAnnounce', { targetId: room._glitchedOutTargetId, targetName: room.players.find(p=>p.id===room._glitchedOutTargetId)?.name });
+            room._glitchedOutTargetId = null;
+        }
         if (result.newlyKnocked && result.newlyKnocked.length > 0) {
             result.newlyKnocked.forEach(p => {
                 io.to(roomId).emit('playerKnockedOut', { playerId: p.id, playerName: p.name });
@@ -713,6 +863,16 @@ io.on('connection', socket => {
             if (result.cardsDrawn) state.lastDrawInfo = { cardsDrawn: result.cardsDrawn, playerId: socket.id };
             io.to(p.id).emit('gameState', state);
         });
+    });
+
+    // Glitch: client tells server popup ad card was played — server triggers ads for next player
+    socket.on('glitchPopupAd', ({ roomId, count }) => {
+        const room = rooms.get(roomId);
+        if (!room) return;
+        const playerIdx = room.players.findIndex(p => p.id === socket.id);
+        const nextIdx   = room.getNextPlayerIndex(playerIdx);
+        const nextId    = room.players[nextIdx]?.id;
+        if (nextId) io.to(nextId).emit('glitchPopupAd', { count });
     });
 
     socket.on('chooseSwapTarget', ({ roomId, targetId }) => {
