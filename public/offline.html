@@ -814,6 +814,123 @@
     }
     .custom-popup.active { animation:popupFadeIn 0.3s ease-out; }
 
+
+    /* ── GLITCHED N'NO THEME ── */
+    html[data-glitch="1"] {
+        --bg-grad-a: #001a00;
+        --bg-grad-b: #0a0a0a;
+        --menu-h1: #00ff41;
+        --text-muted: #00cc33;
+    }
+    html[data-theme="dark"][data-glitch="1"] {
+        --bg-grad-a: #000d00;
+        --bg-grad-b: #000000;
+    }
+    html[data-glitch="1"] .menu-button { background: linear-gradient(135deg,#003300,#00aa22) !important; box-shadow: 0 6px 18px rgba(0,255,65,0.3) !important; }
+    html[data-glitch="1"] .menu-button.green { background: linear-gradient(135deg,#005500,#00cc33) !important; }
+    html[data-glitch="1"] #settingsGearBtn { background: linear-gradient(135deg,#002200,#006611) !important; }
+    html[data-glitch="1"] #modePickerBtn { background: linear-gradient(135deg,#001a00,#00aa22) !important; box-shadow: 0 6px 18px rgba(0,255,65,0.35) !important; }
+
+    /* Glitch card effect */
+    .card.glitched {
+        animation: glitchCard 0.4s steps(2) infinite !important;
+        filter: hue-rotate(var(--glitch-hue, 0deg)) saturate(2) !important;
+    }
+    @keyframes glitchCard {
+        0%   { transform: translateX(0) translateY(0) skewX(0deg); clip-path: none; }
+        25%  { transform: translateX(-3px) translateY(1px) skewX(2deg); }
+        50%  { transform: translateX(3px) translateY(-1px) skewX(-1deg); }
+        75%  { transform: translateX(-2px) translateY(2px) skewX(1deg); }
+        100% { transform: translateX(0) translateY(0) skewX(0deg); }
+    }
+
+    /* Special glitch cards */
+    .card.glitch-randraw  { background: linear-gradient(145deg,#003300,#00aa00,#005500) !important; border-color: #00ff41 !important; box-shadow: 0 0 18px rgba(0,255,65,0.6) !important; }
+    .card.glitch-randraw .card-inner { color:#00ff41 !important; background: rgba(0,0,0,0.7) !important; }
+    .card.glitch-popup    { background: linear-gradient(145deg,#1a0033,#4a007a,#220044) !important; border-color: #cc00ff !important; box-shadow: 0 0 18px rgba(204,0,255,0.6) !important; }
+    .card.glitch-popup .card-inner { color:#cc00ff !important; background: rgba(0,0,0,0.7) !important; }
+    .card.glitch-peek     { background: linear-gradient(145deg,#002233,#006688,#003344) !important; border-color: #00ccff !important; box-shadow: 0 0 18px rgba(0,204,255,0.6) !important; }
+    .card.glitch-peek .card-inner { color:#00ccff !important; background: rgba(0,0,0,0.7) !important; }
+    .card.glitch-scramble { background: linear-gradient(145deg,#003322,#00aa66,#004433) !important; border-color: #00ffaa !important; box-shadow: 0 0 18px rgba(0,255,170,0.6) !important; }
+    .card.glitch-scramble .card-inner { color:#00ffaa !important; background: rgba(0,0,0,0.7) !important; }
+    .card.glitch-out      { background: linear-gradient(145deg,#1a0000,#550000,#220000) !important; border-color: #ff0000 !important; box-shadow: 0 0 25px rgba(255,0,0,0.8) !important; animation: glitchOutGlow 0.8s ease-in-out infinite !important; }
+    .card.glitch-out .card-inner { color:#ff0000 !important; background: rgba(0,0,0,0.85) !important; font-size:0.65em !important; }
+    @keyframes glitchOutGlow {
+        0%,100% { box-shadow: 0 0 20px rgba(255,0,0,0.8); }
+        50%     { box-shadow: 0 0 40px rgba(255,0,0,1), 0 0 60px rgba(255,0,0,0.4); }
+    }
+
+    /* Pop-up Ad overlay */
+    #popupAdOverlay {
+        position: fixed; inset: 0; z-index: 99998;
+        background: rgba(0,0,0,0.7);
+        display: flex; align-items: center; justify-content: center;
+        flex-direction: column; gap: 12px;
+        backdrop-filter: blur(4px);
+    }
+    #popupAdOverlay.hidden { display: none; }
+    .popup-ad {
+        background: linear-gradient(135deg,#1a1a2e,#16213e);
+        border: 2px solid #cc00ff;
+        border-radius: 14px;
+        padding: 20px 28px;
+        min-width: 240px;
+        max-width: 320px;
+        text-align: center;
+        box-shadow: 0 0 30px rgba(204,0,255,0.5);
+        position: relative;
+        animation: adPop 0.3s cubic-bezier(0.34,1.56,0.64,1);
+        color: white;
+        font-family: 'Nunito', sans-serif;
+    }
+    @keyframes adPop {
+        0%   { transform: scale(0.3) rotate(-5deg); opacity:0; }
+        100% { transform: scale(1) rotate(0deg); opacity:1; }
+    }
+    .popup-ad h3 { color: #cc00ff; font-family: 'Orbitron',sans-serif; font-size:0.9em; margin:0 0 8px; }
+    .popup-ad p  { font-size: 0.82em; margin: 0 0 12px; color: #ccc; }
+    .popup-ad .ad-close {
+        background: linear-gradient(135deg,#cc00ff,#7700cc);
+        border: none; border-radius: 8px;
+        padding: 8px 20px; color: white; cursor: pointer;
+        font-weight: 700; font-size:0.9em; font-family:'Nunito',sans-serif;
+    }
+    .popup-ad .ad-close:hover { filter: brightness(1.2); }
+    #adCounter {
+        color: #cc00ff; font-family: 'Orbitron',sans-serif;
+        font-size: 1.1em; font-weight:900;
+        text-shadow: 0 0 10px rgba(204,0,255,0.8);
+    }
+
+    /* Peek overlay — shows opponent cards */
+    #peekOverlay {
+        position: fixed; inset: 0; z-index: 9990;
+        background: rgba(0,0,0,0.85);
+        display: flex; align-items: center; justify-content: center;
+        flex-direction: column; gap: 16px;
+        backdrop-filter: blur(6px);
+    }
+    #peekOverlay.hidden { display: none; }
+    #peekOverlay h3 { color: #00ccff; font-family:'Orbitron',sans-serif; margin:0; }
+    #peekCards { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; max-width:500px; }
+    #peekTimer { color:#00ccff; font-size:1.4em; font-weight:900; font-family:'Orbitron',sans-serif; }
+
+    /* Glitched out explosion */
+    @keyframes glitchOutExplode {
+        0%   { transform:scale(1); opacity:1; filter:hue-rotate(0deg); }
+        30%  { transform:scale(1.3) rotate(5deg); filter:hue-rotate(180deg) saturate(5); }
+        60%  { transform:scale(0.7) rotate(-10deg) skewX(20deg); opacity:0.5; }
+        100% { transform:scale(0) rotate(720deg); opacity:0; }
+    }
+    .glitch-exploding { animation: glitchOutExplode 0.8s ease-in forwards !important; }
+
+    /* mode card glitch style */
+    .mode-card.glitch { --mode-accent: linear-gradient(135deg,#001a00,#00aa22); }
+    .mode-card.glitch.selected { box-shadow: 0 6px 24px rgba(0,255,65,0.45); }
+    .mode-card.glitch .mode-card-title { color:#00ff41; }
+    .mode-card.glitch .mode-card-badge { background:rgba(0,255,65,0.12); color:#00ff41; }
+    .mode-card.glitch .mode-card-desc { color:#aaffaa; }
+    .mode-card.glitch .mode-rule-tag { background:rgba(0,255,65,0.1); color:#00dd33; border-color:rgba(0,255,65,0.2); }
     @media (max-width:768px) {
         h1 { font-size:2.2em; } h2 { font-size:1.5em; }
         .menu-container { padding:25px 18px; }
@@ -866,6 +983,19 @@
                         <span class="mode-rule-tag">⚡ Skip Everyone</span>
                         <span class="mode-rule-tag">🃏 Wild +6 / +10</span>
                         <span class="mode-rule-tag">🎰 Color Roulette</span>
+                    </div>
+                </div>
+            </div>
+            <div class="mode-card glitch" id="modeCard-glitch" onclick="selectMode('glitch')">
+                <div class="mode-card-inner">
+                    <div class="mode-card-title">💾 Glitched N'NO <span class="mode-card-badge" style="background:rgba(0,255,65,0.12);color:#00ff41;">Chaos+</span></div>
+                    <div class="mode-card-desc">The game is broken. Cards lie, ads attack, and one hidden card can delete you from existence.</div>
+                    <div class="mode-card-rules">
+                        <span class="mode-rule-tag">🔀 ScrambleCard (90s)</span>
+                        <span class="mode-rule-tag">🎲 Random Draw (1-10)</span>
+                        <span class="mode-rule-tag">📢 Pop-Up Ads</span>
+                        <span class="mode-rule-tag">👁️ Peek Opponent</span>
+                        <span class="mode-rule-tag">☠️ Glitched Out</span>
                     </div>
                 </div>
             </div>
@@ -1085,14 +1215,16 @@ function selectMode(mode){
     selectedGameMode = mode;
     document.querySelectorAll('.mode-card').forEach(c=>c.classList.remove('selected'));
     document.getElementById('modeCard-'+mode).classList.add('selected');
-    const labels = { original:'Original', mercy:'Please Have Mercy' };
+    const labels = { original:'Original', mercy:'Please Have Mercy', glitch:"Glitched N'NO" };
     document.getElementById('modeLabel').textContent = labels[mode]||mode;
     document.getElementById('modePickerPanel').classList.remove('open');
     document.getElementById('modeChevron').classList.remove('open');
-    // Apply red mercy theme immediately on selection
+    // Apply themes based on mode
     applyMercyTheme(mode === 'mercy');
+    applyGlitchTheme(mode === 'glitch');
 }
 function isMercy(){ return selectedGameMode === 'mercy'; }
+function isGlitch(){ return selectedGameMode === 'glitch'; }
 
 function applyMercyTheme(on){
     document.documentElement.setAttribute('data-mercy', on ? '1' : '0');
@@ -1105,6 +1237,21 @@ function applyMercyTheme(on){
         btnPicker.style.background = 'linear-gradient(135deg,#e74c3c,#c0392b)';
         btnPicker.style.boxShadow  = '0 6px 18px rgba(231,76,60,0.45)';
     } else if(btnPicker){
+        btnPicker.style.background = 'linear-gradient(135deg,#f093fb,#f5576c)';
+        btnPicker.style.boxShadow  = '0 6px 18px rgba(240,147,251,0.4)';
+    }
+}
+
+function applyGlitchTheme(on){
+    document.documentElement.setAttribute('data-glitch', on ? '1' : '0');
+    const a = getComputedStyle(document.documentElement).getPropertyValue('--bg-grad-a').trim();
+    const b = getComputedStyle(document.documentElement).getPropertyValue('--bg-grad-b').trim();
+    document.body.style.backgroundImage = `linear-gradient(135deg,${a} 0%,${b} 100%)`;
+    const btnPicker = document.getElementById('modePickerBtn');
+    if(btnPicker && on){
+        btnPicker.style.background = 'linear-gradient(135deg,#001a00,#00aa22)';
+        btnPicker.style.boxShadow  = '0 6px 18px rgba(0,255,65,0.35)';
+    } else if(btnPicker && !document.documentElement.getAttribute('data-mercy') === '1'){
         btnPicker.style.background = 'linear-gradient(135deg,#f093fb,#f5576c)';
         btnPicker.style.boxShadow  = '0 6px 18px rgba(240,147,251,0.4)';
     }
@@ -1124,6 +1271,14 @@ let playerCalledUno=false, computerCalledUno=false;
 let pendingWildCard=null, gameInProgress=false;
 let stackedDrawCount=0, isAnimating=false;
 let prevStackCount=0;
+// Glitch mode state
+let glitchDrawCount=0;        // tracks draws for GlitchedOut card
+let glitchAdsRemaining=0;     // active popup ads
+let glitchTurnSkipped=false;  // turn skipped due to unclosed ads
+let glitchOutInDeck=false;    // whether GlitchedOut card is in deck
+let glitchScrambleMap={};     // card id -> fake display {value, color}
+let glitchScrambleActive=false; // true when opponent scrambled our hand
+let glitchScrambleTimer=null;   // timer to clear scramble
 
 let settings = {
     difficulty:'medium', startingCards:7, allowStacking:false,
@@ -1163,8 +1318,9 @@ document.addEventListener('DOMContentLoaded', function(){
     if (modeCard) modeCard.classList.add('selected');
     const modeLabel = document.getElementById('modeLabel');
     if (modeLabel) modeLabel.textContent = savedMode === 'mercy' ? 'Please Have Mercy' : 'Original';
-    // Apply red theme if mercy
+    // Apply theme for loaded mode
     applyMercyTheme(savedMode === 'mercy');
+    applyGlitchTheme(savedMode === 'glitch');
 });
 
 // ── SETTINGS ─────────────────────────────────────────────────
@@ -1262,6 +1418,7 @@ function confirmQuit(){
 function startGame(){
     settings.gameMode = selectedGameMode;
     applyMercyTheme(isMercy());
+    applyGlitchTheme(isGlitch());
     showScreen('gameScreen'); startNewGame();
 }
 
@@ -1274,6 +1431,7 @@ function startNewGame(){
     currentPlayer='player'; direction=1;
     playerCalledUno=false; computerCalledUno=false;
     pendingWildCard=null; gameInProgress=true;
+    resetGlitchState();
     currentColor=null; currentValue=null;
     stackedDrawCount=0; isAnimating=false; prevStackCount=0;
     createDeck(); dealCards();
@@ -1298,6 +1456,28 @@ function createDeck(){
     if(settings.allowPlus12){
         deck.push({color:'wild',value:'+12',type:'wild'});
         deck.push({color:'wild',value:'+12',type:'wild'});
+    }
+    if(isGlitch()){
+        // Glitch special cards (2 of each except GlitchedOut which is 1, very rare)
+        for(let i=0;i<2;i++){
+            deck.push({color:'wild',value:'RandDraw',    type:'wild',glitch:true});
+            deck.push({color:'wild',value:'PopupAd',     type:'wild',glitch:true});
+            deck.push({color:'wild',value:'PeekHand',    type:'wild',glitch:true});
+            deck.push({color:'wild',value:'ScrambleCard',type:'wild',glitch:true});
+        }
+        // GlitchedOut — only 1, buried very deep (drawn after 50+ draws)
+        deck.push({color:'wild',value:'GlitchedOut',type:'wild',glitch:true,rare:true});
+        glitchOutInDeck=true;
+        glitchDrawCount=0;
+        // Shuffle, then bury GlitchedOut so it can only appear after 50 draws
+        shuffle(deck);
+        const goIdx=deck.findIndex(d=>d.value==='GlitchedOut');
+        if(goIdx!==-1){
+            deck.splice(goIdx,1);
+            // Place it in the bottom 30% of deck
+            const pos=Math.floor(deck.length*0.1);
+            deck.splice(pos,0,{color:'wild',value:'GlitchedOut',type:'wild',glitch:true,rare:true});
+        }
     }
     if(isMercy()){
         for(let i=0;i<2;i++){
@@ -1445,12 +1625,31 @@ function renderDiscardPile(){
     div.appendChild(el);
 }
 
+// Returns a scrambled display card (wrong color/value shown)
+function getGlitchDisplay(card, index){
+    if(!isGlitch() || !glitchScrambleActive) return card;
+    // Special glitch cards always show correctly
+    if(card.glitch) return card;
+    // Use a stable scramble per card per game using index as seed
+    const key = index + '_' + card.value + '_' + card.color;
+    if(!glitchScrambleMap[key]){
+        const fakeColors=['red','blue','green','yellow'];
+        const fakeVals=['1','2','3','4','5','6','7','8','9','Skip','Reverse','+2','Wild','Wild+4'];
+        glitchScrambleMap[key]={
+            color: fakeColors[Math.floor(Math.random()*fakeColors.length)],
+            value: fakeVals[Math.floor(Math.random()*fakeVals.length)]
+        };
+    }
+    return Object.assign({}, card, glitchScrambleMap[key]);
+}
+
 function createCardEl(card){
     const div=document.createElement('div');
     const MERCY_CLASS={'Wild+6':'wild mercy-draw','Wild+10':'wild mercy-draw-big','SkipAll':'wild mercy-skipall','Roulette':'wild mercy-roulette'};
-    const cls = card.value==='+12' ? 'plus12' : (MERCY_CLASS[card.value] || card.color);
+    const GLITCH_CLASS={'RandDraw':'wild glitch-randraw','PopupAd':'wild glitch-popup','PeekHand':'wild glitch-peek','GlitchedOut':'wild glitch-out','ScrambleCard':'wild glitch-scramble'};
+    const cls = card.value==='+12' ? 'plus12' : (GLITCH_CLASS[card.value] || MERCY_CLASS[card.value] || card.color);
     div.className=`card ${cls}`;
-    const LABELS={'Wild+4':'+4','Wild+6':'+6','Wild+10':'+10','+12':'+12','SkipAll':'SKIP ALL','Roulette':'ROULETTE','Wild':'WILD'};
+    const LABELS={'Wild+4':'+4','Wild+6':'+6','Wild+10':'+10','+12':'+12','SkipAll':'SKIP ALL','Roulette':'ROULETTE','Wild':'WILD','RandDraw':'RAND DRAW','PopupAd':'POP-UP','PeekHand':'PEEK','GlitchedOut':'ERROR','ScrambleCard':'SCRAMBLE'};
     const inner=document.createElement('div');
     inner.className='card-inner'; inner.textContent=LABELS[card.value]||card.value;
     div.appendChild(inner);
@@ -1467,7 +1666,11 @@ function renderPlayerHand(){
         const playable=canPlay(card);
         const isJumpIn=settings.allowJumpIn && currentPlayer!=='player'
             && card.type==='number' && card.color===currentColor && card.value===currentValue;
-        const el=createCardEl(card);
+        // Scramble display if opponent played ScrambleCard on us
+        const displayCard = (isGlitch() && glitchScrambleActive) ? getGlitchDisplay(card, i) : card;
+        const el=createCardEl(displayCard);
+        if(isGlitch() && glitchScrambleActive && !card.glitch) el.classList.add('glitched');
+        if(glitchScrambleActive) el.style.setProperty('--glitch-hue', (i*37)%360+'deg');
         if(isJumpIn){
             el.style.animation='cardJumpInPulse 0.9s ease-in-out infinite';
             el.style.outline='3px solid #f1c40f'; el.style.outlineOffset='3px';
@@ -1501,6 +1704,7 @@ function canPlay(card){
 function playCard(index){
     if(!gameInProgress||isAnimating) return;
     if(currentPlayer!=='player') return;
+    if(window._playerIsSpectator) return;
     const card=playerHand[index];
     if(!canPlay(card)){ showMessage("Can't play that card!"); return; }
     isAnimating=true;
@@ -1596,6 +1800,42 @@ function handlePlayerEffect(card){
         case '+12':
             playSound('playDraw'); animateDrawPenaltyLocal('computer',12,'#ff8c00',()=>{ for(let i=0;i<12;i++) drawForPlayer('computer'); renderAll(); showMessage('💀 CPU draws 12 cards!'); setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn again!'); },1500); });
             break;
+        case 'RandDraw':{
+            const n=Math.floor(Math.random()*10)+1;
+            showMessage(`🎲 Random Draw! CPU draws ${n} card${n>1?'s':''}!`);
+            playSound('playDraw');
+            animateDrawPenaltyLocal('computer',n,'#00ff41',()=>{
+                for(let i=0;i<n;i++) drawForPlayer('computer');
+                renderAll();
+                setTimeout(()=>{ currentPlayer='player'; renderAll(); },1200);
+            });
+            break;
+        }
+        case 'PopupAd':{
+            const count=Math.floor(Math.random()*20)+1;
+            showMessage(`📢 ${count} Pop-Up Ad${count>1?'s':''} for CPU!`);
+            // CPU turn skipped for each unclosed ad — we simulate CPU having to "close" them
+            const cpuDelay=count*300;
+            showMessage(`📢 CPU buried in ${count} ad${count>1?'s':''}!`);
+            setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn!'); },cpuDelay+800);
+            break;
+        }
+        case 'PeekHand':{
+            showPeekOverlay(computerHand, 3);
+            setTimeout(()=>{ currentPlayer='player'; renderAll(); },3500);
+            break;
+        }
+        case 'ScrambleCard':{
+            // Player played — CPU hand scrambled (cosmetic in offline, CPU plays normally)
+            showMessage("🔀 SCRAMBLED! CPU's cards are all mixed up for 90 seconds!");
+            setTimeout(()=>{ currentPlayer='player'; renderAll(); },1000);
+            break;
+        }
+        case 'GlitchedOut':{
+            // Player played it — CPU becomes spectator
+            triggerGlitchedOut('computer');
+            break;
+        }
         default: next();
     }
 }
@@ -1651,6 +1891,31 @@ function chooseColor(color){
 // ── DRAW ─────────────────────────────────────────────────────
 function drawCard(){
     if(currentPlayer!=='player'||!gameInProgress||isAnimating) return;
+    if(window._playerIsSpectator) return; // player is spectator
+    // Glitch mode: random draw 1-10
+    if(isGlitch() && stackedDrawCount===0){
+        const n=Math.floor(Math.random()*10)+1;
+        isAnimating=true;
+        let drew=0;
+        function drawOneGlitch(){
+            if(drew>=n||!gameInProgress){ isAnimating=false; renderAll(); setTimeout(()=>computerTurn(),1000); return; }
+            glitchDrawCount++;
+            drawForPlayer('player');
+            const drawn=playerHand[playerHand.length-1];
+            drew++;
+            // Check if GlitchedOut was drawn
+            if(drawn&&drawn.value==='GlitchedOut'){
+                isAnimating=false;
+                renderAll();
+                triggerGlitchedOut('player');
+                return;
+            }
+            animateCardToHand('player',()=>drawOneGlitch());
+        }
+        showMessage(`🎲 Glitch draw: ${n} card${n>1?'s':''}!`);
+        drawOneGlitch();
+        return;
+    }
     const _stacking = settings.allowStacking || isMercy();
     if(_stacking&&stackedDrawCount>0){
         const n=stackedDrawCount; stackedDrawCount=0;
@@ -1685,6 +1950,7 @@ function drawCard(){
 }
 
 function drawForPlayer(who){
+    if(isGlitch()) glitchDrawCount++;
     if(!deck.length) reshuffle();
     if(!deck.length) return;
     const card=deck.pop();
@@ -1695,6 +1961,7 @@ function drawForPlayer(who){
 // ── COMPUTER ─────────────────────────────────────────────────
 function computerTurn(){
     if(!gameInProgress) return;
+    if(window._cpuIsSpectator){ endGame('player'); return; }
     currentPlayer='computer'; renderAll(); showMessage("CPU's turn...");
     // Catch check
     if(playerHand.length===1&&!playerCalledUno){
@@ -1789,6 +2056,48 @@ function checkMercyKnockout(who){
         return true;
     }
     return false;
+}
+
+function handleCPUGlitchEffect(card){
+    if(!gameInProgress) return;
+    switch(card.value){
+        case 'RandDraw':{
+            const n=Math.floor(Math.random()*10)+1;
+            showMessage(`🎲 Glitch Draw! You draw ${n} card${n>1?'s':''}!`);
+            playSound('playDraw');
+            animateDrawPenaltyLocal('player',n,'#00ff41',()=>{
+                for(let i=0;i<n;i++) drawForPlayer('player');
+                renderAll();
+                // Check if player drew GlitchedOut
+                const last=playerHand[playerHand.length-1];
+                if(last&&last.value==='GlitchedOut'){ triggerGlitchedOut('player'); return; }
+                currentPlayer='player'; renderAll();
+            });
+            break;
+        }
+        case 'PopupAd':{
+            const count=Math.floor(Math.random()*20)+1;
+            showMessage(`📢 ${count} pop-up ad${count>1?'s':''} incoming!`);
+            triggerPopupAds(count);
+            break;
+        }
+        case 'PeekHand':{
+            // CPU peeked your hand — brief message, no real effect in single player
+            showMessage('👁 CPU peeked your hand!');
+            setTimeout(()=>{ currentPlayer='player'; renderAll(); },1500);
+            break;
+        }
+        case 'ScrambleCard':{
+            triggerScramble('player');
+            break;
+        }
+        case 'GlitchedOut':{
+            triggerGlitchedOut('player');
+            break;
+        }
+        default:
+            currentPlayer='player'; renderAll();
+    }
 }
 
 function handleCPUEffect(card){
@@ -1918,6 +2227,170 @@ function showScoreboard(winner){
     legend.innerHTML='📋 Scoring: Number <strong>−3</strong> &nbsp;|&nbsp; Action <strong>−2</strong> &nbsp;|&nbsp; Wild <strong>−1</strong>';
     rows.appendChild(legend);
     showScreen('scoreboardScreen');
+}
+
+
+// ── GLITCH MODE EFFECTS ──────────────────────────────────────
+
+function triggerPopupAds(count){
+    const overlay=document.getElementById('popupAdOverlay');
+    const container=document.getElementById('adContainer');
+    const counter=document.getElementById('adCounter');
+    overlay.classList.remove('hidden');
+    glitchAdsRemaining=count;
+    container.innerHTML='';
+
+    const AD_TEXTS=[
+        ['CONGRATULATIONS!','You are the 1,000,000th visitor! Click to claim your prize!'],
+        ['YOUR PC IS INFECTED','Download our FREE antivirus NOW!'],
+        ['LIMITED TIME OFFER','Buy 1 get 1 FREE on all NFTs!'],
+        ['SYSTEM WARNING','Critical error detected. Call 1-800-SCAM now!'],
+        ['YOU WON AN IPHONE 99','Just enter your credit card to claim!'],
+        ['AMAZING DEAL','Make $5000/hour working from home!'],
+        ['SECURITY ALERT','Your password has been compromised. Click here!'],
+        ['FREE ROBUX!!!','Get unlimited Robux with this one weird trick!'],
+        ['UPDATE REQUIRED','Install Flash Player 2099 to continue.'],
+        ['QUIZ TIME','What type of card are you? Take the quiz!'],
+        ['SPECIAL OFFER','Get O,No Premium for only $999/month!'],
+        ['YOU HAVE MESSAGES','3 people want to trade cards with you!'],
+        ['ERROR 404','Fun not found. Please try again later.'],
+        ['GLITCH DETECTED','Reality.exe has stopped working.'],
+        ['BUY NOW','This card is selling fast! Only 9,999 left!'],
+        ['TERMS UPDATED','We now own your firstborn. Click OK to agree.'],
+        ['FREE TRIAL','Try O,No Pro FREE for 0 days!'],
+        ['SURVEY','Tell us: how much do you hate pop-up ads? (1-10)'],
+        ['FINAL WARNING','Your warranty has expired. Extend now?'],
+    ];
+
+    let shown=0;
+    function showNext(){
+        if(shown>=count) return;
+        const [title,body]=AD_TEXTS[Math.floor(Math.random()*AD_TEXTS.length)];
+        const ad=document.createElement('div');
+        ad.className='popup-ad';
+        ad.innerHTML=`<h3>${title}</h3><p>${body}</p><button class="ad-close" onclick="closeAd(this)">✕ Close</button>`;
+        container.innerHTML='';
+        container.appendChild(ad);
+        counter.textContent=`${count-shown} ad${count-shown!==1?'s':''} remaining`;
+        shown++;
+    }
+    showNext();
+
+    window._adCloseHandler=function(btn){
+        const remaining=glitchAdsRemaining-1;
+        glitchAdsRemaining=remaining;
+        if(remaining<=0){
+            overlay.classList.add('hidden');
+            container.innerHTML='';
+            // Resume player turn
+            currentPlayer='player'; renderAll();
+        } else {
+            counter.textContent=`${remaining} ad${remaining!==1?'s':''} remaining`;
+            // Show next ad
+            const [title,body]=AD_TEXTS[Math.floor(Math.random()*AD_TEXTS.length)];
+            const ad=document.createElement('div');
+            ad.className='popup-ad';
+            ad.innerHTML=`<h3>${title}</h3><p>${body}</p><button class="ad-close" onclick="closeAd(this)">✕ Close</button>`;
+            container.innerHTML='';
+            container.appendChild(ad);
+        }
+    };
+}
+
+function closeAd(btn){
+    if(window._adCloseHandler) window._adCloseHandler(btn);
+}
+
+function showPeekOverlay(hand, seconds){
+    const overlay=document.getElementById('peekOverlay');
+    const cardsDiv=document.getElementById('peekCards');
+    const timer=document.getElementById('peekTimer');
+    overlay.classList.remove('hidden');
+    cardsDiv.innerHTML='';
+    hand.forEach(card=>{
+        const el=createCardEl(card);
+        el.style.width='60px'; el.style.height='90px';
+        el.style.pointerEvents='none';
+        el.querySelector('.card-inner').style.fontSize='1em';
+        cardsDiv.appendChild(el);
+    });
+    let t=seconds;
+    timer.textContent=t;
+    const iv=setInterval(()=>{
+        t--;
+        timer.textContent=t;
+        if(t<=0){
+            clearInterval(iv);
+            overlay.classList.add('hidden');
+            currentPlayer='player'; renderAll();
+        }
+    },1000);
+}
+
+function triggerScramble(who){
+    if(who==='player'){
+        glitchScrambleActive=true;
+        glitchScrambleMap={};  // fresh scramble
+        renderPlayerHand();
+        showMessage('🔀 Your cards are SCRAMBLED for 90 seconds!');
+        if(glitchScrambleTimer) clearTimeout(glitchScrambleTimer);
+        glitchScrambleTimer=setTimeout(()=>{
+            glitchScrambleActive=false;
+            glitchScrambleMap={};
+            renderPlayerHand();
+            showMessage('✅ Scramble lifted! Your real cards are back.');
+        }, 90000);
+    }
+    // CPU scramble is cosmetic only — it knows its own hand
+    setTimeout(()=>{ currentPlayer='player'; renderAll(); }, 1000);
+}
+
+function triggerGlitchedOut(who){
+    if(!gameInProgress) return;
+    const isPlayer=who==='player';
+
+    // Screen flash red
+    const flash=document.createElement('div');
+    flash.style.cssText='position:fixed;inset:0;background:rgba(255,0,0,0.5);z-index:99999;pointer-events:none;animation:glitchOutExplode 0.8s forwards;';
+    document.body.appendChild(flash);
+    setTimeout(()=>flash.remove(),900);
+
+    if(isPlayer){
+        // Player becomes spectator — all cards disabled, watch CPU play to the end
+        showMessage('☠️ GLITCHED OUT! You are now a spectator. Watch the CPU finish...');
+        const handDiv=document.getElementById('playerHand');
+        if(handDiv){ handDiv.classList.add('glitch-exploding'); setTimeout(()=>{ handDiv.classList.remove('glitch-exploding'); handDiv.style.opacity='0.3'; handDiv.style.pointerEvents='none'; },900); }
+        // Grey out the player seat
+        gameInProgress=true; // keep game running
+        // Disable player from playing — mark as spectator
+        window._playerIsSpectator=true;
+        // CPU keeps playing until it wins
+        setTimeout(()=>computerTurn(),2000);
+    } else {
+        // CPU becomes spectator — CPU hand cleared, player wins when they empty their hand
+        showMessage('☠️ CPU GLITCHED OUT! CPU is now a spectator. Play your cards to win!');
+        const cpuSeat=document.querySelector('.player-seat');
+        if(cpuSeat){ cpuSeat.classList.add('glitch-exploding'); setTimeout(()=>cpuSeat.classList.remove('glitch-exploding'),900); }
+        computerHand=[];  // CPU eliminated from play
+        window._cpuIsSpectator=true;
+        renderAll();
+        // Player just keeps playing until they empty their hand
+        setTimeout(()=>{ currentPlayer='player'; renderAll(); },1200);
+    }
+}
+
+// Reset glitch state on new game
+function resetGlitchState(){
+    glitchDrawCount=0; glitchAdsRemaining=0; glitchTurnSkipped=false;
+    glitchOutInDeck=isGlitch(); glitchScrambleMap={};
+    glitchScrambleActive=false;
+    if(glitchScrambleTimer){ clearTimeout(glitchScrambleTimer); glitchScrambleTimer=null; }
+    window._playerIsSpectator=false;
+    window._cpuIsSpectator=false;
+    const handDiv=document.getElementById('playerHand');
+    if(handDiv){ handDiv.style.opacity=''; handDiv.style.pointerEvents=''; }
+    document.getElementById('popupAdOverlay').classList.add('hidden');
+    document.getElementById('peekOverlay').classList.add('hidden');
 }
 
 // ── PAUSE ────────────────────────────────────────────────────
@@ -2206,5 +2679,19 @@ document.addEventListener('DOMContentLoaded',()=>{
 }
 </style>
 
+<!-- Pop-up Ads Overlay -->
+
+<div id="popupAdOverlay" class="hidden">
+    <div id="adCounter">0 ads remaining</div>
+    <div id="adContainer"></div>
+</div>
+
+<!-- Peek Overlay (Show Me What You Got) -->
+
+<div id="peekOverlay" class="hidden">
+    <h3>👁️ PEEKING CPU'S HAND...</h3>
+    <div id="peekCards"></div>
+    <div id="peekTimer">3</div>
+</div>
 </body>
 </html>
