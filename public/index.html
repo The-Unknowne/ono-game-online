@@ -3979,7 +3979,13 @@
         gameState.yourHand.forEach((card, index) => {
             const isPlayable = canPlayCard(card);
             const isJumpIn   = canJumpIn(card);
-            const cardDiv    = createCardElement(card);
+            // Apply scramble display if active
+            const displayCard = (isGlitch() && glitchScrambleActive) ? getGlitchDisplay(card, index) : card;
+            const cardDiv    = createCardElement(displayCard);
+            if (isGlitch() && glitchScrambleActive && !card.glitch) {
+                cardDiv.classList.add('glitched');
+                cardDiv.style.setProperty('--glitch-hue', (index * 37) % 360 + 'deg');
+            }
             
             if (isJumpIn) {
                 hasJumpInCard = true;
