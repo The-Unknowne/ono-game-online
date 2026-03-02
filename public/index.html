@@ -2719,6 +2719,10 @@ title="Open Settings" aria-label="Open Settings">
     let prevDiscardValue = null;
     let prevDiscardColor = null;
     let prevCurrentPlayer = null;
+    let glitchScrambleActive = false;
+    let glitchScrambleTimer  = null;
+    let glitchScrambleMap    = {};
+    let isSpectator          = false;
     let roomId = null;
     let pendingCardIndex = null;
     let reconnectAttempts = 0;
@@ -2898,6 +2902,7 @@ title="Open Settings" aria-label="Open Settings">
             gameState = state;
             isWaitingForServer = false;
             applyMercyTheme(state.settings && state.settings.gameMode === 'mercy');
+            applyGlitchTheme(state.settings && state.settings.gameMode === 'glitch');
             showScreen('gameScreen');
             // Start heartbeat monitoring for in-game presence
             startHeartbeat();
@@ -2915,6 +2920,7 @@ title="Open Settings" aria-label="Open Settings">
             roomId = state.roomId;
             isWaitingForServer = false;
             applyMercyTheme(state.settings && state.settings.gameMode === 'mercy');
+            applyGlitchTheme(state.settings && state.settings.gameMode === 'glitch');
             showScreen('gameScreen');
             if (state.rejoinToken) {
                 localStorage.setItem('ono-rejoinToken', state.rejoinToken);
@@ -2934,6 +2940,56 @@ title="Open Settings" aria-label="Open Settings">
 
         socket.on('playerRejoined', ({ playerName }) => {
             showMessage(`${playerName} reconnected!`);
+        });
+
+
+        // ── GLITCH N'NO SOCKET EVENTS ──────────────────────────────
+        socket.on('glitchScramble', ({ duration }) => {
+            glitchScrambleActive = true;
+            glitchScrambleMap = {};
+            if (glitchScrambleTimer) clearTimeout(glitchScrambleTimer);
+            showMessage('🔀 Your cards are SCRAMBLED for 90 seconds!');
+            triggerPenaltyFlash();
+            updateGameUI();
+            glitchScrambleTimer = setTimeout(() => {
+                glitchScrambleActive = false;
+                glitchScrambleMap = {};
+                updateGameUI();
+                showMessage('✅ Scramble lifted! Your real cards are back.');
+            }, duration || 90000);
+        });
+
+        socket.on('glitchScrambleAnnounce', ({ targetName }) => {
+            showMessage(`🔀 ${targetName}'s cards have been SCRAMBLED for 90 seconds!`);
+        });
+
+        socket.on('glitchPopupAd', ({ count }) => {
+            triggerPopupAds(count);
+        });
+
+        socket.on('glitchPeek', ({ hand, playerName }) => {
+            showPeekOverlay(hand, playerName, 3);
+        });
+
+        socket.on('glitchedOut', () => {
+            isSpectator = true;
+            // Show spectator banner
+            const banner = document.createElement('div');
+            banner.className = 'spectator-banner';
+            banner.textContent = '☠️ GLITCHED OUT — You are now a spectator. Watch the game continue...';
+            document.body.prepend(banner);
+            // Disable hand interactions
+            const handEl = document.getElementById('playerHand');
+            if (handEl) { handEl.style.opacity = '0.3'; handEl.style.pointerEvents = 'none'; }
+            // Flash
+            const flash = document.createElement('div');
+            flash.style.cssText = 'position:fixed;inset:0;background:rgba(255,0,0,0.5);z-index:99999;pointer-events:none;';
+            document.body.appendChild(flash);
+            setTimeout(() => flash.remove(), 800);
+        });
+
+        socket.on('glitchedOutAnnounce', ({ targetName }) => {
+            showMessage(`☠️ ${targetName} has been GLITCHED OUT and is now a spectator!`);
         });
 
         socket.on('gameState', (state) => {
@@ -3272,6 +3328,13 @@ title="Open Settings" aria-label="Open Settings">
     // ── GAME MODE PICKER ─────────────────────────────────────────────────────
     let selectedGameMode = 'original';
 
+    function applyGlitchTheme(on) {
+        document.documentElement.setAttribute('data-glitch', on ? '1' : '0');
+        const a = getComputedStyle(document.documentElement).getPropertyValue('--bg-grad-a').trim();
+        const b = getComputedStyle(document.documentElement).getPropertyValue('--bg-grad-b').trim();
+        document.body.style.backgroundImage = `linear-gradient(135deg,${a} 0%,${b} 100%)`;
+    }
+
     function toggleModePicker() {
         const panel   = document.getElementById('modePickerPanel');
         const chevron = document.getElementById('modeChevron');
@@ -3279,15 +3342,18 @@ title="Open Settings" aria-label="Open Settings">
         chevron.classList.toggle('open', isOpen);
     }
 
+    function isGlitch() { return selectedGameMode === 'glitch'; }
+
     function selectMode(mode) {
         selectedGameMode = mode;
         document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
         document.getElementById('modeCard-' + mode).classList.add('selected');
-        const labels = { original: 'Original', mercy: 'Please Have Mercy' };
+        const labels = { original: 'Original', mercy: 'Please Have Mercy', glitch: "Glitched N'NO" };
         document.getElementById('modeLabel').textContent = labels[mode] || mode;
         document.getElementById('modePickerPanel').classList.remove('open');
         document.getElementById('modeChevron').classList.remove('open');
         applyMercyTheme(mode === 'mercy');
+        applyGlitchTheme(mode === 'glitch');
     }
 
     function playOffline() {
@@ -3902,6 +3968,21 @@ title="Open Settings" aria-label="Open Settings">
         }
     }
 
+    function getGlitchDisplay(card, index) {
+        if (!glitchScrambleActive) return card;
+        if (card.glitch) return card;
+        const key = index + '_' + card.value + '_' + card.color;
+        if (!glitchScrambleMap[key]) {
+            const fakeColors = ['red','blue','green','yellow'];
+            const fakeVals   = ['1','2','3','4','5','6','7','8','9','Skip','Reverse','+2','Wild','Wild+4'];
+            glitchScrambleMap[key] = {
+                color: fakeColors[Math.floor(Math.random()*fakeColors.length)],
+                value: fakeVals[Math.floor(Math.random()*fakeVals.length)]
+            };
+        }
+        return Object.assign({}, card, glitchScrambleMap[key]);
+    }
+
     function createCardElement(card) {
         const cardDiv = document.createElement('div');
         const MERCY_CLASS = { 'Wild+6': 'wild mercy-draw', 'Wild+10': 'wild mercy-draw-big', 'SkipAll': 'wild mercy-skipall', 'Roulette': 'wild mercy-roulette' };
@@ -4354,6 +4435,11 @@ title="Open Settings" aria-label="Open Settings">
             showColorPicker();
         } else {
             isWaitingForServer = true;
+            // For glitch PopupAd: tell server to trigger ads for opponent
+            if (card.value === 'PopupAd' && isGlitch()) {
+                const adCount = Math.floor(Math.random() * 20) + 1;
+                socket.emit('glitchPopupAd', { roomId: gameState.roomId, count: adCount });
+            }
             animateCardToCenter(cardElement, card, () => {
                 if (socket && socket.connected) {
                     socket.emit('playCard', {
@@ -4537,6 +4623,87 @@ title="Open Settings" aria-label="Open Settings">
         } catch(e) {}
     }
 
+
+    // ── GLITCH MODE EFFECTS ──────────────────────────────────────
+
+    function triggerPopupAds(count) {
+        const overlay   = document.getElementById('popupAdOverlay');
+        const container = document.getElementById('adContainer');
+        const counter   = document.getElementById('adCounter');
+        let remaining   = count;
+        overlay.classList.remove('hidden');
+        container.innerHTML = '';
+
+        const AD_TEXTS = [
+            ['CONGRATULATIONS!','You are the 1,000,000th visitor! Click to claim your prize!'],
+            ['YOUR PC IS INFECTED','Download our FREE antivirus NOW!'],
+            ['LIMITED TIME OFFER','Buy 1 get 1 FREE on all NFTs!'],
+            ['SYSTEM WARNING','Critical error detected. Call 1-800-SCAM now!'],
+            ['YOU WON AN IPHONE 99','Just enter your credit card to claim!'],
+            ['AMAZING DEAL','Make $5000/hour working from home!'],
+            ['SECURITY ALERT','Your password has been compromised. Click here!'],
+            ['FREE ROBUX!!!','Get unlimited Robux with this one weird trick!'],
+            ['UPDATE REQUIRED','Install Flash Player 2099 to continue.'],
+            ['QUIZ TIME','What type of card are you? Take the quiz!'],
+            ['SPECIAL OFFER','Get O,No Premium for only $999/month!'],
+            ['YOU HAVE MESSAGES','3 people want to trade cards with you!'],
+            ['ERROR 404','Fun not found. Please try again later.'],
+            ['GLITCH DETECTED','Reality.exe has stopped working.'],
+            ['BUY NOW','This card is selling fast! Only 9,999 left!'],
+            ['TERMS UPDATED','We now own your firstborn. Click OK to agree.'],
+            ['FREE TRIAL','Try O,No Pro FREE for 0 days!'],
+            ['SURVEY','Tell us: how much do you hate pop-up ads? (1-10)'],
+            ['FINAL WARNING','Your warranty has expired. Extend now?'],
+        ];
+
+        function showNextAd() {
+            const [title, body] = AD_TEXTS[Math.floor(Math.random() * AD_TEXTS.length)];
+            const ad = document.createElement('div');
+            ad.className = 'popup-ad';
+            ad.innerHTML = `<h3>${title}</h3><p>${body}</p><button class="ad-close">✕ Close</button>`;
+            ad.querySelector('.ad-close').onclick = () => {
+                remaining--;
+                if (remaining <= 0) {
+                    overlay.classList.add('hidden');
+                    container.innerHTML = '';
+                } else {
+                    counter.textContent = `${remaining} ad${remaining !== 1 ? 's' : ''} remaining`;
+                    container.innerHTML = '';
+                    showNextAd();
+                }
+            };
+            container.innerHTML = '';
+            container.appendChild(ad);
+            counter.textContent = `${remaining} ad${remaining !== 1 ? 's' : ''} remaining`;
+        }
+        showNextAd();
+    }
+
+    function showPeekOverlay(hand, playerName, seconds) {
+        const overlay  = document.getElementById('peekOverlay');
+        const cardsDiv = document.getElementById('peekCards');
+        const timer    = document.getElementById('peekTimer');
+        const heading  = overlay.querySelector('h3');
+        if (heading) heading.textContent = `👁️ PEEKING ${playerName.toUpperCase()}'S HAND...`;
+        overlay.classList.remove('hidden');
+        cardsDiv.innerHTML = '';
+        hand.forEach(card => {
+            const el = createCardElement(card);
+            el.style.width = '60px'; el.style.height = '90px';
+            el.style.pointerEvents = 'none';
+            const inner = el.querySelector('.card-inner');
+            if (inner) inner.style.fontSize = '1em';
+            cardsDiv.appendChild(el);
+        });
+        let t = seconds;
+        timer.textContent = t;
+        const iv = setInterval(() => {
+            t--;
+            timer.textContent = t;
+            if (t <= 0) { clearInterval(iv); overlay.classList.add('hidden'); }
+        }, 1000);
+    }
+
     function showMessage(msg) {
         document.getElementById('message').textContent = msg;
     }
@@ -4544,6 +4711,21 @@ title="Open Settings" aria-label="Open Settings">
     const COLOR_HEX = { red: '#e74c3c', blue: '#3498db', green: '#2ecc71', yellow: '#f1c40f' };
     function getColorHex(color) { return COLOR_HEX[color] || '#ffffff'; }
 </script>
+
+<!-- Pop-up Ads Overlay -->
+
+<div id="popupAdOverlay" class="hidden">
+    <div id="adCounter">0 ads remaining</div>
+    <div id="adContainer"></div>
+</div>
+
+<!-- Peek Overlay -->
+
+<div id="peekOverlay" class="hidden">
+    <h3>👁️ PEEKING OPPONENT'S HAND...</h3>
+    <div id="peekCards"></div>
+    <div id="peekTimer">3</div>
+</div>
 
 </body>
 </html>
