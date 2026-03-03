@@ -4050,7 +4050,17 @@
         const LABELS = { 'Wild+4': '+4', 'Wild+6': '+6', 'Wild+10': '+10', '+12': '+12', 'SkipAll': 'SKIP ALL', 'Roulette': 'ROULETTE', 'Wild': 'WILD' };
         const cardInner = document.createElement('div');
         cardInner.className = 'card-inner';
-        cardInner.textContent = LABELS[card.value] || card.value;
+        const _ISTOP = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" style="width:100%;height:100%;display:block"><path fill="currentColor" d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372 0-89 31.3-170.8 83.5-234.8l523.3 523.3C682.8 852.7 601 884 512 884zm288.5-137.2L277.2 223.5C341.2 171.3 423 140 512 140c205.4 0 372 166.6 372 372 0 89-31.3 170.8-83.5 234.8z"/></svg>';
+        const _IREV = '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block"><path d="M34 6.67564C39.978 10.1337 44 16.5972 44 24M34 6.67564V14M34 6.67564H41.3244M41.3244 34C37.8663 39.978 31.4028 44 24 44M41.3244 34H34M41.3244 34V41.3244M14 41.3244C8.02199 37.8663 4 31.4028 4 24M14 41.3244V34M14 41.3244H6.67564M6.67564 14C10.1337 8.02199 16.5972 4 24 4M6.67564 14H14M6.67564 14V6.67564" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        if (card.value === 'Skip') {
+            cardInner.style.cssText = 'display:flex;align-items:center;justify-content:center;padding:10%;box-sizing:border-box;';
+            cardInner.innerHTML = _ISTOP;
+        } else if (card.value === 'Reverse') {
+            cardInner.style.cssText = 'display:flex;align-items:center;justify-content:center;padding:10%;box-sizing:border-box;';
+            cardInner.innerHTML = _IREV;
+        } else {
+            cardInner.textContent = LABELS[card.value] || card.value;
+        }
         cardDiv.appendChild(cardInner);
 
         return cardDiv;
@@ -4104,13 +4114,23 @@
         }, 200);
         setTimeout(() => {
             const cardColor = MERCY_CLASS[card.value] || card.color || 'wild';
-            const label = LABELS[card.value] || card.value;
+            const _ASTOP = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" style="width:100%;height:100%;display:block"><path fill="currentColor" d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372 0-89 31.3-170.8 83.5-234.8l523.3 523.3C682.8 852.7 601 884 512 884zm288.5-137.2L277.2 223.5C341.2 171.3 423 140 512 140c205.4 0 372 166.6 372 372 0 89-31.3 170.8-83.5 234.8z"/></svg>';
+            const _AREV = '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block"><path d="M34 6.67564C39.978 10.1337 44 16.5972 44 24M34 6.67564V14M34 6.67564H41.3244M41.3244 34C37.8663 39.978 31.4028 44 24 44M41.3244 34H34M41.3244 34V41.3244M14 41.3244C8.02199 37.8663 4 31.4028 4 24M14 41.3244V34M14 41.3244H6.67564M6.67564 14C10.1337 8.02199 16.5972 4 24 4M6.67564 14H14M6.67564 14V6.67564" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+            let _innerHtml;
+            if (card.value === 'Skip') {
+                _innerHtml = `<div class="card-inner" style="display:flex;align-items:center;justify-content:center;padding:10%;box-sizing:border-box;width:78%;height:78%;">${_ASTOP}</div>`;
+            } else if (card.value === 'Reverse') {
+                _innerHtml = `<div class="card-inner" style="display:flex;align-items:center;justify-content:center;padding:10%;box-sizing:border-box;width:78%;height:78%;">${_AREV}</div>`;
+            } else {
+                const label = LABELS[card.value] || card.value;
+                _innerHtml = `<div class="card-inner" style="font-size:1.3em;width:78%;height:78%;">${label}</div>`;
+            }
             clone.className = `card ${card.value === '+12' ? 'plus12' : cardColor}`;
             clone.style.left   = midX + 'px';
             clone.style.top    = midY + 'px';
             clone.style.transform = 'scale(1.12) rotateY(-90deg) rotate(-8deg)';
             clone.style.transition = 'transform 0.12s ease-out';
-            clone.innerHTML = `<div class="card-inner" style="font-size:1.3em;width:78%;height:78%;">${label}</div>`;
+            clone.innerHTML = _innerHtml;
         }, 315);
         setTimeout(() => {
             clone.style.transform = 'scale(1.12) rotate(-8deg)';
