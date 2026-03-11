@@ -1464,10 +1464,12 @@ function createDeck(){
     }
     if(isMercy()){
         for(let i=0;i<2;i++){
-            deck.push({color:'wild',value:'Wild+6',  type:'wild'});
-            deck.push({color:'wild',value:'Wild+10', type:'wild'});
-            deck.push({color:'wild',value:'SkipAll', type:'wild'});
-            deck.push({color:'wild',value:'Roulette',type:'wild'});
+            deck.push({color:'wild',value:'Wild+6',       type:'wild'});
+            deck.push({color:'wild',value:'Wild+10',      type:'wild'});
+            deck.push({color:'wild',value:'DiscardAll',   type:'wild'});
+            deck.push({color:'wild',value:'WildReverseD4',type:'wild'});
+            deck.push({color:'wild',value:'SkipAll',      type:'wild'});
+            deck.push({color:'wild',value:'Roulette',     type:'wild'});
         }
     }
     shuffle(deck);
@@ -1628,11 +1630,11 @@ function getGlitchDisplay(card, index){
 
 function createCardEl(card){
     const div=document.createElement('div');
-    const MERCY_CLASS={'Wild+6':'wild mercy-draw','Wild+10':'wild mercy-draw-big','SkipAll':'wild mercy-skipall','Roulette':'wild mercy-roulette'};
+    const MERCY_CLASS={'Wild+6':'wild mercy-draw','Wild+10':'wild mercy-draw-big','DiscardAll':'wild mercy-skipall','WildReverseD4':'wild mercy-draw','SkipAll':'wild mercy-skipall','Roulette':'wild mercy-roulette'};
     const GLITCH_CLASS={'RandDraw':'wild glitch-randraw','PopupAd':'wild glitch-popup','PeekHand':'wild glitch-peek','GlitchedOut':'wild glitch-out','ScrambleCard':'wild glitch-scramble'};
     const cls = card.value==='+12' ? 'plus12' : (GLITCH_CLASS[card.value] || MERCY_CLASS[card.value] || card.color);
     div.className=`card ${cls}`;
-    const LABELS={'Wild+4':'+4','Wild+6':'+6','Wild+10':'+10','+12':'+12','SkipAll':'SKIP ALL','Roulette':'ROULETTE','Wild':'WILD','RandDraw':'RAND DRAW','PopupAd':'POP-UP','PeekHand':'PEEK','GlitchedOut':'ERROR','ScrambleCard':'SCRAMBLE'};
+    const LABELS={'Wild+4':'+4','Wild+6':'+6','Wild+10':'+10','DiscardAll':'DISCARD ALL','WildReverseD4':'REV +4','+12':'+12','SkipAll':'SKIP ALL','Roulette':'ROULETTE','Wild':'WILD','RandDraw':'RAND DRAW','PopupAd':'POP-UP','PeekHand':'PEEK','GlitchedOut':'ERROR','ScrambleCard':'SCRAMBLE'};
     const inner=document.createElement('div');
     inner.className='card-inner';
     const _STOP_SVG='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" style="width:100%;height:100%;display:block"><path fill="currentColor" d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372 0-89 31.3-170.8 83.5-234.8l523.3 523.3C682.8 852.7 601 884 512 884zm288.5-137.2L277.2 223.5C341.2 171.3 423 140 512 140c205.4 0 372 166.6 372 372 0 89-31.3 170.8-83.5 234.8z"/></svg>';
@@ -1689,7 +1691,15 @@ function canPlay(card){
     if(card.type==='wild') return true;
     const stacking = settings.allowStacking || isMercy();
     if(stacking&&stackedDrawCount>0){
-        if(isMercy()) return ['+2','Wild+4','Wild+6','Wild+10'].includes(card.value);
+        if(isMercy()){
+            // Equal-or-higher draw value required
+            const DRAW_VALUES={'+2':2,'Wild+4':4,'WildReverseD4':4,'Wild+6':6,'Wild+10':10};
+            const cardVal=DRAW_VALUES[card.value];
+            if(!cardVal) return false;
+            const topCard=discardPile[discardPile.length-1];
+            const topVal=topCard?(DRAW_VALUES[topCard.value]||0):0;
+            return cardVal>=topVal;
+        }
         return (currentValue==='+2'&&card.value==='+2')||(currentValue==='Wild+4'&&card.value==='Wild+4');
     }
     return card.color===currentColor||card.value===currentValue;
@@ -1747,7 +1757,7 @@ function handlePlayerEffect(card){
     const stacking = settings.allowStacking || isMercy();
     switch(card.value){
         case '0':
-            if(use07){ swapHands(); showMessage('Hands swapped with CPU! 🔄'); setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn again!'); },1500); }
+            if(use07){ rotateHands(); showMessage('All hands passed in play direction! 🔄'); setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn again!'); },1500); }
             else next(); break;
         case '7':
             if(use07){ swapHands(); showMessage('You swapped hands with CPU! 🔄'); setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn again!'); },1500); }
@@ -1773,6 +1783,21 @@ function handlePlayerEffect(card){
         case 'Wild+10':
             if(stacking){ stackedDrawCount+=10; updateInfoBar(); showMessage(`CPU must draw ${stackedDrawCount} or stack!`); setTimeout(()=>computerTurn(),1400); }
             else { playSound('playDraw'); animateDrawPenaltyLocal('computer',10,'#7c3aed',()=>{ for(let i=0;i<10;i++) drawForPlayer('computer'); renderAll(); showMessage('💀 CPU draws 10!'); setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn again!'); },1500); }); }
+            break;
+            // Remove all cards of chosen color from player's hand
+            const chosenCol = currentColor;
+            const before = playerHand.length;
+            playerHand = playerHand.filter(c => c.color !== chosenCol);
+            const removed = before - playerHand.length;
+            playSound('skip');
+            renderAll(); showMessage(`🗑️ Discard All! You removed ${removed} ${chosenCol} card${removed!==1?'s':''}!`);
+            setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn again!'); },1400);
+            break;
+        }
+        case 'WildReverseD4':
+            direction*=-1; updateDirectionArrows();
+            if(stacking){ stackedDrawCount+=4; updateInfoBar(); showMessage(`↩️ Reverse +4! CPU must draw ${stackedDrawCount} or stack!`); setTimeout(()=>computerTurn(),1400); }
+            else { playSound('playDraw'); animateDrawPenaltyLocal('computer',4,'#9b59b6',()=>{ for(let i=0;i<4;i++) drawForPlayer('computer'); renderAll(); showMessage('↩️ Reverse! CPU draws 4!'); setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn again!'); },1500); }); }
             break;
         case 'SkipAll':
             playSound('skip'); showMessage('⚡ Skip All! You go again!');
@@ -1806,7 +1831,7 @@ function handlePlayerEffect(card){
             break;
         }
         case 'PopupAd':{
-            const count=Math.floor(Math.random()*20)+1;
+            const count=Math.floor(Math.random()*11)+5;
             const cpuDelay=Math.min(count*200,4000);
             showMessage(`📢 CPU is buried under ${count} pop-up ad${count>1?'s':''}! Wait ${Math.round(cpuDelay/1000)}s...`);
             setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('CPU finally closed all ads. Your turn!'); },cpuDelay+800);
@@ -1834,6 +1859,17 @@ function handlePlayerEffect(card){
 }
 
 function swapHands(){ const t=playerHand; playerHand=computerHand; computerHand=t; playerCalledUno=false; computerCalledUno=false; }
+// Rotate all hands in direction of play (in 2-player this is identical to a swap)
+function rotateHands(){
+    if(direction === 1){
+        // Clockwise: player gets CPU's hand, CPU gets player's hand
+        const t=playerHand; playerHand=computerHand; computerHand=t;
+    } else {
+        // Counter-clockwise: same result in 2-player
+        const t=playerHand; playerHand=computerHand; computerHand=t;
+    }
+    playerCalledUno=false; computerCalledUno=false;
+}
 
 function showColorPicker(){
     document.getElementById('overlay').classList.add('active');
@@ -1858,6 +1894,18 @@ function chooseColor(color){
         } else if(card.value==='Wild+10'){
             if(stacking2){ stackedDrawCount+=10; updateInfoBar(); showMessage(`CPU must draw ${stackedDrawCount} or stack!`); setTimeout(()=>computerTurn(),1400); }
             else { playSound('playDraw'); animateDrawPenaltyLocal('computer',10,'#7c3aed',()=>{ for(let i=0;i<10;i++) drawForPlayer('computer'); renderAll(); showMessage('💀 CPU draws 10!'); setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn again!'); },1500); }); }
+        } else if(card.value==='DiscardAll'){
+            // Remove all cards of the chosen color from player's own hand
+            const chosenCol2 = currentColor;
+            const bef = playerHand.length;
+            playerHand = playerHand.filter(c => c.color !== chosenCol2);
+            const rem = bef - playerHand.length;
+            playSound('skip'); renderAll(); showMessage(`🗑️ Discard All! You removed ${rem} ${chosenCol2} card${rem!==1?'s':''}!`);
+            setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn again!'); },1400);
+        } else if(card.value==='WildReverseD4'){
+            direction*=-1; updateDirectionArrows();
+            if(stacking2){ stackedDrawCount+=4; updateInfoBar(); showMessage(`↩️ Reverse +4! CPU must draw ${stackedDrawCount} or stack!`); setTimeout(()=>computerTurn(),1400); }
+            else { playSound('playDraw'); animateDrawPenaltyLocal('computer',4,'#9b59b6',()=>{ for(let i=0;i<4;i++) drawForPlayer('computer'); renderAll(); showMessage('↩️ Direction reversed! CPU draws 4!'); setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn again!'); },1500); }); }
         } else if(card.value==='SkipAll'){
             playSound('skip'); showMessage('⚡ Skip All! Your turn again!');
             setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn!'); },1200);
@@ -1885,7 +1933,7 @@ function chooseColor(color){
             });
         } else if(card.value==='PopupAd'){
             // CPU gets bombarded with popup ads — simulated delay
-            const count=Math.floor(Math.random()*20)+1;
+            const count=Math.floor(Math.random()*11)+5;
             const delay=Math.min(count*200, 4000);
             showMessage(`📢 CPU is drowning in ${count} pop-up ad${count>1?'s':''}! Wait ${(delay/1000).toFixed(1)}s...`);
             setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('CPU finally closed all ads. Your turn!'); }, delay+800);
@@ -1969,11 +2017,11 @@ function drawCard(){
 function drawForPlayer(who){
     if(!deck.length) reshuffle();
     if(!deck.length) return;
-    // Track how many total cards the player has drawn (for GlitchedOut gate)
-    if(who==='player' && isGlitch()) glitchPlayerDraws++;
-    // GlitchedOut gate: card only accessible after 50+ total player draws
+    // Track ALL draws from the deck for GlitchedOut gate (total across both players)
+    if(isGlitch()) glitchPlayerDraws++;
+    // GlitchedOut gate: card only accessible after 85+ total draws from the deck
     let card=deck[deck.length-1];
-    if(card && card.value==='GlitchedOut' && glitchPlayerDraws < 50){
+    if(card && card.value==='GlitchedOut' && glitchPlayerDraws < 85){
         // Too early — re-bury it and draw a normal card instead
         if(deck.length > 1){
             const go=deck.pop();
@@ -2107,7 +2155,7 @@ function handleCPUGlitchEffect(card){
             break;
         }
         case 'PopupAd':{
-            const count=Math.floor(Math.random()*20)+1;
+            const count=Math.floor(Math.random()*11)+5;
             showMessage(`📢 ${count} pop-up ad${count>1?'s':''} incoming!`);
             isAnimating=true;
             triggerPopupAds(count);
@@ -2138,7 +2186,7 @@ function handleCPUEffect(card){
     const stacking = settings.allowStacking || isMercy();
     switch(card.value){
         case '0':
-            if(use07){ swapHands(); showMessage('CPU played 0 — hands swapped! 🔄'); renderAll(); setTimeout(()=>doCPUPlay(),1200); }
+            if(use07){ rotateHands(); showMessage('CPU played 0 — all hands passed in play direction! 🔄'); renderAll(); setTimeout(()=>doCPUPlay(),1200); }
             else playerTurn(); break;
         case '7':
             if(use07){ swapHands(); showMessage('CPU played 7 — hands swapped! 🔄'); renderAll(); setTimeout(()=>doCPUPlay(),1200); }
@@ -2164,6 +2212,20 @@ function handleCPUEffect(card){
         case 'Wild+10':
             if(stacking){ stackedDrawCount+=10; updateInfoBar(); showMessage(`You must draw ${stackedDrawCount} or stack!`); renderAll(); playerTurn(); }
             else { playSound('playDraw'); triggerPenaltyFlash(); animateDrawPenaltyLocal('player',10,'#7c3aed',()=>{ for(let i=0;i<10;i++) drawForPlayer('player'); renderAll(); showMessage('💀 You draw 10!'); checkMercyKnockout('player'); setTimeout(()=>{ if(gameInProgress){ currentPlayer='computer'; renderAll(); setTimeout(()=>doCPUPlay(),800); }},1500); }); }
+            break;
+            // CPU discards all cards of the chosen color from its own hand
+            const cpuCol = currentColor;
+            const cpuBef = computerHand.length;
+            computerHand = computerHand.filter(c => c.color !== cpuCol);
+            const cpuRem = cpuBef - computerHand.length;
+            playSound('skip'); renderAll();
+            showMessage(`🗑️ CPU played Discard All! Removed ${cpuRem} ${cpuCol} card${cpuRem!==1?'s':''}!`);
+            setTimeout(()=>playerTurn(), 1400); break;
+        }
+        case 'WildReverseD4':
+            direction*=-1; updateDirectionArrows();
+            if(stacking){ stackedDrawCount+=4; updateInfoBar(); showMessage(`↩️ CPU Reverse +4! You must draw ${stackedDrawCount} or stack!`); renderAll(); playerTurn(); }
+            else { playSound('playDraw'); triggerPenaltyFlash(); animateDrawPenaltyLocal('player',4,'#9b59b6',()=>{ for(let i=0;i<4;i++) drawForPlayer('player'); renderAll(); showMessage('↩️ CPU reversed direction! You draw 4!'); checkMercyKnockout('player'); setTimeout(()=>{ if(gameInProgress){ currentPlayer='computer'; renderAll(); setTimeout(()=>doCPUPlay(),800); }},1500); }); }
             break;
         case 'SkipAll':
             playSound('skip'); showMessage('⚡ CPU Skip All! CPU goes again!');
@@ -2265,12 +2327,10 @@ function showScoreboard(winner){
 // ── GLITCH MODE EFFECTS ──────────────────────────────────────
 
 function triggerPopupAds(count){
-    const overlay=document.getElementById('popupAdOverlay');
-    const container=document.getElementById('adContainer');
     const counter=document.getElementById('adCounter');
-    overlay.classList.remove('hidden');
+    let remaining=count;
     glitchAdsRemaining=count;
-    container.innerHTML='';
+    let adTimer=null;
 
     const AD_TEXTS=[
         ['CONGRATULATIONS!','You are the 1,000,000th visitor! Click to claim your prize!'],
@@ -2294,45 +2354,73 @@ function triggerPopupAds(count){
         ['FINAL WARNING','Your warranty has expired. Extend now?'],
     ];
 
-    let shown=0;
-    function showNext(){
-        if(shown>=count) return;
-        const [title,body]=AD_TEXTS[Math.floor(Math.random()*AD_TEXTS.length)];
-        const ad=document.createElement('div');
-        ad.className='popup-ad';
-        ad.innerHTML=`<h3>${title}</h3><p>${body}</p><button class="ad-close" onclick="closeAd(this)">✕ Close</button>`;
-        container.innerHTML='';
-        container.appendChild(ad);
-        counter.textContent=`${count-shown} ad${count-shown!==1?'s':''} remaining`;
-        shown++;
+    function skipTurn(){
+        document.querySelectorAll('.popup-ad-float').forEach(el=>el.remove());
+        if(adTimer) clearInterval(adTimer);
+        adTimer=null;
+        glitchAdsRemaining=0;
+        counter.textContent='0 ads remaining';
+        showMessage('⏰ Too slow! Your turn was SKIPPED!');
+        currentPlayer='computer';
+        isAnimating=false;
+        renderAll();
+        setTimeout(()=>doCPUPlay(), 800);
     }
-    showNext();
 
-    window._adCloseHandler=function(btn){
-        const remaining=glitchAdsRemaining-1;
-        glitchAdsRemaining=remaining;
+    function showNextAd(){
         if(remaining<=0){
-            overlay.classList.add('hidden');
-            container.innerHTML='';
-            // Resume player turn
+            counter.textContent='0 ads remaining';
             currentPlayer='player';
             isAnimating=false;
             renderAll();
-        } else {
-            counter.textContent=`${remaining} ad${remaining!==1?'s':''} remaining`;
-            // Show next ad
-            const [title,body]=AD_TEXTS[Math.floor(Math.random()*AD_TEXTS.length)];
-            const ad=document.createElement('div');
-            ad.className='popup-ad';
-            ad.innerHTML=`<h3>${title}</h3><p>${body}</p><button class="ad-close" onclick="closeAd(this)">✕ Close</button>`;
-            container.innerHTML='';
-            container.appendChild(ad);
+            showMessage('Phew! All ads closed! Your turn!');
+            return;
         }
+        const [title,body]=AD_TEXTS[Math.floor(Math.random()*AD_TEXTS.length)];
+        const ad=document.createElement('div');
+        ad.className='popup-ad popup-ad-float';
+        const adW=280, adH=180;
+        const maxX=Math.max(10, window.innerWidth-adW-20);
+        const maxY=Math.max(10, window.innerHeight-adH-20);
+        const rx=Math.floor(Math.random()*maxX)+10;
+        const ry=Math.floor(Math.random()*maxY)+10;
+        ad.style.cssText=`position:fixed;left:${rx}px;top:${ry}px;z-index:99999;width:${adW}px;`;
+        let timeLeft=5;
+        ad.innerHTML=`<h3>${title}</h3><p>${body}</p>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px;">
+                <span class="ad-countdown" style="font-size:0.85em;color:#ff6b6b;font-weight:900;font-family:'Orbitron',sans-serif;">⏱ ${timeLeft}s</span>
+                <button class="ad-close" onclick="closeAd(this)">✕ Close</button>
+            </div>`;
+        document.body.appendChild(ad);
+        counter.textContent=`${remaining} ad${remaining!==1?'s':''} remaining`;
+        if(adTimer) clearInterval(adTimer);
+        adTimer=setInterval(()=>{
+            timeLeft--;
+            const cdEl=ad.querySelector('.ad-countdown');
+            if(cdEl) cdEl.textContent=`⏱ ${timeLeft}s`;
+            if(timeLeft<=0){
+                clearInterval(adTimer);
+                adTimer=null;
+                ad.remove();
+                skipTurn();
+            }
+        },1000);
+        window._currentAd=ad;
+    }
+
+    window._adCloseHandler=function(){
+        if(adTimer){ clearInterval(adTimer); adTimer=null; }
+        if(window._currentAd){ window._currentAd.remove(); window._currentAd=null; }
+        remaining--;
+        glitchAdsRemaining=remaining;
+        showNextAd();
     };
+
+    showNextAd();
 }
 
 function closeAd(btn){
-    if(window._adCloseHandler) window._adCloseHandler(btn);
+    if(window._adCloseHandler) window._adCloseHandler();
 }
 
 function showPeekOverlay(hand, seconds){
@@ -2500,8 +2588,8 @@ function animateCPUCardToCenter(card, cb){
     const srcRect = srcEl.getBoundingClientRect();
     const dpRect  = dp.getBoundingClientRect();
 
-    const MERCY_CLASS = {'Wild+6':'wild mercy-draw','Wild+10':'wild mercy-draw-big','SkipAll':'wild mercy-skipall','Roulette':'wild mercy-roulette'};
-    const LABELS = {'Wild+4':'+4','Wild+6':'+6','Wild+10':'+10','+12':'+12','SkipAll':'SKIP','Roulette':'ROUL','Wild':'WILD'};
+    const MERCY_CLASS = {'Wild+6':'wild mercy-draw','Wild+10':'wild mercy-draw-big','DiscardAll':'wild mercy-skipall','WildReverseD4':'wild mercy-draw','SkipAll':'wild mercy-skipall','Roulette':'wild mercy-roulette'};
+    const LABELS = {'Wild+4':'+4','Wild+6':'+6','Wild+10':'+10','DiscardAll':'DISCARD','WildReverseD4':'REV+4','+12':'+12','SkipAll':'SKIP','Roulette':'ROUL','Wild':'WILD'};
 
     // Start as face-down card back
     const clone = document.createElement('div');
