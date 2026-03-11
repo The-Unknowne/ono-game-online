@@ -254,21 +254,13 @@ class GameRoom {
         // Determine winner
         let winner = null;
         if (player.hand.length === 0) {
-            winner = playerIndex; // emptied hand
-        } else if (this.isMercy()) {
+            winner = playerIndex; // emptied hand — classic win
+        } else {
+            // Check if only 1 active (non-eliminated) player remains
             const active = this.activePlayers();
             if (active.length === 1) {
                 winner = this.players.findIndex(p => p.id === active[0].id);
             } else if (active.length === 0) {
-                winner = playerIndex; // fallback
-            }
-        }
-        // Glitch: check if GlitchedOut eliminated enough players to end game
-        if (winner === null && this.isGlitch() && this._glitchedOutTargetId) {
-            const alive = this.players.filter(p => !(this.glitchSpectators||[]).includes(p.id));
-            if (alive.length === 1) {
-                winner = this.players.findIndex(p => p.id === alive[0].id);
-            } else if (alive.length === 0) {
                 winner = playerIndex; // fallback
             }
         }
@@ -483,29 +475,10 @@ class GameRoom {
     getNextPlayerIndex(fromIndex = null) {
         const index = fromIndex !== null ? fromIndex : this.currentPlayer;
         let next = (index + this.direction + this.players.length) % this.players.length;
-        if (this.isGlitch()) {
-            for (let i = 0; i < 2; i++) {
-                this.deck.push({ color: 'wild', value: 'RandDraw',     type: 'wild', glitch: true });
-                this.deck.push({ color: 'wild', value: 'PopupAd',      type: 'wild', glitch: true });
-                this.deck.push({ color: 'wild', value: 'PeekHand',     type: 'wild', glitch: true });
-                this.deck.push({ color: 'wild', value: 'ScrambleCard', type: 'wild', glitch: true });
-            }
-            // GlitchedOut: 1 card buried deep
-            this.deck.push({ color: 'wild', value: 'GlitchedOut', type: 'wild', glitch: true, rare: true });
-            this.shuffleDeck();
-            // Bury GlitchedOut in the bottom 15% of deck
-            const goIdx = this.deck.findIndex(d => d.value === 'GlitchedOut');
-            if (goIdx !== -1) {
-                const [go] = this.deck.splice(goIdx, 1);
-                const pos  = Math.floor(this.deck.length * 0.12);
-                this.deck.splice(pos, 0, go);
-            }
-        }
-        if (this.isMercy()) {
-            let guard = 0;
-            while (this.knockedOut.includes(this.players[next]?.id) && guard++ < this.players.length) {
-                next = (next + this.direction + this.players.length) % this.players.length;
-            }
+        // Skip over ANY eliminated player (mercy knocked-out OR glitch spectator)
+        let guard = 0;
+        while (this.isEliminated(this.players[next]?.id) && guard++ < this.players.length) {
+            next = (next + this.direction + this.players.length) % this.players.length;
         }
         return next;
     }
@@ -625,26 +598,30 @@ class GameRoom {
         if (!this.isMercy()) return [];
         const newlyKnocked = [];
         this.players.forEach(p => {
-            if (!this.knockedOut.includes(p.id) && p.hand.length >= 25) {
+            if (!this.isEliminated(p.id) && p.hand.length >= 25) {
                 this.knockedOut.push(p.id);
                 newlyKnocked.push({ id: p.id, name: p.name });
-                p.hand = []; // clear hand
+                p.hand = []; // clear hand — they are now a spectator
             }
         });
-        // If current player just got knocked out, advance turn
-        if (this.knockedOut.includes(this.players[this.currentPlayer]?.id)) {
-            this.advanceTurn();
-            // Skip over other knocked-out players
+        // Advance past any eliminated player whose turn it now is
+        if (this.isEliminated(this.players[this.currentPlayer]?.id)) {
             let guard = 0;
-            while (this.knockedOut.includes(this.players[this.currentPlayer]?.id) && guard++ < this.players.length) {
+            while (this.isEliminated(this.players[this.currentPlayer]?.id) && guard++ < this.players.length) {
                 this.advanceTurn();
             }
         }
         return newlyKnocked;
     }
 
+    // Returns true if the player is eliminated for ANY reason (mercy knockout OR glitch spectator)
+    isEliminated(playerId) {
+        if (!playerId) return false;
+        return this.knockedOut.includes(playerId) || (this.glitchSpectators || []).includes(playerId);
+    }
+
     activePlayers() {
-        return this.players.filter(p => !this.knockedOut.includes(p.id));
+        return this.players.filter(p => !this.isEliminated(p.id));
     }
 
     getNextActivePlayerIndex(fromIndex = null) {
@@ -875,11 +852,41 @@ io.on('connection', socket => {
             io.to(room._glitchedOutTargetId).emit('glitchedOut');
             io.to(roomId).emit('glitchedOutAnnounce', { targetId: room._glitchedOutTargetId, targetName: room.players.find(p=>p.id===room._glitchedOutTargetId)?.name });
             room._glitchedOutTargetId = null;
+            // Check if only 1 active player remains → game over
+            const aliveAfterGO = room.activePlayers();
+            if (aliveAfterGO.length <= 1) {
+                const winnerPlayer = aliveAfterGO[0] || room.players[0];
+                const scores = room.players.map(p => {
+                    if (p.hand.length === 0) return { name: p.name, id: p.id, score: 0, hand: [] };
+                    const score = p.hand.reduce((sum, c) => c.type==='wild' ? sum-1 : c.type==='action' ? sum-2 : sum-3, 0);
+                    return { name: p.name, id: p.id, score, hand: p.hand };
+                });
+                io.to(roomId).emit('gameOver', { winner: winnerPlayer.name, winnerId: winnerPlayer.id, scores, reason: 'last-standing' });
+                rematchQueues.set(roomId, { players: room.players.map(p=>({id:p.id,name:p.name})), settings: room.settings, votes: new Set(), total: room.players.length });
+                setTimeout(() => rematchQueues.delete(roomId), 60000);
+                rooms.delete(roomId);
+                return;
+            }
         }
         if (result.newlyKnocked && result.newlyKnocked.length > 0) {
             result.newlyKnocked.forEach(p => {
                 io.to(roomId).emit('playerKnockedOut', { playerId: p.id, playerName: p.name });
             });
+            // Check if only 1 active player remains after knockouts → game over
+            const aliveAfterKnock = room.activePlayers();
+            if (aliveAfterKnock.length <= 1) {
+                const winnerPlayer = aliveAfterKnock[0] || room.players[0];
+                const scores = room.players.map(p => {
+                    if (p.hand.length === 0) return { name: p.name, id: p.id, score: 0, hand: [] };
+                    const score = p.hand.reduce((sum, c) => c.type==='wild' ? sum-1 : c.type==='action' ? sum-2 : sum-3, 0);
+                    return { name: p.name, id: p.id, score, hand: p.hand };
+                });
+                io.to(roomId).emit('gameOver', { winner: winnerPlayer.name, winnerId: winnerPlayer.id, scores, reason: 'last-standing' });
+                rematchQueues.set(roomId, { players: room.players.map(p=>({id:p.id,name:p.name})), settings: room.settings, votes: new Set(), total: room.players.length });
+                setTimeout(() => rematchQueues.delete(roomId), 60000);
+                rooms.delete(roomId);
+                return;
+            }
         }
         if (result.swapHappened) {
             io.to(roomId).emit('swapHappened', result.swapHappened);
