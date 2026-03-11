@@ -40,12 +40,13 @@ class GameRoom {
         this.settings         = settings || {};
         this.gameStarted      = false;
         this.pendingSwap7     = null;
+        this.pendingPeek      = null;
         this._lastSwapEvent   = null;
         this.knockedOut       = [];   // player ids eliminated in mercy mode
         this.pendingRoulette  = null; // { targetIndex, targetColor }
         this.glitchSpectators  = []; // player ids eliminated by GlitchedOut
         this.glitchScrambled   = []; // {playerId, expiresAt} scrambled by ScrambleCard
-        this.glitchPlayerDraws = {}; // playerId -> total cards drawn (for GlitchedOut gate)
+        this.glitchTotalDraws  = 0;  // total cards drawn from deck (for GlitchedOut 85-draw gate)
     }
 
     isMercy() { return this.settings.gameMode === 'mercy'; }
@@ -90,12 +91,14 @@ class GameRoom {
             }
         }
         if (this.isMercy()) {
-            // Mercy mode extra wilds: 2 Wild+6, 2 Wild+10, 2 SkipAll, 2 Roulette
+            // Mercy mode: add Wild+6, Wild+10 as stackable draw cards, plus 4 special wilds
             for (let i = 0; i < 2; i++) {
-                this.deck.push({ color: 'wild', value: 'Wild+6',   type: 'wild' });
-                this.deck.push({ color: 'wild', value: 'Wild+10',  type: 'wild' });
-                this.deck.push({ color: 'wild', value: 'SkipAll',  type: 'wild' });
-                this.deck.push({ color: 'wild', value: 'Roulette', type: 'wild' });
+                this.deck.push({ color: 'wild', value: 'Wild+6',      type: 'wild' });
+                this.deck.push({ color: 'wild', value: 'Wild+10',     type: 'wild' });
+                this.deck.push({ color: 'wild', value: 'DiscardAll',  type: 'wild' });
+                this.deck.push({ color: 'wild', value: 'WildReverseD4', type: 'wild' });
+                this.deck.push({ color: 'wild', value: 'SkipAll',     type: 'wild' });
+                this.deck.push({ color: 'wild', value: 'Roulette',    type: 'wild' });
             }
         }
         this.shuffleDeck();
@@ -153,17 +156,36 @@ class GameRoom {
         };
     }
 
-    canPlayCard(card) {
+    canPlayCard(card, playerId = null) {
         if (!card) return false;
         const mercy = this.isMercy();
         const stacking = this.settings.allowStacking || mercy;
+
         if (stacking && this.stackedDrawCount > 0) {
-            const DRAW_CARDS = ['+2', 'Wild+4', 'Wild+6', 'Wild+10'];
-            if (mercy) return DRAW_CARDS.includes(card.value);
+            // Mercy: stacking requires equal-or-higher draw value
+            if (mercy) {
+                const DRAW_VALUES = { '+2': 2, 'Wild+4': 4, 'WildReverseD4': 4, 'Wild+6': 6, 'Wild+10': 10 };
+                const cardVal = DRAW_VALUES[card.value];
+                if (!cardVal) return false;
+                const topCard = this.discardPile.at(-1);
+                const topVal  = topCard ? (DRAW_VALUES[topCard.value] || 0) : 0;
+                return cardVal >= topVal;
+            }
             return (this.currentValue === '+2'     && card.value === '+2') ||
                    (this.currentValue === 'Wild+4' && card.value === 'Wild+4');
         }
-        if (card.type === 'wild') return true;
+
+        if (card.type === 'wild') {
+            // Classic rule: Wild+4 only playable if you have no card matching current color
+            if (card.value === 'Wild+4' && !mercy && playerId) {
+                const player = this.players.find(p => p.id === playerId);
+                if (player) {
+                    const hasColor = player.hand.some(c => c !== card && c.color === this.currentColor);
+                    if (hasColor) return false;
+                }
+            }
+            return true;
+        }
         return card.color === this.currentColor || card.value === this.currentValue;
     }
 
@@ -188,7 +210,7 @@ class GameRoom {
             this.currentPlayer = playerIndex;
         }
 
-        if (!this.canPlayCard(card)) return { success: false, error: "Can't play that card" };
+        if (!this.canPlayCard(card, playerId)) return { success: false, error: "Can't play that card" };
 
         player.hand.splice(cardIndex, 1);
         this.discardPile.push(card);
@@ -204,10 +226,13 @@ class GameRoom {
         if (effectResult === 'needSwapTarget') {
             return { success: true, needSwapTarget: true, winner: null, drawAnimation: null };
         }
+        if (effectResult === 'needPeekTarget') {
+            return { success: true, needPeekTarget: true, winner: null, drawAnimation: null };
+        }
 
         this.checkUnoAfterPlay(playerIndex);
 
-        const PENALTY = { '+2': 2, 'Wild+4': 4, '+12': 12, 'Wild+6': 6, 'Wild+10': 10 };
+        const PENALTY = { '+2': 2, 'Wild+4': 4, '+12': 12, 'WildReverseD4': 4, 'Wild+6': 6, 'Wild+10': 10 };
         let drawAnimation = null;
         if (PENALTY[card.value]) {
             const nextIdx = this.getNextPlayerIndex(playerIndex);
@@ -294,6 +319,24 @@ class GameRoom {
                 else { this.drawCards(this.getNextPlayerIndex(), 10); this.skipNextPlayer(); }
                 break;
 
+            case 'DiscardAll': {
+                // Remove all cards of the chosen color from the player's hand
+                const chosenCol = this.currentColor;
+                const before = player.hand.length;
+                player.hand = player.hand.filter(c => c.color !== chosenCol);
+                const removed = before - player.hand.length;
+                this._discardAllRemoved = removed;
+                this.advanceTurn();
+                break;
+            }
+
+            case 'WildReverseD4':
+                // Reverse direction AND next player (in new direction) draws 4
+                this.direction *= -1;
+                if (stacking) { this.stackedDrawCount += 4; this.advanceTurn(); }
+                else { this.drawCards(this.getNextPlayerIndex(), 4); this.skipNextPlayer(); }
+                break;
+
             case 'SkipAll': {
                 // Skip every other player  current player goes again
                 const active = this.activePlayers().filter(p => p.id !== this.players[playerIndex].id);
@@ -323,23 +366,27 @@ class GameRoom {
 
             case '0':
                 if (this.settings.allowSpecial07 || this.isMercy()) {
-                    // If this was the last card, win immediately -- don't swap
+                    // If this was the last card, win immediately -- don't rotate
                     if (this.players[playerIndex].hand.length === 0) {
                         this.advanceTurn();
                         break;
                     }
-                    const nextIdx = this.getNextPlayerIndex(playerIndex);
-                    this.swapHands(playerIndex, nextIdx);
-                    this.players[playerIndex].calledUno = false;
-                    this.players[nextIdx].calledUno     = false;
-                    this._lastSwapEvent = {
-                        swapperName: this.players[playerIndex].name,
-                        targetName:  this.players[nextIdx].name,
-                        type: '0',
-                        unoTransfer: this.players[nextIdx].hand.length     === 1 ? this.players[nextIdx].name
-                                   : this.players[playerIndex].hand.length === 1 ? this.players[playerIndex].name
-                                   : undefined
-                    };
+                    // Rotate ALL active players' hands in the direction of play
+                    const active0 = this.activePlayers();
+                    if (active0.length > 1) {
+                        const savedHands = active0.map(p => p.hand);
+                        if (this.direction === 1) {
+                            // Clockwise: each player gets the next player's hand
+                            active0[0].hand = savedHands[savedHands.length - 1];
+                            for (let i = 1; i < active0.length; i++) active0[i].hand = savedHands[i - 1];
+                        } else {
+                            // Counter-clockwise: each player gets the previous player's hand
+                            active0[active0.length - 1].hand = savedHands[0];
+                            for (let i = 0; i < active0.length - 1; i++) active0[i].hand = savedHands[i + 1];
+                        }
+                        active0.forEach(p => { p.calledUno = false; });
+                        this._lastSwapEvent = { type: '0', rotateAll: true };
+                    }
                 }
                 this.advanceTurn();
                 break;
@@ -376,16 +423,15 @@ class GameRoom {
                 const popupTargetIdx = this.getNextPlayerIndex(playerIndex);
                 const popupTargetId  = this.players[popupTargetIdx]?.id;
                 this._glitchPopupAdTargetId = popupTargetId;
-                this._glitchPopupAdCount    = Math.floor(Math.random() * 20) + 1;
+                this._glitchPopupAdCount    = Math.floor(Math.random() * 11) + 5; // 5–15 ads
                 this.advanceTurn();
                 break;
             }
 
             case 'PeekHand': {
-                // Server sends opponent hand to player who played it; advances turn
-                this._glitchPeek = true;
-                this.advanceTurn();
-                break;
+                // Player chooses which opponent to peek — pause for selection
+                this.pendingPeek = { playerId: this.players[playerIndex].id };
+                return 'needPeekTarget';
             }
 
             case 'ScrambleCard': {
@@ -481,22 +527,33 @@ class GameRoom {
         return { success: true, swapperName: this.players[pi].name, targetName: this.players[ti].name };
     }
 
+    choosePeekTarget(playerId, targetId) {
+        if (!this.pendingPeek)                        return { success: false, error: 'No peek pending' };
+        if (this.pendingPeek.playerId !== playerId)   return { success: false, error: 'Not your peek' };
+        const ti = this.players.findIndex(p => p.id === targetId);
+        if (ti === -1) return { success: false, error: 'Target player not found' };
+        const targetHand = this.players[ti].hand;
+        const targetName = this.players[ti].name;
+        this.pendingPeek = null;
+        this.advanceTurn();
+        return { success: true, hand: targetHand, playerName: targetName };
+    }
+
     drawCards(playerIndex, count, isPlayerDraw = false) {
         const hand     = this.players[playerIndex].hand;
         const playerId = this.players[playerIndex]?.id;
         for (let i = 0; i < count; i++) {
             if (this.deck.length === 0) this.reshuffleDeck();
             if (this.deck.length === 0) break;
-            // Track player draw count for GlitchedOut gate
-            if (isPlayerDraw && playerId) {
-                this.glitchPlayerDraws[playerId] = (this.glitchPlayerDraws[playerId] || 0) + 1;
+            // Track ALL deck draws (total across all players) for GlitchedOut gate
+            if (this.isGlitch()) {
+                this.glitchTotalDraws++;
             }
-            // GlitchedOut gate: only accessible after 50+ draws by this player
+            // GlitchedOut gate: only accessible after 85+ total draws from the deck
             let topCard = this.deck[this.deck.length - 1];
             if (topCard && topCard.value === 'GlitchedOut') {
-                const draws = this.glitchPlayerDraws[playerId] || 0;
-                if (draws < 50 && this.deck.length > 1) {
-                    // Re-bury it, take next card instead
+                if (this.glitchTotalDraws < 85 && this.deck.length > 1) {
+                    // Too early — re-bury it, take next card instead
                     const go = this.deck.pop();
                     const insertAt = Math.floor(Math.random() * Math.max(1, this.deck.length - 10));
                     this.deck.splice(insertAt, 0, go);
@@ -776,7 +833,24 @@ io.on('connection', socket => {
             return;
         }
 
+        if (result.needPeekTarget) {
+            socket.emit('choosePeekTarget', { opponents: room.players.filter(p => p.id !== socket.id && !(room.glitchSpectators||[]).includes(p.id)).map(p => ({ id: p.id, name: p.name })) });
+            broadcastGameState(room);
+            return;
+        }
+
         if (result.drawAnimation) io.to(roomId).emit('drawAnimation', result.drawAnimation);
+
+        // Mercy special card emissions
+        if (room._discardAllRemoved !== undefined && room._discardAllRemoved !== null) {
+            const playerName = room.players.find(p => p.id === socket.id)?.name;
+            io.to(roomId).emit('discardAllAnnounce', {
+                playerName,
+                color: room.currentColor,
+                removed: room._discardAllRemoved
+            });
+            room._discardAllRemoved = null;
+        }
 
         // Glitch special card emissions
         if (room._glitchPopupAdTargetId) {
@@ -791,14 +865,6 @@ io.on('connection', socket => {
         if (room._glitchRandDrawCount) {
             io.to(roomId).emit('glitchRandDraw', { count: room._glitchRandDrawCount, victimId: room.players[room.getNextPlayerIndex ? (() => { try { return room.players.findIndex(p=>p.id!==socket.id) } catch(e){return -1} })() : -1]?.id });
             room._glitchRandDrawCount = null;
-        }
-        if (room._glitchPeek) {
-            // Send peek: show next player's hand to the player who played PeekHand
-            const peekTargetIdx = room.players.findIndex(p => p.id !== socket.id);
-            if (peekTargetIdx !== -1) {
-                socket.emit('glitchPeek', { hand: room.players[peekTargetIdx].hand, playerName: room.players[peekTargetIdx].name });
-            }
-            room._glitchPeek = null;
         }
         if (room._glitchScrambleTargetId) {
             io.to(room._glitchScrambleTargetId).emit('glitchScramble', { duration: 90000 });
@@ -941,6 +1007,15 @@ io.on('connection', socket => {
         broadcastGameState(room);
     });
 
+    socket.on('choosePeekTarget', ({ roomId, targetId }) => {
+        const room = rooms.get(roomId);
+        if (!room || !room.gameStarted) return;
+        const result = room.choosePeekTarget(socket.id, targetId);
+        if (!result.success) { socket.emit('error', result.error); return; }
+        socket.emit('glitchPeek', { hand: result.hand, playerName: result.playerName });
+        broadcastGameState(room);
+    });
+
     socket.on('callUno', ({ roomId }) => {
         const room = rooms.get(roomId);
         if (!room || !room.gameStarted) return;
@@ -961,6 +1036,17 @@ io.on('connection', socket => {
         } else if (!result.success) {
             socket.emit('error', result.error);
         }
+    });
+
+    // Glitch: popup ad timer expired — skip player's turn
+    socket.on('adSkipTurn', ({ roomId }) => {
+        const room = rooms.get(roomId);
+        if (!room || !room.gameStarted) return;
+        const pi = room.players.findIndex(p => p.id === socket.id);
+        if (pi === -1 || pi !== room.currentPlayer) return; // only if it's still their turn
+        room.advanceTurn();
+        io.to(roomId).emit('adTurnSkipped', { playerName: room.players[pi].name });
+        broadcastGameState(room);
     });
 
     socket.on('leaveLobby', ({ roomId }) => cleanupPlayerFromLobby(socket.id, roomId));
