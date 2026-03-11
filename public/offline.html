@@ -1253,6 +1253,9 @@ let playerCalledUno=false, computerCalledUno=false;
 let pendingWildCard=null, gameInProgress=false;
 let stackedDrawCount=0, isAnimating=false;
 let prevStackCount=0;
+// Elimination / spectator state
+let playerEliminated=false;   // true when player is knocked out (spectating)
+let cpuEliminated=false;       // true when CPU is knocked out (spectating)
 // Glitch mode state
 let glitchDrawCount=0;        // tracks draws for GlitchedOut card
 let glitchPlayerDraws=0;       // only counts player deck-button draws
@@ -1414,6 +1417,7 @@ function startNewGame(){
     currentPlayer='player'; direction=1;
     playerCalledUno=false; computerCalledUno=false;
     pendingWildCard=null; gameInProgress=true;
+    playerEliminated=false; cpuEliminated=false;
     resetGlitchState();
     currentColor=null; currentValue=null;
     stackedDrawCount=0; isAnimating=false; prevStackCount=0;
@@ -1708,7 +1712,7 @@ function canPlay(card){
 function playCard(index){
     if(!gameInProgress||isAnimating) return;
     if(currentPlayer!=='player') return;
-    if(window._playerIsSpectator) return;
+    if(playerEliminated) return; // spectators cannot play
     const card=playerHand[index];
     if(!canPlay(card)){ showMessage("Can't play that card!"); return; }
     isAnimating=true;
@@ -1959,6 +1963,7 @@ function chooseColor(color){
 // ── DRAW ─────────────────────────────────────────────────────
 function drawCard(){
     if(currentPlayer!=='player'||!gameInProgress||isAnimating) return;
+    if(playerEliminated) return; // spectators cannot draw
     // Glitch mode: random draw 1-10
     if(isGlitch() && stackedDrawCount===0){
         const n=Math.floor(Math.random()*10)+1;
@@ -2042,6 +2047,8 @@ function drawForPlayer(who){
 // ── COMPUTER ─────────────────────────────────────────────────
 function computerTurn(){
     if(!gameInProgress) return;
+    // If CPU is eliminated (spectating), skip straight back to player
+    if(cpuEliminated){ currentPlayer='player'; renderAll(); showMessage('Your turn!'); return; }
     currentPlayer='computer'; renderAll(); showMessage("CPU's turn...");
     // Catch check
     if(playerHand.length===1&&!playerCalledUno){
@@ -2123,16 +2130,28 @@ function doCPUPlayContinue(){
 function checkMercyKnockout(who){
     if(!isMercy()) return false;
     const hand = who==='player' ? playerHand : computerHand;
-    if(hand.length>=25){
-        const msg = who==='player'
-            ? '☠️ You were knocked out! (25+ cards)'
-            : '☠️ CPU was knocked out! (25+ cards)';
-        showMessage(msg);
+    if(hand.length >= 25){
         triggerPenaltyFlash();
-        if(who==='player'){ playerHand=[]; }
-        else { computerHand=[]; }
+        if(who==='player'){
+            playerEliminated = true;
+            playerHand = [];
+            showMessage('☠️ You reached 25 cards and are ELIMINATED! Watching as spectator...');
+            // Disable player input
+            const handDiv = document.getElementById('playerHand');
+            if(handDiv){ handDiv.style.opacity='0.3'; handDiv.style.pointerEvents='none'; }
+            document.getElementById('drawPile').style.pointerEvents = 'none';
+            document.getElementById('unoButton').classList.remove('active');
+        } else {
+            cpuEliminated = true;
+            computerHand = [];
+            showMessage('☠️ CPU reached 25 cards and is ELIMINATED! You are the last player standing!');
+        }
         renderAll();
-        setTimeout(()=>endGame(who==='player'?'computer':'player'),1500);
+        // In 2-player: one eliminated = game over (other wins)
+        // With more players this would continue — game ends when only 1 remains
+        const anyoneLeft = !playerEliminated || !cpuEliminated;
+        const winner = playerEliminated ? 'computer' : 'player';
+        setTimeout(()=>endGame(winner), 1800);
         return true;
     }
     return false;
@@ -2477,32 +2496,36 @@ function triggerScramble(calledByPlayer){
 
 function triggerGlitchedOut(who){
     if(!gameInProgress) return;
-    const isPlayer = who==='player';
 
-    // Red screen flash + shake
+    // Red screen flash
     const flash=document.createElement('div');
     flash.style.cssText='position:fixed;inset:0;background:rgba(255,0,0,0.65);z-index:99999;pointer-events:none;';
     document.body.appendChild(flash);
     setTimeout(()=>{ flash.style.transition='opacity 0.5s'; flash.style.opacity='0'; },300);
     setTimeout(()=>flash.remove(),900);
 
-    if(isPlayer){
-        // Player DREW GlitchedOut — they are eliminated, CPU wins
-        // Remove the GlitchedOut card from player's hand (don't keep it)
+    if(who==='player'){
+        playerEliminated = true;
+        // Remove GlitchedOut card from hand
         const goIdx = playerHand.findIndex(c=>c.value==='GlitchedOut');
         if(goIdx!==-1) playerHand.splice(goIdx,1);
-        showMessage('☠️ GLITCHED OUT! You drew the cursed card — ELIMINATED! CPU wins!');
+        showMessage('☠️ GLITCHED OUT! You drew the cursed card — ELIMINATED! Watching as spectator...');
         const handDiv=document.getElementById('playerHand');
-        if(handDiv) handDiv.classList.add('glitch-exploding');
+        if(handDiv){ handDiv.classList.add('glitch-exploding'); handDiv.style.opacity='0.3'; handDiv.style.pointerEvents='none'; }
+        document.getElementById('drawPile').style.pointerEvents='none';
+        document.getElementById('unoButton').classList.remove('active');
         renderAll();
-        setTimeout(()=>endGame('computer'), 1500);
+        // 2-player: player eliminated = CPU wins
+        setTimeout(()=>endGame('computer'), 1800);
     } else {
-        // Player PLAYED GlitchedOut on CPU — CPU is eliminated, player wins
-        showMessage('☠️ GLITCHED OUT! CPU is ELIMINATED! You win!');
+        cpuEliminated = true;
+        computerHand = [];
+        showMessage('☠️ GLITCHED OUT! CPU is ELIMINATED! You are the last player standing!');
         const cpuSeat=document.querySelector('.player-seat:not(.is-you-seat)');
         if(cpuSeat) cpuSeat.classList.add('glitch-exploding');
         renderAll();
-        setTimeout(()=>endGame('player'), 1500);
+        // 2-player: CPU eliminated = player wins
+        setTimeout(()=>endGame('player'), 1800);
     }
 }
 
