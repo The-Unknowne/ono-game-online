@@ -1784,6 +1784,7 @@ function handlePlayerEffect(card){
             if(stacking){ stackedDrawCount+=10; updateInfoBar(); showMessage(`CPU must draw ${stackedDrawCount} or stack!`); setTimeout(()=>computerTurn(),1400); }
             else { playSound('playDraw'); animateDrawPenaltyLocal('computer',10,'#7c3aed',()=>{ for(let i=0;i<10;i++) drawForPlayer('computer'); renderAll(); showMessage('💀 CPU draws 10!'); setTimeout(()=>{ currentPlayer='player'; renderAll(); showMessage('Your turn again!'); },1500); }); }
             break;
+        case 'DiscardAll': {
             // Remove all cards of chosen color from player's hand
             const chosenCol = currentColor;
             const before = playerHand.length;
@@ -2213,6 +2214,7 @@ function handleCPUEffect(card){
             if(stacking){ stackedDrawCount+=10; updateInfoBar(); showMessage(`You must draw ${stackedDrawCount} or stack!`); renderAll(); playerTurn(); }
             else { playSound('playDraw'); triggerPenaltyFlash(); animateDrawPenaltyLocal('player',10,'#7c3aed',()=>{ for(let i=0;i<10;i++) drawForPlayer('player'); renderAll(); showMessage('💀 You draw 10!'); checkMercyKnockout('player'); setTimeout(()=>{ if(gameInProgress){ currentPlayer='computer'; renderAll(); setTimeout(()=>doCPUPlay(),800); }},1500); }); }
             break;
+        case 'DiscardAll': {
             // CPU discards all cards of the chosen color from its own hand
             const cpuCol = currentColor;
             const cpuBef = computerHand.length;
