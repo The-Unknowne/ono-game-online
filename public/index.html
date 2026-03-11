@@ -2757,6 +2757,12 @@
     <div class="swap-options" id="swapOptions"></div>
 </div>
 
+<!-- PeekHand target picker -->
+<div class="swap-picker" id="peekPicker">
+    <div class="swap-picker-title">👁 Choose an opponent to peek at</div>
+    <div class="swap-options" id="peekOptions"></div>
+</div>
+
 <div class="custom-popup" id="customPopup">
     <h2 id="popupTitle"></h2>
     <p id="popupMessage"></p>
@@ -2929,8 +2935,9 @@
             roomId = data.roomId;
             currentLobbyData = data;
             isReady = false;
-            startHeartbeat(); // Start heartbeat in lobby
+            startHeartbeat();
             applyMercyTheme(data.settings && data.settings.gameMode === 'mercy');
+            applyGlitchTheme(data.settings && data.settings.gameMode === 'glitch');
             showWaitingLobby(data.lobbyName, data.settings, data.players, data.minPlayers || 2);
         });
 
@@ -2938,8 +2945,9 @@
             roomId = data.roomId;
             currentLobbyData = data;
             isReady = false;
-            startHeartbeat(); // Start heartbeat in lobby
+            startHeartbeat();
             applyMercyTheme(data.settings && data.settings.gameMode === 'mercy');
+            applyGlitchTheme(data.settings && data.settings.gameMode === 'glitch');
             showWaitingLobby(data.lobbyName, data.settings, data.players, data.minPlayers || 2);
         });
 
@@ -3025,23 +3033,50 @@
 
         socket.on('glitchedOut', () => {
             isSpectator = true;
-            // Show spectator banner
             const banner = document.createElement('div');
             banner.className = 'spectator-banner';
             banner.textContent = '☠️ GLITCHED OUT — You are now a spectator. Watch the game continue...';
             document.body.prepend(banner);
-            // Disable hand interactions
             const handEl = document.getElementById('playerHand');
             if (handEl) { handEl.style.opacity = '0.3'; handEl.style.pointerEvents = 'none'; }
-            // Flash
             const flash = document.createElement('div');
             flash.style.cssText = 'position:fixed;inset:0;background:rgba(255,0,0,0.5);z-index:99999;pointer-events:none;';
             document.body.appendChild(flash);
             setTimeout(() => flash.remove(), 800);
         });
 
+        socket.on('glitchedOutDrawn', () => {
+            isSpectator = true;
+            showMessage('☠️ You drew the GLITCHED OUT card! You are eliminated!');
+            const banner = document.createElement('div');
+            banner.className = 'spectator-banner';
+            banner.textContent = '☠️ GLITCHED OUT (drawn) — You are now a spectator. Watch the game continue...';
+            document.body.prepend(banner);
+            const handEl = document.getElementById('playerHand');
+            if (handEl) { handEl.style.opacity = '0.3'; handEl.style.pointerEvents = 'none'; }
+            const flash = document.createElement('div');
+            flash.style.cssText = 'position:fixed;inset:0;background:rgba(255,0,0,0.6);z-index:99999;pointer-events:none;';
+            document.body.appendChild(flash);
+            setTimeout(() => flash.remove(), 1000);
+        });
+
         socket.on('glitchedOutAnnounce', ({ targetName }) => {
             showMessage(`☠️ ${targetName} has been GLITCHED OUT and is now a spectator!`);
+        });
+
+        socket.on('discardAllAnnounce', ({ playerName, color, removed }) => {
+            showMessage(`🗑️ ${playerName} played Discard All! Removed ${removed} ${color} card${removed !== 1 ? 's' : ''}!`);
+        });
+
+        socket.on('adTurnSkipped', ({ playerName }) => {
+            showMessage(`⏰ ${playerName} failed to close ads — their turn was SKIPPED!`);
+        });
+
+        // Fired when RandDraw card was played
+        socket.on('glitchRandDraw', ({ count, victimId }) => {
+            const isVictim = victimId === socket.id;
+            if (isVictim) showMessage(`🎲 RandDraw! You draw ${count} card${count > 1 ? 's' : ''}!`);
+            else showMessage(`🎲 RandDraw! An opponent draws ${count} card${count > 1 ? 's' : ''}!`);
         });
 
         socket.on('gameState', (state) => {
@@ -3110,6 +3145,10 @@
             showSwapPicker(opponents);
         });
 
+        socket.on('choosePeekTarget', ({ opponents }) => {
+            showPeekPicker(opponents);
+        });
+
         // Broadcast swap notification to all players
         socket.on('swapHappened', ({ swapperName, targetName, type }) => {
             const isSwapper = swapperName === (gameState && gameState.yourName);
@@ -3120,9 +3159,7 @@
                 else if (isTarget)  msg = `${swapperName} swapped hands with you! 🔄`;
                 else                msg = `${swapperName} swapped hands with ${targetName}! 🔄`;
             } else {
-                if (isSwapper)      msg = `You swapped hands with the next player! 🔄`;
-                else if (isTarget)  msg = `${swapperName} swapped hands with you! 🔄`;
-                else                msg = `${swapperName} swapped hands! 🔄`;
+                msg = `0 played — all hands passed in play direction! 🔄`;
             }
             showMessage(msg);
         });
@@ -3807,10 +3844,16 @@
             // Auto-draw stacked cards if it's your turn, there's a stack,
             // and you have no card that can stack on it
             if (gameState.isYourTurn && gameState.stackedDrawCount > 0 && !isWaitingForServer) {
-                const MERCY_DRAW_CARDS = ['+2', 'Wild+4', 'Wild+6', 'Wild+10'];
+                const MERCY_DRAW_CARDS = ['+2', 'Wild+4', 'WildReverseD4'];
                 const isMercyMode = gameState.settings && gameState.settings.gameMode === 'mercy';
+                const topDiscard = gameState.discardPile;
+                const DRAW_VALUES = { '+2': 2, 'Wild+4': 4, 'WildReverseD4': 4, 'Wild+6': 6, 'Wild+10': 10 };
+                const topVal = topDiscard ? (DRAW_VALUES[topDiscard.value] || 0) : 0;
                 const hasStackCard = gameState.yourHand && gameState.yourHand.some(card => {
-                    if (isMercyMode) return MERCY_DRAW_CARDS.includes(card.value);
+                    if (isMercyMode) {
+                        const v = DRAW_VALUES[card.value];
+                        return v && v >= topVal;
+                    }
                     if (gameState.currentValue === '+2'     && card.value === '+2')     return true;
                     if (gameState.currentValue === 'Wild+4' && card.value === 'Wild+4') return true;
                     return false;
@@ -4043,11 +4086,11 @@
 
     function createCardElement(card) {
         const cardDiv = document.createElement('div');
-        const MERCY_CLASS = { 'Wild+6': 'wild mercy-draw', 'Wild+10': 'wild mercy-draw-big', 'SkipAll': 'wild mercy-skipall', 'Roulette': 'wild mercy-roulette' };
+        const MERCY_CLASS = { 'Wild+6': 'wild mercy-draw', 'Wild+10': 'wild mercy-draw-big', 'DiscardAll': 'wild mercy-skipall', 'WildReverseD4': 'wild mercy-draw', 'SkipAll': 'wild mercy-skipall', 'Roulette': 'wild mercy-roulette' };
         const colorClass = card.value === '+12' ? 'plus12' : (MERCY_CLASS[card.value] ? '' : card.color);
         cardDiv.className = `card ${MERCY_CLASS[card.value] || colorClass}`;
 
-        const LABELS = { 'Wild+4': '+4', 'Wild+6': '+6', 'Wild+10': '+10', '+12': '+12', 'SkipAll': 'SKIP ALL', 'Roulette': 'ROULETTE', 'Wild': 'WILD' };
+        const LABELS = { 'Wild+4': '+4', 'Wild+6': '+6', 'Wild+10': '+10', 'DiscardAll': 'DISCARD ALL', 'WildReverseD4': 'REV +4', '+12': '+12', 'SkipAll': 'SKIP ALL', 'Roulette': 'ROULETTE', 'Wild': 'WILD' };
         const cardInner = document.createElement('div');
         cardInner.className = 'card-inner';
         const _ISTOP = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" style="width:100%;height:100%;display:block"><path fill="currentColor" d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372 0-89 31.3-170.8 83.5-234.8l523.3 523.3C682.8 852.7 601 884 512 884zm288.5-137.2L277.2 223.5C341.2 171.3 423 140 512 140c205.4 0 372 166.6 372 372 0 89-31.3 170.8-83.5 234.8z"/></svg>';
@@ -4077,8 +4120,8 @@
         const srcRect = seat.getBoundingClientRect();
         const dpRect  = dp.getBoundingClientRect();
 
-        const MERCY_CLASS = {'Wild+6':'wild','Wild+10':'wild','SkipAll':'wild','Roulette':'wild'};
-        const LABELS = {'Wild+4':'+4','Wild+6':'+6','Wild+10':'+10','+12':'+12','SkipAll':'SKIP','Roulette':'ROUL','Wild':'WILD'};
+        const MERCY_CLASS = {'Wild+6':'wild','Wild+10':'wild','DiscardAll':'wild','WildReverseD4':'wild','SkipAll':'wild','Roulette':'wild'};
+        const LABELS = {'Wild+4':'+4','Wild+6':'+6','Wild+10':'+10','DiscardAll':'DISCARD','WildReverseD4':'REV+4','+12':'+12','SkipAll':'SKIP','Roulette':'ROUL','Wild':'WILD'};
 
         // Start as face-down card back
         const clone = document.createElement('div');
@@ -4350,20 +4393,22 @@
         const endY = endRect.top  + endRect.height / 2;
 
         // Penalty badge colors
-        const isBig  = count >= 4 || ['Wild+4','Wild+6','Wild+10','+12'].includes(cardValue);
+        const isBig  = count >= 4 || ['Wild+4','WildReverseD4','Wild+6','Wild+10','+12'].includes(cardValue);
         const accent = cardValue === '+12' ? '#ff8c00'
                      : cardValue === 'Wild+10' ? '#7c3aed'
                      : cardValue === 'Wild+6'  ? '#9b59b6'
+                     : cardValue === 'WildReverseD4' ? '#9b59b6'
                      : cardValue === 'Roulette' ? '#e91e63'
                      : isBig ? '#ff4b2b' : '#ff416c';
         const CARD_LABELS = {
-            'stack':    `Draw ${count}!`,
-            '+12':      `💀 +12 Draw!`,
-            'Wild+4':   stacking ? '+4 Stacked!' : '+4 Draw!',
-            'Wild+6':   stacking ? '+6 Stacked!' : '+6 Draw!',
-            'Wild+10':  stacking ? '+10 Stacked!' : '+10 Draw!',
-            '+2':       stacking ? '+2 Stacked!' : '+2 Draw!',
-            'Roulette': `🎰 Roulette! Draw ${count}`,
+            'stack':        `Draw ${count}!`,
+            '+12':          `💀 +12 Draw!`,
+            'Wild+4':       stacking ? '+4 Stacked!' : '+4 Draw!',
+            'Wild+6':       stacking ? '+6 Stacked!' : '+6 Draw!',
+            'Wild+10':      stacking ? '+10 Stacked!' : '+10 Draw!',
+            'WildReverseD4': stacking ? '↩️ REV+4 Stacked!' : '↩️ REV+4 Draw!',
+            '+2':           stacking ? '+2 Stacked!' : '+2 Draw!',
+            'Roulette':     `🎰 Roulette! Draw ${count}`,
         };
         const label = CARD_LABELS[cardValue] || `Draw ${count}!`;
 
@@ -4476,19 +4521,39 @@
 
     function canPlayCard(card) {
         if (!gameState || !card) return false;
-        if (card.type === 'wild') return true;
-        
-        if (gameState.settings.allowStacking && gameState.stackedDrawCount > 0) {
-            if (gameState.currentValue === '+2' && card.value === '+2') return true;
+        const isMercyMode = gameState.settings && gameState.settings.gameMode === 'mercy';
+        const stacking = gameState.settings.allowStacking || isMercyMode;
+
+        if (stacking && gameState.stackedDrawCount > 0) {
+            if (isMercyMode) {
+                // Equal-or-higher draw value required
+                const DRAW_VALUES = { '+2': 2, 'Wild+4': 4, 'WildReverseD4': 4, 'Wild+6': 6, 'Wild+10': 10 };
+                const cardVal = DRAW_VALUES[card.value];
+                if (!cardVal) return false;
+                const topDiscard = gameState.discardPile;
+                const topVal = topDiscard ? (DRAW_VALUES[topDiscard.value] || 0) : 0;
+                return cardVal >= topVal;
+            }
+            if (gameState.currentValue === '+2'     && card.value === '+2')     return true;
             if (gameState.currentValue === 'Wild+4' && card.value === 'Wild+4') return true;
             return false;
         }
-        
+
+        if (card.type === 'wild') {
+            // Classic rule: Wild+4 only playable if no card matching current color
+            if (card.value === 'Wild+4' && !isMercyMode && gameState.yourHand) {
+                const hasColor = gameState.yourHand.some(c => c !== card && c.color === gameState.currentColor);
+                if (hasColor) return false;
+            }
+            return true;
+        }
+
         return card.color === gameState.currentColor || card.value === gameState.currentValue;
     }
 
     function playCard(index, isJumpIn = false) {
         if (!gameState || !gameState.yourHand) return;
+        if (isSpectator) return;
         if (!gameState.isYourTurn && !isJumpIn) return;
         if (isWaitingForServer) return;
         
@@ -4513,11 +4578,6 @@
             showColorPicker();
         } else {
             isWaitingForServer = true;
-            // For glitch PopupAd: tell server to trigger ads for opponent
-            if (card.value === 'PopupAd' && isGlitch()) {
-                const adCount = Math.floor(Math.random() * 20) + 1;
-                socket.emit('glitchPopupAd', { roomId: gameState.roomId, count: adCount });
-            }
             animateCardToCenter(cardElement, card, () => {
                 if (socket && socket.connected) {
                     socket.emit('playCard', {
@@ -4583,9 +4643,33 @@
         }
     }
 
+    // ── PeekHand picker ───────────────────────────────────────────
+    function showPeekPicker(opponents) {
+        const optionsDiv = document.getElementById('peekOptions');
+        optionsDiv.innerHTML = '';
+        opponents.forEach(opp => {
+            const btn = document.createElement('button');
+            btn.className = 'swap-option-btn';
+            btn.textContent = opp.name;
+            btn.onclick = () => confirmPeekTarget(opp.id);
+            optionsDiv.appendChild(btn);
+        });
+        document.getElementById('overlay').classList.add('active');
+        document.getElementById('peekPicker').classList.add('active');
+    }
+
+    function confirmPeekTarget(targetId) {
+        document.getElementById('overlay').classList.remove('active');
+        document.getElementById('peekPicker').classList.remove('active');
+        if (socket && socket.connected) {
+            socket.emit('choosePeekTarget', { roomId, targetId });
+        }
+    }
+
     function drawCard() {
         if (!gameState || !gameState.isYourTurn) return;
-        if (gameState.hasDrawnThisTurn) return; // already drew this turn
+        if (isSpectator) return;
+        if (gameState.hasDrawnThisTurn) return;
         if (isWaitingForServer) return; // Prevent rapid clicking
         
         // Block further actions while waiting for server
@@ -4705,12 +4789,9 @@
     // ── GLITCH MODE EFFECTS ──────────────────────────────────────
 
     function triggerPopupAds(count) {
-        const overlay   = document.getElementById('popupAdOverlay');
-        const container = document.getElementById('adContainer');
-        const counter   = document.getElementById('adCounter');
-        let remaining   = count;
-        overlay.classList.remove('hidden');
-        container.innerHTML = '';
+        const counter = document.getElementById('adCounter');
+        let remaining = count;
+        let adTimer   = null;
 
         const AD_TEXTS = [
             ['CONGRATULATIONS!','You are the 1,000,000th visitor! Click to claim your prize!'],
@@ -4734,25 +4815,56 @@
             ['FINAL WARNING','Your warranty has expired. Extend now?'],
         ];
 
+        function skipTurn() {
+            document.querySelectorAll('.popup-ad-float').forEach(el => el.remove());
+            if (adTimer) { clearInterval(adTimer); adTimer = null; }
+            showMessage('⏰ Too slow closing ads! Your turn was SKIPPED!');
+            isWaitingForServer = false;
+            // Notify server to skip our turn by passing turn
+            if (socket && socket.connected) socket.emit('adSkipTurn', { roomId });
+        }
+
         function showNextAd() {
+            if (remaining <= 0) {
+                if (counter) counter.textContent = '0 ads remaining';
+                showMessage('Phew! All ads closed!');
+                return;
+            }
             const [title, body] = AD_TEXTS[Math.floor(Math.random() * AD_TEXTS.length)];
             const ad = document.createElement('div');
-            ad.className = 'popup-ad';
-            ad.innerHTML = `<h3>${title}</h3><p>${body}</p><button class="ad-close">✕ Close</button>`;
+            ad.className = 'popup-ad popup-ad-float';
+            const adW = 280, adH = 180;
+            const maxX = Math.max(10, window.innerWidth - adW - 20);
+            const maxY = Math.max(10, window.innerHeight - adH - 20);
+            const rx = Math.floor(Math.random() * maxX) + 10;
+            const ry = Math.floor(Math.random() * maxY) + 10;
+            ad.style.cssText = `position:fixed;left:${rx}px;top:${ry}px;z-index:99999;width:${adW}px;`;
+            let timeLeft = 5;
+            ad.innerHTML = `<h3>${title}</h3><p>${body}</p>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px;">
+                    <span class="ad-countdown" style="font-size:0.85em;color:#ff6b6b;font-weight:900;font-family:'Orbitron',sans-serif;">⏱ ${timeLeft}s</span>
+                    <button class="ad-close">✕ Close</button>
+                </div>`;
             ad.querySelector('.ad-close').onclick = () => {
+                if (adTimer) { clearInterval(adTimer); adTimer = null; }
+                ad.remove();
                 remaining--;
-                if (remaining <= 0) {
-                    overlay.classList.add('hidden');
-                    container.innerHTML = '';
-                } else {
-                    counter.textContent = `${remaining} ad${remaining !== 1 ? 's' : ''} remaining`;
-                    container.innerHTML = '';
-                    showNextAd();
-                }
+                if (counter) counter.textContent = `${remaining} ad${remaining !== 1 ? 's' : ''} remaining`;
+                showNextAd();
             };
-            container.innerHTML = '';
-            container.appendChild(ad);
-            counter.textContent = `${remaining} ad${remaining !== 1 ? 's' : ''} remaining`;
+            document.body.appendChild(ad);
+            if (counter) counter.textContent = `${remaining} ad${remaining !== 1 ? 's' : ''} remaining`;
+            if (adTimer) clearInterval(adTimer);
+            adTimer = setInterval(() => {
+                timeLeft--;
+                const cdEl = ad.querySelector('.ad-countdown');
+                if (cdEl) cdEl.textContent = `⏱ ${timeLeft}s`;
+                if (timeLeft <= 0) {
+                    clearInterval(adTimer); adTimer = null;
+                    ad.remove();
+                    skipTurn();
+                }
+            }, 1000);
         }
         showNextAd();
     }
