@@ -22,13 +22,45 @@ const rooms   = new Map();
 const lobbies = {};
 const lobbyPresenceManagers = new Map();
 const rematchQueues = new Map(); // roomId -> { players, settings, votes: Set, total }
-const disconnectedPlayers = new Map(); // roomId -> [{oldId, name, rejoinToken}]
+
+// Rejoin registry: persistentId -> { roomId, playerName, expiresAt, rejoinTimer }
+// Persists for 5 minutes after disconnect so a page-refresh can reconnect
+const rejoinRegistry = new Map();
+
+const REJOIN_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+
+function registerRejoin(persistentId, roomId, playerName) {
+    // Clear any existing timer for this player
+    const existing = rejoinRegistry.get(persistentId);
+    if (existing && existing.rejoinTimer) clearTimeout(existing.rejoinTimer);
+
+    const timer = setTimeout(() => {
+        rejoinRegistry.delete(persistentId);
+        console.log(`[Rejoin] Entry expired for ${playerName} (${persistentId})`);
+    }, REJOIN_WINDOW_MS);
+
+    rejoinRegistry.set(persistentId, { roomId, playerName, expiresAt: Date.now() + REJOIN_WINDOW_MS, rejoinTimer: timer });
+    console.log(`[Rejoin] Registered ${playerName} (${persistentId}) for room ${roomId} — 5 min window`);
+}
+
+function clearRejoin(persistentId) {
+    const entry = rejoinRegistry.get(persistentId);
+    if (entry && entry.rejoinTimer) clearTimeout(entry.rejoinTimer);
+    rejoinRegistry.delete(persistentId);
+}
 
 /* -- GAME ROOM ---------------------------------------- */
 class GameRoom {
     constructor(roomId, players, settings) {
         this.roomId           = roomId;
-        this.players          = players.map(p => ({ id: p.id, name: p.name, hand: [], calledUno: false }));
+        // players array now carries persistentId
+        this.players          = players.map(p => ({
+            id:           p.id,
+            persistentId: p.persistentId || p.id,  // stable across reconnects
+            name:         p.name,
+            hand:         [],
+            calledUno:    false
+        }));
         this.deck             = [];
         this.discardPile      = [];
         this.currentPlayer    = 0;
@@ -43,10 +75,10 @@ class GameRoom {
         this.pendingPeek      = null;
         this._lastSwapEvent   = null;
         this.knockedOut       = [];   // player ids eliminated in mercy mode
-        this.pendingRoulette  = null; // { targetIndex, targetColor }
-        this.glitchSpectators  = []; // player ids eliminated by GlitchedOut
-        this.glitchScrambled   = []; // {playerId, expiresAt} scrambled by ScrambleCard
-        this.glitchTotalDraws  = 0;  // total cards drawn from deck (for GlitchedOut 85-draw gate)
+        this.pendingRoulette  = null;
+        this.glitchSpectators  = [];
+        this.glitchScrambled   = [];
+        this.glitchTotalDraws  = 0;
     }
 
     isMercy() { return this.settings.gameMode === 'mercy'; }
@@ -79,10 +111,8 @@ class GameRoom {
                 this.deck.push({ color: 'wild', value: 'PeekHand',     type: 'wild', glitch: true });
                 this.deck.push({ color: 'wild', value: 'ScrambleCard', type: 'wild', glitch: true });
             }
-            // GlitchedOut: 1 card buried deep
             this.deck.push({ color: 'wild', value: 'GlitchedOut', type: 'wild', glitch: true, rare: true });
             this.shuffleDeck();
-            // Bury GlitchedOut in the bottom 15% of deck
             const goIdx = this.deck.findIndex(d => d.value === 'GlitchedOut');
             if (goIdx !== -1) {
                 const [go] = this.deck.splice(goIdx, 1);
@@ -91,14 +121,13 @@ class GameRoom {
             }
         }
         if (this.isMercy()) {
-            // Mercy mode: add Wild+6, Wild+10 as stackable draw cards, plus 4 special wilds
             for (let i = 0; i < 2; i++) {
-                this.deck.push({ color: 'wild', value: 'Wild+6',      type: 'wild' });
-                this.deck.push({ color: 'wild', value: 'Wild+10',     type: 'wild' });
-                this.deck.push({ color: 'wild', value: 'DiscardAll',  type: 'wild' });
+                this.deck.push({ color: 'wild', value: 'Wild+6',        type: 'wild' });
+                this.deck.push({ color: 'wild', value: 'Wild+10',       type: 'wild' });
+                this.deck.push({ color: 'wild', value: 'DiscardAll',    type: 'wild' });
                 this.deck.push({ color: 'wild', value: 'WildReverseD4', type: 'wild' });
-                this.deck.push({ color: 'wild', value: 'SkipAll',     type: 'wild' });
-                this.deck.push({ color: 'wild', value: 'Roulette',    type: 'wild' });
+                this.deck.push({ color: 'wild', value: 'SkipAll',       type: 'wild' });
+                this.deck.push({ color: 'wild', value: 'Roulette',      type: 'wild' });
             }
         }
         this.shuffleDeck();
@@ -148,7 +177,8 @@ class GameRoom {
             settings:          this.settings,
             stackedDrawCount:  this.stackedDrawCount,
             hasDrawnThisTurn:  this.hasDrawnThisTurn,
-            rejoinToken:       this.players[index]?.rejoinToken || null,
+            // Send back persistentId so client can confirm their stable ID
+            persistentId:      this.players[index]?.persistentId || null,
             glitchSpectators:  this.glitchSpectators || [],
             isSpectator:       (this.glitchSpectators || []).includes(this.players[index]?.id),
             glitchScrambled:   this.isGlitchScrambledFor(this.players[index]?.id),
@@ -162,7 +192,6 @@ class GameRoom {
         const stacking = this.settings.allowStacking || mercy;
 
         if (stacking && this.stackedDrawCount > 0) {
-            // Mercy: stacking requires equal-or-higher draw value
             if (mercy) {
                 const DRAW_VALUES = { '+2': 2, 'Wild+4': 4, 'WildReverseD4': 4, 'Wild+6': 6, 'Wild+10': 10 };
                 const cardVal = DRAW_VALUES[card.value];
@@ -176,7 +205,6 @@ class GameRoom {
         }
 
         if (card.type === 'wild') {
-            // Classic rule: Wild+4 only playable if you have no card matching current color
             if (card.value === 'Wild+4' && !mercy && playerId) {
                 const player = this.players.find(p => p.id === playerId);
                 if (player) {
@@ -247,21 +275,18 @@ class GameRoom {
             };
         }
 
-        // Mercy: check knockouts after any card play (stacked draw resolved)
         let newlyKnocked = [];
         if (this.isMercy()) newlyKnocked = this.checkMercyKnockouts();
 
-        // Determine winner
         let winner = null;
         if (player.hand.length === 0) {
-            winner = playerIndex; // emptied hand — classic win
+            winner = playerIndex;
         } else {
-            // Check if only 1 active (non-eliminated) player remains
             const active = this.activePlayers();
             if (active.length === 1) {
                 winner = this.players.findIndex(p => p.id === active[0].id);
             } else if (active.length === 0) {
-                winner = playerIndex; // fallback
+                winner = playerIndex;
             }
         }
 
@@ -275,7 +300,8 @@ class GameRoom {
     }
 
     handleCardEffect(card, playerIndex) {
-        const mercy = this.isMercy();
+        const player  = this.players[playerIndex];
+        const mercy   = this.isMercy();
         const stacking = this.settings.allowStacking || mercy;
         switch (card.value) {
             case 'Skip':
@@ -312,7 +338,6 @@ class GameRoom {
                 break;
 
             case 'DiscardAll': {
-                // Remove all cards of the chosen color from the player's hand
                 const chosenCol = this.currentColor;
                 const before = player.hand.length;
                 player.hand = player.hand.filter(c => c.color !== chosenCol);
@@ -323,24 +348,16 @@ class GameRoom {
             }
 
             case 'WildReverseD4':
-                // Reverse direction AND next player (in new direction) draws 4
                 this.direction *= -1;
                 if (stacking) { this.stackedDrawCount += 4; this.advanceTurn(); }
                 else { this.drawCards(this.getNextPlayerIndex(), 4); this.skipNextPlayer(); }
                 break;
 
-            case 'SkipAll': {
-                // Skip every other player  current player goes again
-                const active = this.activePlayers().filter(p => p.id !== this.players[playerIndex].id);
-                // just advance turn back to current player (skip everyone else)
+            case 'SkipAll':
                 this.hasDrawnThisTurn = false;
-                // No advanceTurn  current player keeps their turn
                 break;
-            }
 
             case 'Roulette': {
-                // Next player draws until they pick up a card of the chosen color
-                // chosenColor is stored in currentColor when wild was played
                 const targetColor = this.currentColor;
                 const nextIdx = this.getNextPlayerIndex(playerIndex);
                 let drawn = 0;
@@ -358,21 +375,14 @@ class GameRoom {
 
             case '0':
                 if (this.settings.allowSpecial07 || this.isMercy()) {
-                    // If this was the last card, win immediately -- don't rotate
-                    if (this.players[playerIndex].hand.length === 0) {
-                        this.advanceTurn();
-                        break;
-                    }
-                    // Rotate ALL active players' hands in the direction of play
+                    if (player.hand.length === 0) { this.advanceTurn(); break; }
                     const active0 = this.activePlayers();
                     if (active0.length > 1) {
                         const savedHands = active0.map(p => p.hand);
                         if (this.direction === 1) {
-                            // Clockwise: each player gets the next player's hand
                             active0[0].hand = savedHands[savedHands.length - 1];
                             for (let i = 1; i < active0.length; i++) active0[i].hand = savedHands[i - 1];
                         } else {
-                            // Counter-clockwise: each player gets the previous player's hand
                             active0[active0.length - 1].hand = savedHands[0];
                             for (let i = 0; i < active0.length - 1; i++) active0[i].hand = savedHands[i + 1];
                         }
@@ -385,12 +395,8 @@ class GameRoom {
 
             case '7':
                 if (this.settings.allowSpecial07 || this.isMercy()) {
-                    // If this was the last card, win immediately -- don't swap
-                    if (this.players[playerIndex].hand.length === 0) {
-                        this.advanceTurn();
-                        break;
-                    }
-                    this.pendingSwap7 = { playerId: this.players[playerIndex].id };
+                    if (player.hand.length === 0) { this.advanceTurn(); break; }
+                    this.pendingSwap7 = { playerId: player.id };
                     return 'needSwapTarget';
                 }
                 this.advanceTurn();
@@ -411,23 +417,20 @@ class GameRoom {
             }
 
             case 'PopupAd': {
-                // Server triggers popup ads for next player
                 const popupTargetIdx = this.getNextPlayerIndex(playerIndex);
                 const popupTargetId  = this.players[popupTargetIdx]?.id;
                 this._glitchPopupAdTargetId = popupTargetId;
-                this._glitchPopupAdCount    = Math.floor(Math.random() * 11) + 5; // 5–15 ads
+                this._glitchPopupAdCount    = Math.floor(Math.random() * 11) + 5;
                 this.advanceTurn();
                 break;
             }
 
             case 'PeekHand': {
-                // Player chooses which opponent to peek — pause for selection
-                this.pendingPeek = { playerId: this.players[playerIndex].id };
+                this.pendingPeek = { playerId: player.id };
                 return 'needPeekTarget';
             }
 
             case 'ScrambleCard': {
-                // Mark next player as scrambled for 90 seconds
                 const nextP = this.players[this.getNextPlayerIndex(playerIndex)];
                 if (nextP) {
                     this.glitchScrambled = (this.glitchScrambled||[]).filter(e => e.playerId !== nextP.id);
@@ -439,15 +442,12 @@ class GameRoom {
             }
 
             case 'GlitchedOut': {
-                // Next player is eliminated — they lose
                 const nextSpectIdx = this.getNextPlayerIndex(playerIndex);
                 const nextSpectId  = this.players[nextSpectIdx]?.id;
                 this._glitchedOutTargetId = nextSpectId;
-                // Mark them eliminated (reuse glitchSpectators list for tracking)
                 if (nextSpectId && !(this.glitchSpectators||[]).includes(nextSpectId)) {
                     this.glitchSpectators = [...(this.glitchSpectators||[]), nextSpectId];
                 }
-                // Clear their hand so they can't play — they're eliminated
                 if (nextSpectIdx !== -1) this.players[nextSpectIdx].hand = [];
                 this.advanceTurn();
                 break;
@@ -475,7 +475,6 @@ class GameRoom {
     getNextPlayerIndex(fromIndex = null) {
         const index = fromIndex !== null ? fromIndex : this.currentPlayer;
         let next = (index + this.direction + this.players.length) % this.players.length;
-        // Skip over ANY eliminated player (mercy knocked-out OR glitch spectator)
         let guard = 0;
         while (this.isEliminated(this.players[next]?.id) && guard++ < this.players.length) {
             next = (next + this.direction + this.players.length) % this.players.length;
@@ -512,21 +511,15 @@ class GameRoom {
         return { success: true, hand: targetHand, playerName: targetName };
     }
 
-    drawCards(playerIndex, count, isPlayerDraw = false) {
-        const hand     = this.players[playerIndex].hand;
-        const playerId = this.players[playerIndex]?.id;
+    drawCards(playerIndex, count) {
+        const hand = this.players[playerIndex].hand;
         for (let i = 0; i < count; i++) {
             if (this.deck.length === 0) this.reshuffleDeck();
             if (this.deck.length === 0) break;
-            // Track ALL deck draws (total across all players) for GlitchedOut gate
-            if (this.isGlitch()) {
-                this.glitchTotalDraws++;
-            }
-            // GlitchedOut gate: only accessible after 85+ total draws from the deck
+            if (this.isGlitch()) this.glitchTotalDraws++;
             let topCard = this.deck[this.deck.length - 1];
             if (topCard && topCard.value === 'GlitchedOut') {
                 if (this.glitchTotalDraws < 85 && this.deck.length > 1) {
-                    // Too early — re-bury it, take next card instead
                     const go = this.deck.pop();
                     const insertAt = Math.floor(Math.random() * Math.max(1, this.deck.length - 10));
                     this.deck.splice(insertAt, 0, go);
@@ -548,21 +541,17 @@ class GameRoom {
             this.stackedDrawCount = 0;
             this.players[pi].calledUno = false;
             this.advanceTurn();
-            // Mercy: check knockout after stacked draw
             if (this.isMercy()) this.checkMercyKnockouts();
             return { success: true, drewStacked: true, stackCount: count };
         }
 
         if (this.isGlitch() && this.stackedDrawCount === 0) {
-            // Glitch mode: random 1-10 cards
             const n = Math.floor(Math.random() * 10) + 1;
-            this.drawCards(pi, n, true); // isPlayerDraw=true for GlitchedOut gate
+            this.drawCards(pi, n);
             this.players[pi].calledUno = false;
             this.hasDrawnThisTurn = true;
-            // Check if player drew GlitchedOut
             const lastCard = this.players[pi].hand.at(-1);
             if (lastCard && lastCard.value === 'GlitchedOut') {
-                // Remove it from hand and eliminate this player
                 this.players[pi].hand.pop();
                 this._glitchedOutDrawnBy = this.players[pi].id;
             }
@@ -571,7 +560,6 @@ class GameRoom {
         }
 
         if (this.isMercy()) {
-            // Draw until you find a playable card
             let drawn = 0;
             let canPlay = false;
             do {
@@ -601,10 +589,9 @@ class GameRoom {
             if (!this.isEliminated(p.id) && p.hand.length >= 25) {
                 this.knockedOut.push(p.id);
                 newlyKnocked.push({ id: p.id, name: p.name });
-                p.hand = []; // clear hand — they are now a spectator
+                p.hand = [];
             }
         });
-        // Advance past any eliminated player whose turn it now is
         if (this.isEliminated(this.players[this.currentPlayer]?.id)) {
             let guard = 0;
             while (this.isEliminated(this.players[this.currentPlayer]?.id) && guard++ < this.players.length) {
@@ -614,7 +601,6 @@ class GameRoom {
         return newlyKnocked;
     }
 
-    // Returns true if the player is eliminated for ANY reason (mercy knockout OR glitch spectator)
     isEliminated(playerId) {
         if (!playerId) return false;
         return this.knockedOut.includes(playerId) || (this.glitchSpectators || []).includes(playerId);
@@ -622,16 +608,6 @@ class GameRoom {
 
     activePlayers() {
         return this.players.filter(p => !this.isEliminated(p.id));
-    }
-
-    getNextActivePlayerIndex(fromIndex = null) {
-        const idx = fromIndex !== null ? fromIndex : this.currentPlayer;
-        let next = (idx + this.direction + this.players.length) % this.players.length;
-        let guard = 0;
-        while (this.knockedOut.includes(this.players[next]?.id) && guard++ < this.players.length) {
-            next = (next + this.direction + this.players.length) % this.players.length;
-        }
-        return next;
     }
 
     callUno(playerId) {
@@ -697,16 +673,41 @@ function broadcastLobbyList() {
 io.on('connection', socket => {
     console.log('Connected:', socket.id);
 
+    // ── NEW: Client announces its persistent ID immediately on connect ──
+    socket.on('announcePersistentId', ({ persistentId }) => {
+        socket._persistentId = persistentId;
+
+        // Auto-attempt rejoin if this persistentId has a pending entry
+        const entry = rejoinRegistry.get(persistentId);
+        if (entry) {
+            const room = rooms.get(entry.roomId);
+            if (room && room.gameStarted) {
+                const pi = room.players.findIndex(p => p.persistentId === persistentId);
+                if (pi !== -1) {
+                    console.log(`[Rejoin] Auto-rejoining ${entry.playerName} via persistentId`);
+                    // Let client know it can rejoin
+                    socket.emit('canRejoin', {
+                        roomId:     entry.roomId,
+                        playerName: entry.playerName
+                    });
+                }
+            } else {
+                // Game is gone — clean up
+                clearRejoin(persistentId);
+            }
+        }
+    });
+
     socket.on('requestLobbies', () => broadcastLobbyList());
 
-    socket.on('createLobby', ({ lobbyName, playerName, settings, isPrivate, passcode }) => {
+    socket.on('createLobby', ({ lobbyName, playerName, settings, isPrivate, passcode, persistentId }) => {
         const id = `lobby_${Date.now()}`;
         const pm = new PlayerPresenceManager(2, { heartbeatInterval: 5000, reconnectTimeout: 60000 });
         lobbyPresenceManagers.set(id, pm);
         pm.addPlayer(socket.id, playerName, PlayerState.LOBBY);
         lobbies[id] = {
             id, name: lobbyName, settings, minPlayers: 2,
-            players:   [{ id: socket.id, name: playerName, ready: false }],
+            players:   [{ id: socket.id, persistentId: persistentId || socket.id, name: playerName, ready: false }],
             isPrivate: !!isPrivate,
             passcode:  isPrivate ? (passcode || '') : null
         };
@@ -715,15 +716,15 @@ io.on('connection', socket => {
         broadcastLobbyList();
     });
 
-    socket.on('joinLobby', ({ lobbyId, playerName, passcode }) => {
+    socket.on('joinLobby', ({ lobbyId, playerName, passcode, persistentId }) => {
         const lobby = lobbies[lobbyId];
         if (!lobby) return;
         if (lobby.players.some(p => p.id === socket.id))       { socket.emit('error', 'You are already in this lobby'); return; }
         if (lobby.players.length >= lobby.settings.maxPlayers) { socket.emit('error', 'Lobby is full'); return; }
-        if (lobby.isPrivate && passcode !== lobby.passcode)     { socket.emit('error', ' Wrong passcode. Try again.'); return; }
+        if (lobby.isPrivate && passcode !== lobby.passcode)     { socket.emit('error', '🔒 Wrong passcode. Try again.'); return; }
         const pm = lobbyPresenceManagers.get(lobbyId);
         if (pm) pm.addPlayer(socket.id, playerName, PlayerState.LOBBY);
-        lobby.players.push({ id: socket.id, name: playerName, ready: false });
+        lobby.players.push({ id: socket.id, persistentId: persistentId || socket.id, name: playerName, ready: false });
         socket.join(lobbyId);
         socket.emit('lobbyJoined', { roomId: lobbyId, lobbyName: lobby.name, settings: lobby.settings, players: lobby.players, minPlayers: lobby.minPlayers || 2, isPrivate: lobby.isPrivate });
         io.to(lobbyId).emit('lobbyUpdate', { roomId: lobbyId, players: lobby.players });
@@ -735,7 +736,7 @@ io.on('connection', socket => {
         if (!lobby) return;
         const player = lobby.players.find(p => p.id === socket.id);
         if (player) player.ready = ready;
-        const pm         = lobbyPresenceManagers.get(roomId);
+        const pm = lobbyPresenceManagers.get(roomId);
         if (pm) pm.setPlayerReady(socket.id, ready);
         io.to(roomId).emit('lobbyUpdate', { roomId, players: lobby.players });
 
@@ -747,7 +748,6 @@ io.on('connection', socket => {
         }
         if (!lobby.players.every(p => p.ready)) return;
 
-        // All ready  verify connections
         const connected = lobby.players.filter(p => !!io.sockets.sockets.get(p.id));
         if (connected.length !== lobby.players.length) {
             lobby.players = connected;
@@ -760,7 +760,6 @@ io.on('connection', socket => {
             if (!check.success) {
                 const names = check.missingPlayers.map(p => p.name).join(', ');
                 io.to(roomId).emit('error', `Cannot start: Players not responding: ${names}`);
-                console.log(`[Server] Game start prevented - missing players: ${names}`);
                 return;
             }
         }
@@ -771,8 +770,11 @@ io.on('connection', socket => {
         room.createDeck();
         room.dealCards(room.settings.startingCards || 7);
         room.gameStarted = true;
-        // Assign rejoin tokens so players can reconnect
-        room.players.forEach(p => { p.rejoinToken = `${p.name}_${roomId}_${Date.now()}`; });
+
+        // Register each player's persistentId in the rejoin registry
+        room.players.forEach(p => {
+            registerRejoin(p.persistentId, roomId, p.name);
+        });
 
         if (pm) {
             lobby.players.forEach(p => pm.updatePlayerState(p.id, PlayerState.IN_GAME));
@@ -788,7 +790,7 @@ io.on('connection', socket => {
                     io.to(roomId).emit('gameEnded', { reason: 'Not enough players remaining', message: `${timedOutPlayer.name} disconnected and did not reconnect in time.` });
                     rooms.delete(roomId); pm.destroy(); lobbyPresenceManagers.delete(roomId);
                 } else {
-                    io.to(roomId).emit('playerTimeout', { playerId: timedOutPlayer.id, playerName: timedOutPlayer.name, message: `${timedOutPlayer.name} has been removed from the game due to disconnection.` });
+                    io.to(roomId).emit('playerTimeout', { playerId: timedOutPlayer.id, playerName: timedOutPlayer.name, message: `${timedOutPlayer.name} has been removed from the game.` });
                 }
             });
         }
@@ -818,29 +820,19 @@ io.on('connection', socket => {
 
         if (result.drawAnimation) io.to(roomId).emit('drawAnimation', result.drawAnimation);
 
-        // Mercy special card emissions
         if (room._discardAllRemoved !== undefined && room._discardAllRemoved !== null) {
             const playerName = room.players.find(p => p.id === socket.id)?.name;
-            io.to(roomId).emit('discardAllAnnounce', {
-                playerName,
-                color: room.currentColor,
-                removed: room._discardAllRemoved
-            });
+            io.to(roomId).emit('discardAllAnnounce', { playerName, color: room.currentColor, removed: room._discardAllRemoved });
             room._discardAllRemoved = null;
         }
 
-        // Glitch special card emissions
         if (room._glitchPopupAdTargetId) {
             io.to(room._glitchPopupAdTargetId).emit('glitchPopupAd', { count: room._glitchPopupAdCount });
-            io.to(roomId).emit('glitchPopupAdAnnounce', {
-                targetName: room.players.find(p=>p.id===room._glitchPopupAdTargetId)?.name,
-                count: room._glitchPopupAdCount
-            });
-            room._glitchPopupAdTargetId = null;
-            room._glitchPopupAdCount    = null;
+            io.to(roomId).emit('glitchPopupAdAnnounce', { targetName: room.players.find(p=>p.id===room._glitchPopupAdTargetId)?.name, count: room._glitchPopupAdCount });
+            room._glitchPopupAdTargetId = null; room._glitchPopupAdCount = null;
         }
         if (room._glitchRandDrawCount) {
-            io.to(roomId).emit('glitchRandDraw', { count: room._glitchRandDrawCount, victimId: room.players[room.getNextPlayerIndex ? (() => { try { return room.players.findIndex(p=>p.id!==socket.id) } catch(e){return -1} })() : -1]?.id });
+            io.to(roomId).emit('glitchRandDraw', { count: room._glitchRandDrawCount, victimId: room.players.find(p=>p.id!==socket.id)?.id });
             room._glitchRandDrawCount = null;
         }
         if (room._glitchScrambleTargetId) {
@@ -852,16 +844,15 @@ io.on('connection', socket => {
             io.to(room._glitchedOutTargetId).emit('glitchedOut');
             io.to(roomId).emit('glitchedOutAnnounce', { targetId: room._glitchedOutTargetId, targetName: room.players.find(p=>p.id===room._glitchedOutTargetId)?.name });
             room._glitchedOutTargetId = null;
-            // Check if only 1 active player remains → game over
             const aliveAfterGO = room.activePlayers();
             if (aliveAfterGO.length <= 1) {
                 const winnerPlayer = aliveAfterGO[0] || room.players[0];
                 const scores = room.players.map(p => {
-                    if (p.hand.length === 0) return { name: p.name, id: p.id, score: 0, hand: [] };
                     const score = p.hand.reduce((sum, c) => c.type==='wild' ? sum-1 : c.type==='action' ? sum-2 : sum-3, 0);
                     return { name: p.name, id: p.id, score, hand: p.hand };
                 });
                 io.to(roomId).emit('gameOver', { winner: winnerPlayer.name, winnerId: winnerPlayer.id, scores, reason: 'last-standing' });
+                room.players.forEach(p => clearRejoin(p.persistentId));
                 rematchQueues.set(roomId, { players: room.players.map(p=>({id:p.id,name:p.name})), settings: room.settings, votes: new Set(), total: room.players.length });
                 setTimeout(() => rematchQueues.delete(roomId), 60000);
                 rooms.delete(roomId);
@@ -869,19 +860,16 @@ io.on('connection', socket => {
             }
         }
         if (result.newlyKnocked && result.newlyKnocked.length > 0) {
-            result.newlyKnocked.forEach(p => {
-                io.to(roomId).emit('playerKnockedOut', { playerId: p.id, playerName: p.name });
-            });
-            // Check if only 1 active player remains after knockouts → game over
+            result.newlyKnocked.forEach(p => io.to(roomId).emit('playerKnockedOut', { playerId: p.id, playerName: p.name }));
             const aliveAfterKnock = room.activePlayers();
             if (aliveAfterKnock.length <= 1) {
                 const winnerPlayer = aliveAfterKnock[0] || room.players[0];
                 const scores = room.players.map(p => {
-                    if (p.hand.length === 0) return { name: p.name, id: p.id, score: 0, hand: [] };
                     const score = p.hand.reduce((sum, c) => c.type==='wild' ? sum-1 : c.type==='action' ? sum-2 : sum-3, 0);
                     return { name: p.name, id: p.id, score, hand: p.hand };
                 });
                 io.to(roomId).emit('gameOver', { winner: winnerPlayer.name, winnerId: winnerPlayer.id, scores, reason: 'last-standing' });
+                room.players.forEach(p => clearRejoin(p.persistentId));
                 rematchQueues.set(roomId, { players: room.players.map(p=>({id:p.id,name:p.name})), settings: room.settings, votes: new Set(), total: room.players.length });
                 setTimeout(() => rematchQueues.delete(roomId), 60000);
                 rooms.delete(roomId);
@@ -890,15 +878,12 @@ io.on('connection', socket => {
         }
         if (result.swapHappened) {
             io.to(roomId).emit('swapHappened', result.swapHappened);
-            if (result.swapHappened.unoTransfer)
-                io.to(roomId).emit('unoTransfer', { playerName: result.swapHappened.unoTransfer });
+            if (result.swapHappened.unoTransfer) io.to(roomId).emit('unoTransfer', { playerName: result.swapHappened.unoTransfer });
         }
 
         broadcastGameState(room);
 
         if (result.winner !== null) {
-            // Calculate scores: winner gets 0, others scored by remaining hand
-            // Normal card = -3, Action/Draw card = -2, Wild = -1
             const scores = room.players.map(p => {
                 if (p.hand.length === 0) return { name: p.name, id: p.id, score: 0, hand: [] };
                 const score = p.hand.reduce((sum, card) => {
@@ -908,24 +893,12 @@ io.on('connection', socket => {
                 }, 0);
                 return { name: p.name, id: p.id, score, hand: p.hand };
             });
-            // Sort by score descending (least negative = best = winner first)
             const sorted = [...scores].sort((a, b) => b.score - a.score);
-            io.to(roomId).emit('gameOver', {
-                winner: room.players[result.winner].name,
-                winnerId: room.players[result.winner].id,
-                scores: sorted
-            });
-
-            // Store rematch queue so players can vote to play again
-            rematchQueues.set(roomId, {
-                players:  room.players.map(p => ({ id: p.id, name: p.name })),
-                settings: room.settings,
-                votes:    new Set(),
-                total:    room.players.length
-            });
-            // Auto-expire rematch queue after 60s
+            io.to(roomId).emit('gameOver', { winner: room.players[result.winner].name, winnerId: room.players[result.winner].id, scores: sorted });
+            // Game over — clear rejoin entries
+            room.players.forEach(p => clearRejoin(p.persistentId));
+            rematchQueues.set(roomId, { players: room.players.map(p => ({ id: p.id, name: p.name })), settings: room.settings, votes: new Set(), total: room.players.length });
             setTimeout(() => rematchQueues.delete(roomId), 60000);
-
             rooms.delete(roomId);
         }
     });
@@ -936,32 +909,24 @@ io.on('connection', socket => {
         const result = room.drawCard(socket.id);
         if (!result.success) { socket.emit('error', result.error); return; }
 
-        // Glitch: player drew GlitchedOut — they are eliminated
         if (room._glitchedOutDrawnBy) {
             const victim = room.players.find(p => p.id === room._glitchedOutDrawnBy);
             room._glitchedOutDrawnBy = null;
             if (victim) {
-                // Add them to eliminated list
                 if (!(room.glitchSpectators||[]).includes(victim.id)) {
                     room.glitchSpectators = [...(room.glitchSpectators||[]), victim.id];
                     victim.hand = [];
                 }
-                // Tell victim they lost
                 io.to(victim.id).emit('glitchedOutDrawn');
-                // Tell everyone else
                 io.to(roomId).emit('glitchedOutAnnounce', { targetId: victim.id, targetName: victim.name, drawn: true });
-                // Check if only 1 player remains → game over
                 const alive = room.players.filter(p => !(room.glitchSpectators||[]).includes(p.id));
                 if (alive.length === 1) {
                     const scores = room.players.map(p => {
-                        const score = p.hand.reduce((sum, c) => {
-                            if (c.type === 'wild') return sum - 1;
-                            if (c.type === 'action') return sum - 2;
-                            return sum - 3;
-                        }, 0);
+                        const score = p.hand.reduce((sum, c) => { if (c.type==='wild') return sum-1; if (c.type==='action') return sum-2; return sum-3; }, 0);
                         return { name: p.name, id: p.id, score, hand: p.hand };
                     });
                     io.to(roomId).emit('gameOver', { winner: alive[0].name, winnerId: alive[0].id, scores, reason: 'glitched-out' });
+                    room.players.forEach(p => clearRejoin(p.persistentId));
                     rematchQueues.set(roomId, { players: room.players.map(p=>({id:p.id,name:p.name})), settings: room.settings, votes: new Set(), total: room.players.length });
                     setTimeout(() => rematchQueues.delete(roomId), 60000);
                     rooms.delete(roomId);
@@ -974,23 +939,17 @@ io.on('connection', socket => {
             const p = room.players.find(p => p.id === socket.id);
             io.to(roomId).emit('drawAnimation', { victimId: socket.id, victimName: p?.name, playerId: null, count: result.stackCount, cardValue: 'stack' });
         }
-        // Mercy: check if someone got knocked out from drawing
         if (room.isMercy && room.isMercy()) {
             const knocked = room.checkMercyKnockouts();
             knocked.forEach(p => io.to(roomId).emit('playerKnockedOut', { playerId: p.id, playerName: p.name }));
-            // Check last-player-standing win
             const active = room.activePlayers();
             if (active.length === 1) {
-                const wi = room.players.findIndex(p => p.id === active[0].id);
                 const scores = room.players.map(p => {
-                    const score = p.hand.reduce((sum, card) => {
-                        if (card.type === 'wild')   return sum - 1;
-                        if (card.type === 'action') return sum - 2;
-                        return sum - 3;
-                    }, 0);
+                    const score = p.hand.reduce((sum, card) => { if (card.type==='wild') return sum-1; if (card.type==='action') return sum-2; return sum-3; }, 0);
                     return { name: p.name, id: p.id, score, hand: p.hand };
                 });
                 io.to(roomId).emit('gameOver', { winner: active[0].name, winnerId: active[0].id, scores, reason: 'last-standing' });
+                room.players.forEach(p => clearRejoin(p.persistentId));
                 rematchQueues.set(roomId, { players: room.players.map(p=>({id:p.id,name:p.name})), settings: room.settings, votes: new Set(), total: room.players.length });
                 setTimeout(() => rematchQueues.delete(roomId), 60000);
                 rooms.delete(roomId);
@@ -1045,12 +1004,11 @@ io.on('connection', socket => {
         }
     });
 
-    // Glitch: popup ad timer expired — skip player's turn
     socket.on('adSkipTurn', ({ roomId }) => {
         const room = rooms.get(roomId);
         if (!room || !room.gameStarted) return;
         const pi = room.players.findIndex(p => p.id === socket.id);
-        if (pi === -1 || pi !== room.currentPlayer) return; // only if it's still their turn
+        if (pi === -1 || pi !== room.currentPlayer) return;
         room.advanceTurn();
         io.to(roomId).emit('adTurnSkipped', { playerName: room.players[pi].name });
         broadcastGameState(room);
@@ -1058,45 +1016,53 @@ io.on('connection', socket => {
 
     socket.on('leaveLobby', ({ roomId }) => cleanupPlayerFromLobby(socket.id, roomId));
 
+    // ── REJOIN GAME (by persistentId) ──────────────────────────────────
+    socket.on('rejoinGame', ({ roomId, persistentId }) => {
+        if (!persistentId) { socket.emit('rejoinFailed', { reason: 'No persistent ID provided.' }); return; }
+        const room = rooms.get(roomId);
+        if (!room || !room.gameStarted) {
+            clearRejoin(persistentId);
+            socket.emit('rejoinFailed', { reason: 'Game not found or already ended.' });
+            return;
+        }
+        const pi = room.players.findIndex(p => p.persistentId === persistentId);
+        if (pi === -1) {
+            socket.emit('rejoinFailed', { reason: 'Player not found in this game.' });
+            return;
+        }
+        const oldId = room.players[pi].id;
+        room.players[pi].id = socket.id;
+        socket.join(roomId);
+        // Refresh the rejoin window since they're back
+        clearRejoin(persistentId);
+        // Re-register in case they drop again
+        registerRejoin(persistentId, roomId, room.players[pi].name);
+        io.to(roomId).emit('playerRejoined', { playerName: room.players[pi].name });
+        socket.emit('gameRejoined', room.getGameState(socket.id));
+        console.log(`[Rejoin] ${room.players[pi].name} rejoined room ${roomId} (${oldId} -> ${socket.id})`);
+    });
+
     socket.on('rematchVote', ({ roomId }) => {
         const q = rematchQueues.get(roomId);
         if (!q) { socket.emit('error', 'Rematch expired or not found'); return; }
         if (!q.players.some(p => p.id === socket.id)) return;
-
         q.votes.add(socket.id);
-
-        // Broadcast updated vote count to all players in this rematch
         const voterName = q.players.find(p => p.id === socket.id)?.name;
-        q.players.forEach(p => {
-            io.to(p.id).emit('rematchVoteUpdate', {
-                votes: q.votes.size,
-                total: q.total,
-                voterName,
-                voterId: socket.id
-            });
-        });
-
-        // All voted  start rematch
+        q.players.forEach(p => io.to(p.id).emit('rematchVoteUpdate', { votes: q.votes.size, total: q.total, voterName, voterId: socket.id }));
         if (q.votes.size >= q.total) {
             rematchQueues.delete(roomId);
-
-            // Verify all sockets still connected
             const connected = q.players.filter(p => !!io.sockets.sockets.get(p.id));
             if (connected.length < q.total) {
                 const missing = q.players.filter(p => !io.sockets.sockets.get(p.id)).map(p => p.name).join(', ');
-                q.players.filter(p => io.sockets.sockets.get(p.id))
-                    .forEach(p => io.to(p.id).emit('rematchCancelled', { reason: `${missing} disconnected. Can't start rematch.` }));
+                q.players.filter(p => io.sockets.sockets.get(p.id)).forEach(p => io.to(p.id).emit('rematchCancelled', { reason: `${missing} disconnected. Can't start rematch.` }));
                 return;
             }
-
-            console.log(`[Server] Starting rematch in room ${roomId}`);
             const room = new GameRoom(roomId, q.players, q.settings);
             rooms.set(roomId, room);
             room.createDeck();
             room.dealCards(room.settings.startingCards || 7);
             room.gameStarted = true;
-
-            // Re-join all players to the socket room
+            room.players.forEach(p => registerRejoin(p.persistentId, roomId, p.name));
             q.players.forEach(p => {
                 const s = io.sockets.sockets.get(p.id);
                 if (s) s.join(roomId);
@@ -1110,11 +1076,7 @@ io.on('connection', socket => {
         if (!q) return;
         const decliner = q.players.find(p => p.id === socket.id);
         rematchQueues.delete(roomId);
-        q.players.forEach(p => {
-            io.to(p.id).emit('rematchCancelled', {
-                reason: `${decliner?.name || 'A player'} declined the rematch.`
-            });
-        });
+        q.players.forEach(p => io.to(p.id).emit('rematchCancelled', { reason: `${decliner?.name || 'A player'} declined the rematch.` }));
     });
 
     socket.on('heartbeat', ({ roomId }) => {
@@ -1122,38 +1084,10 @@ io.on('connection', socket => {
         if (pm) pm.receiveHeartbeat(socket.id);
     });
 
-    socket.on('rejoinGame', ({ roomId, playerName, rejoinToken }) => {
-        const room = rooms.get(roomId);
-        if (!room || !room.gameStarted) {
-            socket.emit('rejoinFailed', { reason: 'Game not found or already ended.' });
-            return;
-        }
-        // Find player in room by name (case-insensitive) or rejoinToken
-        const playerIdx = room.players.findIndex(p =>
-            (rejoinToken && p.rejoinToken === rejoinToken) ||
-            (p.name.toLowerCase() === (playerName || '').toLowerCase() && !room.players.find(x => x.id === socket.id))
-        );
-        if (playerIdx === -1) {
-            socket.emit('rejoinFailed', { reason: 'Player not found in this game. Make sure your name matches exactly.' });
-            return;
-        }
-        const oldId = room.players[playerIdx].id;
-        // Update socket ID in room
-        room.players[playerIdx].id = socket.id;
-        // Re-join socket room
-        socket.join(roomId);
-        // Notify other players
-        io.to(roomId).emit('playerRejoined', { playerName: room.players[playerIdx].name });
-        // Send current game state to rejoined player
-        socket.emit('gameRejoined', room.getGameState(socket.id));
-        console.log(`[Server] ${room.players[playerIdx].name} rejoined room ${roomId} (${oldId} -> ${socket.id})`);
-    });
-
     socket.on('disconnect', () => {
         console.log('Disconnected:', socket.id);
         Object.keys(lobbies).forEach(id => cleanupPlayerFromLobby(socket.id, id));
 
-        // Cancel any pending rematch this player was part of
         rematchQueues.forEach((q, rid) => {
             if (q.players.some(p => p.id === socket.id)) {
                 const decliner = q.players.find(p => p.id === socket.id);
@@ -1163,17 +1097,34 @@ io.on('connection', socket => {
                 });
             }
         });
+
         rooms.forEach((room, roomId) => {
             const player = room.players.find(p => p.id === socket.id);
             if (!player) return;
+            // Keep the room alive — the rejoin registry already has the 5-min window
+            // Just notify other players about the disconnect
             const pm = lobbyPresenceManagers.get(roomId);
             if (pm) {
                 pm.onPlayerDisconnect(socket.id);
-                room.players
-                    .filter(p => p.id !== socket.id)
-                    .forEach(p => io.to(p.id).emit('playerDisconnected', { playerId: socket.id, playerName: player.name, reconnectTimeout: pm.reconnectTimeout }));
+                room.players.filter(p => p.id !== socket.id).forEach(p =>
+                    io.to(p.id).emit('playerDisconnected', {
+                        playerId:         socket.id,
+                        playerName:       player.name,
+                        reconnectTimeout: REJOIN_WINDOW_MS
+                    })
+                );
+            } else {
+                // No presence manager — still notify and keep room alive for 5 min
+                room.players.filter(p => p.id !== socket.id).forEach(p =>
+                    io.to(p.id).emit('playerDisconnected', {
+                        playerId:         socket.id,
+                        playerName:       player.name,
+                        reconnectTimeout: REJOIN_WINDOW_MS
+                    })
+                );
             }
         });
+
         broadcastLobbyList();
     });
 });
