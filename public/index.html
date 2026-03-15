@@ -2885,6 +2885,18 @@
         ]);
     }
 
+    // ── PERSISTENT PLAYER ID ─────────────────────────────────────────────
+    // Generated once and stored forever in localStorage.
+    // Stable across page refreshes — used to identify the player for rejoin.
+    function getOrCreatePersistentId() {
+        let pid = localStorage.getItem('ono-persistentId');
+        if (!pid) {
+            pid = 'pid_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+            localStorage.setItem('ono-persistentId', pid);
+        }
+        return pid;
+    }
+
     // Initialize socket connection with error handling
     function initializeSocket() {
         try {
@@ -2906,12 +2918,31 @@
         socket.on('connect', () => {
             console.log('Connected to server');
             reconnectAttempts = 0;
-            // If a rejoin was queued by the prompt, send it now
-            if (window._pendingRejoin) {
-                const { rejoinRoom, rejoinName, rejoinToken } = window._pendingRejoin;
-                window._pendingRejoin = null;
-                socket.emit('rejoinGame', { roomId: rejoinRoom, playerName: rejoinName, rejoinToken });
-            }
+            // Announce our stable persistent ID immediately.
+            // The server checks if this ID has a pending rejoin entry and
+            // sends back 'canRejoin' if so — no localStorage token needed.
+            socket.emit('announcePersistentId', { persistentId: getOrCreatePersistentId() });
+        });
+
+        // Server confirms we have an active game session we can return to
+        socket.on('canRejoin', ({ roomId: rejoinRoomId, playerName }) => {
+            _openPopup(
+                '🔄 Rejoin Game?',
+                `You left a game as "${playerName}". Would you like to rejoin?`,
+                [
+                    { label: 'No thanks', primary: false, cb: () => {} },
+                    {
+                        label: '🔄 Rejoin',
+                        primary: true,
+                        cb: () => {
+                            socket.emit('rejoinGame', {
+                                roomId:       rejoinRoomId,
+                                persistentId: getOrCreatePersistentId()
+                            });
+                        }
+                    }
+                ]
+            );
         });
 
         socket.on('disconnect', () => {
@@ -2982,20 +3013,13 @@
             applyMercyTheme(state.settings && state.settings.gameMode === 'mercy');
             applyGlitchTheme(state.settings && state.settings.gameMode === 'glitch');
             showScreen('gameScreen');
-            if (state.rejoinToken) {
-                localStorage.setItem('ono-rejoinToken', state.rejoinToken);
-                localStorage.setItem('ono-rejoinRoom', state.roomId);
-                localStorage.setItem('ono-rejoinName', state.yourName);
-            }
+            startHeartbeat();
             updateGameUI();
-            showMessage('Reconnected to game!');
+            showMessage('✅ Reconnected to game!');
         });
 
         socket.on('rejoinFailed', ({ reason }) => {
             showPopup(reason || 'Could not rejoin the game.', 'Rejoin Failed');
-            localStorage.removeItem('ono-rejoinToken');
-            localStorage.removeItem('ono-rejoinRoom');
-            localStorage.removeItem('ono-rejoinName');
         });
 
         socket.on('playerRejoined', ({ playerName }) => {
@@ -3190,10 +3214,7 @@
         });
 
         socket.on('gameOver', (data) => {
-            // Clear rejoin data - game is over
-            localStorage.removeItem('ono-rejoinToken');
-            localStorage.removeItem('ono-rejoinRoom');
-            localStorage.removeItem('ono-rejoinName');
+            // Game over — server cleans up rejoin registry automatically
             setTimeout(() => showScoreboard(data), 600);
         });
 
@@ -3313,42 +3334,11 @@
         // Apply saved volume to SFX
         const savedVol = parseFloat(localStorage.getItem('ono-volume') || '0.7');
         Object.values(SFX).forEach(a => { try { a.volume = savedVol; } catch(e) {} });
-
-        // Check if player left a game and offer to rejoin
-        const rejoinToken = localStorage.getItem('ono-rejoinToken');
-        const rejoinRoom  = localStorage.getItem('ono-rejoinRoom');
-        const rejoinName  = localStorage.getItem('ono-rejoinName');
-
-        if (rejoinToken && rejoinRoom && rejoinName) {
-            // Show rejoin prompt before connecting so we can act on the answer
-            _openPopup(
-                '🔄 Rejoin Game?',
-                `You left a game as <strong>${rejoinName}</strong>.<br>Would you like to rejoin?`,
-                [
-                    {
-                        label: 'No thanks',
-                        primary: false,
-                        cb: () => {
-                            localStorage.removeItem('ono-rejoinToken');
-                            localStorage.removeItem('ono-rejoinRoom');
-                            localStorage.removeItem('ono-rejoinName');
-                            initializeSocket();
-                        }
-                    },
-                    {
-                        label: '🔄 Rejoin',
-                        primary: true,
-                        cb: () => {
-                            // Queue the rejoin to fire as soon as socket connects
-                            window._pendingRejoin = { rejoinRoom, rejoinName, rejoinToken };
-                            initializeSocket();
-                        }
-                    }
-                ]
-            );
-        } else {
-            initializeSocket();
-        }
+        // Ensure a stable persistent ID exists before connecting.
+        // The server will check it on 'announcePersistentId' and send 'canRejoin'
+        // if there is an active game session waiting for this player.
+        getOrCreatePersistentId();
+        initializeSocket();
     });
 
     // Re-render seats on resize so oval positions stay accurate
@@ -3522,7 +3512,8 @@
             lobbyName: lobbyName,
             settings: settings,
             isPrivate: isPrivate,
-            passcode: isPrivate ? passcode : null
+            passcode: isPrivate ? passcode : null,
+            persistentId: getOrCreatePersistentId()
         });
     }
 
@@ -3539,9 +3530,9 @@
         if (lobby && lobby.isPrivate) {
             const passcode = prompt('🔒 This lobby is private. Enter the passcode:');
             if (passcode === null) return; // cancelled
-            socket.emit('joinLobby', { lobbyId, playerName: name.trim(), passcode: passcode.trim() });
+            socket.emit('joinLobby', { lobbyId, playerName: name.trim(), passcode: passcode.trim(), persistentId: getOrCreatePersistentId() });
         } else {
-            socket.emit('joinLobby', { lobbyId, playerName: name.trim() });
+            socket.emit('joinLobby', { lobbyId, playerName: name.trim(), persistentId: getOrCreatePersistentId() });
         }
     }
 
