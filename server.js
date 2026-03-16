@@ -1039,14 +1039,26 @@ io.on('connection', socket => {
         // 2. Join the socket room so this socket can receive broadcasts
         socket.join(roomId);
 
-        // 3. Refresh rejoin window in case they drop again
+        // 3. CRITICAL FIX: Tell the PresenceManager about the new socket ID.
+        //    Without this, the PM still has the OLD (dead) socket ID marked as
+        //    DISCONNECTED, its 60-second countdown keeps running, and when it
+        //    fires 'player-timeout' it ends the game for everyone.
+        const pm = lobbyPresenceManagers.get(roomId);
+        if (pm) {
+            // Clear the old (dead) socket entry so its countdown timer is cancelled
+            // then re-register under the new socket ID as fully active
+            try { pm.onPlayerDisconnect(oldId); } catch(e) {}
+            pm.addPlayer(socket.id, rejoinedName, PlayerState.IN_GAME);
+        }
+
+        // 4. Refresh rejoin window in case they drop again
         clearRejoin(persistentId);
         registerRejoin(persistentId, roomId, rejoinedName);
 
-        // 4. Send the rejoined player their own game state FIRST (restores their hand, turn, etc.)
+        // 5. Send the rejoined player their own game state FIRST (restores their hand, turn, etc.)
         socket.emit('gameRejoined', room.getGameState(socket.id));
 
-        // 5. Broadcast a fresh gameState to ALL OTHER players so they see the updated
+        // 6. Broadcast a fresh gameState to ALL OTHER players so they see the updated
         //    player list (new socket ID, correct card counts, correct current turn).
         //    This also unblocks them from playing cards.
         room.players.forEach(p => {
@@ -1055,7 +1067,7 @@ io.on('connection', socket => {
             }
         });
 
-        // 6. Finally notify everyone (AFTER the rejoined player has their state) that
+        // 7. Finally notify everyone (AFTER the rejoined player has their state) that
         //    the player reconnected — this is just an informational toast/message.
         io.to(roomId).emit('playerRejoined', { playerName: rejoinedName });
 
