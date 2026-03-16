@@ -2918,13 +2918,11 @@
         socket.on('connect', () => {
             console.log('Connected to server');
             reconnectAttempts = 0;
-            // Announce our stable persistent ID immediately.
-            // The server checks if this ID has a pending rejoin entry and
-            // sends back 'canRejoin' if so.
+            // Announce stable persistent ID — server sends 'canRejoin' if a session exists
             socket.emit('announcePersistentId', { persistentId: getOrCreatePersistentId() });
         });
 
-        // Server confirms we have an active game session we can return to
+        // Server confirms we have an active game session to return to
         socket.on('canRejoin', ({ roomId: rejoinRoomId, playerName }) => {
             _openPopup(
                 '🔄 Rejoin Game?',
@@ -3008,12 +3006,12 @@
 
         socket.on('gameRejoined', (state) => {
             gameState = state;
-            roomId = state.roomId;          // restore roomId so heartbeat/emits work
+            roomId = state.roomId;
             isWaitingForServer = false;
             applyMercyTheme(state.settings && state.settings.gameMode === 'mercy');
             applyGlitchTheme(state.settings && state.settings.gameMode === 'glitch');
             showScreen('gameScreen');
-            startHeartbeat();               // resume heartbeat with correct roomId
+            startHeartbeat();
             updateGameUI();
             showMessage('✅ Reconnected to game!');
         });
@@ -3023,10 +3021,16 @@
         });
 
         socket.on('playerRejoined', ({ playerName }) => {
-            // Only show the reconnect toast to OTHER players, not to the rejoining player
-            // themselves (they already see '✅ Reconnected to game!' from gameRejoined).
+            // FIX Bug 2 & 3: Always hide the disconnect notification banner when
+            // any player rejoins — this clears both the message AND the grace period timer
+            hideDisconnectNotification();
+            // FIX Bug 1 (name): Only show the "reconnected" toast on OTHER players'
+            // screens. The rejoining player already sees "✅ Reconnected to game!"
+            // from their own gameRejoined event. Without this guard, the rejoining
+            // player would see their OWN name in the reconnect message, making it
+            // look like the name changed.
             if (gameState && gameState.yourName === playerName) return;
-            showMessage(`${playerName} reconnected! 🔄`);
+            showToast(`${playerName} reconnected! 🔄`, '#2ecc71');
         });
 
 
@@ -3338,7 +3342,7 @@
         const savedVol = parseFloat(localStorage.getItem('ono-volume') || '0.7');
         Object.values(SFX).forEach(a => { try { a.volume = savedVol; } catch(e) {} });
         // Ensure a stable persistent ID exists before connecting.
-        // The server will check it via 'announcePersistentId' and send 'canRejoin'
+        // The server checks it via 'announcePersistentId' and sends 'canRejoin'
         // automatically if there is an active game session for this player.
         getOrCreatePersistentId();
         initializeSocket();
