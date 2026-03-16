@@ -1030,16 +1030,36 @@ io.on('connection', socket => {
             socket.emit('rejoinFailed', { reason: 'Player not found in this game.' });
             return;
         }
-        const oldId = room.players[pi].id;
+        const oldId          = room.players[pi].id;
+        const rejoinedName   = room.players[pi].name;
+
+        // 1. Update the socket ID BEFORE joining the room so getGameState uses the right ID
         room.players[pi].id = socket.id;
+
+        // 2. Join the socket room so this socket can receive broadcasts
         socket.join(roomId);
-        // Refresh the rejoin window since they're back
+
+        // 3. Refresh rejoin window in case they drop again
         clearRejoin(persistentId);
-        // Re-register in case they drop again
-        registerRejoin(persistentId, roomId, room.players[pi].name);
-        io.to(roomId).emit('playerRejoined', { playerName: room.players[pi].name });
+        registerRejoin(persistentId, roomId, rejoinedName);
+
+        // 4. Send the rejoined player their own game state FIRST (restores their hand, turn, etc.)
         socket.emit('gameRejoined', room.getGameState(socket.id));
-        console.log(`[Rejoin] ${room.players[pi].name} rejoined room ${roomId} (${oldId} -> ${socket.id})`);
+
+        // 5. Broadcast a fresh gameState to ALL OTHER players so they see the updated
+        //    player list (new socket ID, correct card counts, correct current turn).
+        //    This also unblocks them from playing cards.
+        room.players.forEach(p => {
+            if (p.id !== socket.id) {
+                io.to(p.id).emit('gameState', room.getGameState(p.id));
+            }
+        });
+
+        // 6. Finally notify everyone (AFTER the rejoined player has their state) that
+        //    the player reconnected — this is just an informational toast/message.
+        io.to(roomId).emit('playerRejoined', { playerName: rejoinedName });
+
+        console.log(`[Rejoin] ${rejoinedName} rejoined room ${roomId} (${oldId} -> ${socket.id})`);
     });
 
     socket.on('rematchVote', ({ roomId }) => {
