@@ -2886,8 +2886,8 @@
     }
 
     // ── PERSISTENT PLAYER ID ─────────────────────────────────────────────
-    // Generated once and stored forever in localStorage.
-    // Stable across page refreshes — used to identify the player for rejoin.
+    // Generated once, stored forever in localStorage.
+    // Stable across page refreshes — the server uses it to identify players for rejoin.
     function getOrCreatePersistentId() {
         let pid = localStorage.getItem('ono-persistentId');
         if (!pid) {
@@ -2920,7 +2920,7 @@
             reconnectAttempts = 0;
             // Announce our stable persistent ID immediately.
             // The server checks if this ID has a pending rejoin entry and
-            // sends back 'canRejoin' if so — no localStorage token needed.
+            // sends back 'canRejoin' if so.
             socket.emit('announcePersistentId', { persistentId: getOrCreatePersistentId() });
         });
 
@@ -3008,12 +3008,12 @@
 
         socket.on('gameRejoined', (state) => {
             gameState = state;
-            roomId = state.roomId;
+            roomId = state.roomId;          // restore roomId so heartbeat/emits work
             isWaitingForServer = false;
             applyMercyTheme(state.settings && state.settings.gameMode === 'mercy');
             applyGlitchTheme(state.settings && state.settings.gameMode === 'glitch');
             showScreen('gameScreen');
-            startHeartbeat();
+            startHeartbeat();               // resume heartbeat with correct roomId
             updateGameUI();
             showMessage('✅ Reconnected to game!');
         });
@@ -3023,7 +3023,10 @@
         });
 
         socket.on('playerRejoined', ({ playerName }) => {
-            showMessage(`${playerName} reconnected!`);
+            // Only show the reconnect toast to OTHER players, not to the rejoining player
+            // themselves (they already see '✅ Reconnected to game!' from gameRejoined).
+            if (gameState && gameState.yourName === playerName) return;
+            showMessage(`${playerName} reconnected! 🔄`);
         });
 
 
@@ -3335,8 +3338,8 @@
         const savedVol = parseFloat(localStorage.getItem('ono-volume') || '0.7');
         Object.values(SFX).forEach(a => { try { a.volume = savedVol; } catch(e) {} });
         // Ensure a stable persistent ID exists before connecting.
-        // The server will check it on 'announcePersistentId' and send 'canRejoin'
-        // if there is an active game session waiting for this player.
+        // The server will check it via 'announcePersistentId' and send 'canRejoin'
+        // automatically if there is an active game session for this player.
         getOrCreatePersistentId();
         initializeSocket();
     });
