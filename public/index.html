@@ -192,8 +192,6 @@
         display: none;
         width: 100%;
         max-width: 1000px;
-        position: relative;
-        z-index: 1;
     }
 
     .screen.active {
@@ -2212,82 +2210,7 @@
         text-align: center;
     }
 
-    /* ── FLOATING CUBES BACKGROUND ── */
-#cubeCanvas {
-    position: fixed;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 0;
-    opacity: 0;
-    transition: opacity 1s ease;
-}
-#cubeCanvas.visible { opacity: 1; }
-
-/* ── CUSTOM CURSOR ── */
-* { cursor: none !important; }
-#customCursor {
-    position: fixed;
-    top: 0; left: 0;
-    pointer-events: none;
-    z-index: 99999;
-    transform: translate(-50%, -50%);
-    will-change: transform;
-}
-#customCursor .cursor-cube {
-    width: 22px;
-    height: 22px;
-    position: relative;
-    transform-style: preserve-3d;
-    animation: cursorSpin 3s linear infinite;
-    margin: 0 auto;
-}
-@keyframes cursorSpin {
-    from { transform: rotateX(30deg) rotateY(0deg); }
-    to   { transform: rotateX(30deg) rotateY(360deg); }
-}
-.cursor-cube .face {
-    position: absolute;
-    width: 22px;
-    height: 22px;
-    border: 2px solid rgba(255,255,255,0.9);
-    background: rgba(255,255,255,0.06);
-    box-shadow: 0 0 6px rgba(255,255,255,0.3), inset 0 0 4px rgba(255,255,255,0.1);
-    box-sizing: border-box;
-}
-html[data-mercy="1"] .cursor-cube .face {
-    border-color: rgba(255,120,120,0.95);
-    box-shadow: 0 0 8px rgba(255,80,80,0.5), inset 0 0 4px rgba(255,80,80,0.15);
-}
-html[data-glitch="1"] .cursor-cube .face {
-    border-color: rgba(0,255,65,0.95);
-    box-shadow: 0 0 8px rgba(0,255,65,0.5), inset 0 0 4px rgba(0,255,65,0.15);
-}
-.cursor-cube .face.front  { transform: translateZ(11px); }
-.cursor-cube .face.back   { transform: rotateY(180deg) translateZ(11px); }
-.cursor-cube .face.left   { transform: rotateY(-90deg) translateZ(11px); }
-.cursor-cube .face.right  { transform: rotateY(90deg) translateZ(11px); }
-.cursor-cube .face.top    { transform: rotateX(90deg) translateZ(11px); }
-.cursor-cube .face.bottom { transform: rotateX(-90deg) translateZ(11px); }
-#customCursor .cursor-name {
-    text-align: center;
-    margin-top: 8px;
-    font-family: 'Orbitron', sans-serif;
-    font-size: 0.62em;
-    font-weight: 700;
-    color: rgba(255,255,255,0.9);
-    text-shadow: 0 0 8px rgba(255,255,255,0.6), 0 1px 3px rgba(0,0,0,0.8);
-    letter-spacing: 1px;
-    white-space: nowrap;
-    background: rgba(0,0,0,0.35);
-    border-radius: 6px;
-    padding: 2px 8px;
-    backdrop-filter: blur(4px);
-}
-/* On main menu / lobby: plain arrow cursor */
-body:not(.in-game) * { cursor: auto !important; }
-body:not(.in-game) #customCursor { display: none; }
+    /* ── GLITCHED N'NO THEME ── */
     html[data-glitch="1"] { --bg-grad-a:#001a00; --bg-grad-b:#0a0a0a; }
     html[data-glitch="1"] .menu-button { background:linear-gradient(135deg,#003300,#00aa22) !important; box-shadow:0 6px 18px rgba(0,255,65,0.3) !important; }
     html[data-glitch="1"] .menu-button.green { background:linear-gradient(135deg,#005500,#00cc33) !important; }
@@ -2348,22 +2271,6 @@ body:not(.in-game) #customCursor { display: none; }
 
 </head>
 <body>
-    <!-- Floating cubes background canvas (game screen only) -->
-    <canvas id="cubeCanvas"></canvas>
-
-    <!-- Custom cursor: spinning cube + player name -->
-    <div id="customCursor">
-        <div class="cursor-cube">
-            <div class="face front"></div>
-            <div class="face back"></div>
-            <div class="face left"></div>
-            <div class="face right"></div>
-            <div class="face top"></div>
-            <div class="face bottom"></div>
-        </div>
-        <div class="cursor-name" id="cursorName"></div>
-    </div>
-
     <!-- Disconnect Notification -->
     <div id="disconnectNotification" class="disconnect-notification"></div>
 
@@ -3082,7 +2989,7 @@ body:not(.in-game) #customCursor { display: none; }
 
         socket.on('gameStarted', (state) => {
             gameState = state;
-            setWaiting(false);
+            isWaitingForServer = false;
             applyMercyTheme(state.settings && state.settings.gameMode === 'mercy');
             applyGlitchTheme(state.settings && state.settings.gameMode === 'glitch');
             showScreen('gameScreen');
@@ -3100,7 +3007,7 @@ body:not(.in-game) #customCursor { display: none; }
         socket.on('gameRejoined', (state) => {
             gameState = state;
             roomId = state.roomId;
-            setWaiting(false);
+            isWaitingForServer = false;
             applyMercyTheme(state.settings && state.settings.gameMode === 'mercy');
             applyGlitchTheme(state.settings && state.settings.gameMode === 'glitch');
             showScreen('gameScreen');
@@ -3202,23 +3109,9 @@ body:not(.in-game) #customCursor { display: none; }
             if (isVictim) showMessage(`🎲 RandDraw! You draw ${count} card${count > 1 ? 's' : ''}!`);
             else showMessage(`🎲 RandDraw! An opponent draws ${count} card${count > 1 ? 's' : ''}!`);
         });
-socket.on('gameStarted', (state) => {
-    console.log('[Client] Game started! Received initial game state:', state);
-    gameState = state;
-    currentLobbyData = null; // Clear lobby data
-    showScreen('gameScreen');
-    updateGameUI();
-    
-    // Start heartbeat for presence tracking
-    const heartbeatInterval = setInterval(() => {
-        socket.emit('heartbeat', { roomId: state.roomId });
-    }, 5000);
-    
-    // Store interval ID so we can clear it later if needed
-    window.gameHeartbeatInterval = heartbeatInterval;
-});
+
         socket.on('gameState', (state) => {
-            setWaiting(false);
+            isWaitingForServer = false;
 
             // Detect if an opponent just played a card (discard changed, not our draw)
             const discardChanged = gameState &&
@@ -3360,7 +3253,7 @@ socket.on('gameStarted', (state) => {
         });
 
         socket.on('error', (message) => {
-            setWaiting(false); // Reset flag on error
+            isWaitingForServer = false; // Reset flag on error
             showPopup(message);
         });
 
@@ -3742,7 +3635,6 @@ socket.on('gameStarted', (state) => {
             readyStatusBar.innerHTML  = allReady
                 ? '🎉 All players ready! Starting game...'
                 : `⏳ Waiting for players to ready up... (${readyCount}/${playerCount} ready)`;
-                // ADD THIS: Actually start the game when all are ready
         } else {
             readyStatusBar.style.display = 'none';
         }
@@ -3966,7 +3858,7 @@ socket.on('gameStarted', (state) => {
                 });
                 if (!hasStackCard) {
                     // No stackable card — automatically absorb the penalty
-                    setWaiting(true);
+                    isWaitingForServer = true;
                     setTimeout(() => {
                         if (socket && socket.connected) {
                             socket.emit('drawCard', { roomId });
@@ -4126,7 +4018,7 @@ socket.on('gameStarted', (state) => {
         let jumpInLabel = '⚡ JUMP IN!';
         
         gameState.yourHand.forEach((card, index) => {
-            const isPlayable = canPlayCard(card, index);
+            const isPlayable = canPlayCard(card);
             const isJumpIn   = canJumpIn(card);
             // Apply scramble display if active
             const displayCard = (isGlitch() && glitchScrambleActive) ? getGlitchDisplay(card, index) : card;
@@ -4135,25 +4027,17 @@ socket.on('gameStarted', (state) => {
                 cardDiv.classList.add('glitched');
                 cardDiv.style.setProperty('--glitch-hue', (index * 37) % 360 + 'deg');
             }
-
+            
             if (isJumpIn) {
-                // Not your turn but you can jump in — highlight it
                 hasJumpInCard = true;
+                // Pick the most specific label
                 if (card.value === 'Wild+4') jumpInLabel = '⚡ JUMP IN! Wild +4';
                 else if (card.value === '+2')  jumpInLabel = '⚡ JUMP IN! +2';
                 cardDiv.classList.add('jump-in-card');
                 cardDiv.onclick = () => playCard(index, true);
-            } else if (isWaitingForServer) {
-                // Waiting for server response — disable everything
-                cardDiv.classList.add('disabled');
-            } else if (!gameState.isYourTurn) {
-                // Not your turn and not a jump-in — disable
-                cardDiv.classList.add('disabled');
-            } else if (!isPlayable) {
-                // Your turn but card isn't playable
+            } else if (!isPlayable || !gameState.isYourTurn || isWaitingForServer) {
                 cardDiv.classList.add('disabled');
             } else {
-                // Your turn and playable — enable
                 cardDiv.onclick = () => playCard(index, false);
             }
             
@@ -4633,13 +4517,14 @@ socket.on('gameStarted', (state) => {
         return false;
     }
 
-    function canPlayCard(card, handIndex) {
+    function canPlayCard(card) {
         if (!gameState || !card) return false;
         const isMercyMode = gameState.settings && gameState.settings.gameMode === 'mercy';
         const stacking = gameState.settings.allowStacking || isMercyMode;
 
         if (stacking && gameState.stackedDrawCount > 0) {
             if (isMercyMode) {
+                // Equal-or-higher draw value required
                 const DRAW_VALUES = { '+2': 2, 'Wild+4': 4, 'WildReverseD4': 4, 'Wild+6': 6, 'Wild+10': 10 };
                 const cardVal = DRAW_VALUES[card.value];
                 if (!cardVal) return false;
@@ -4653,14 +4538,9 @@ socket.on('gameStarted', (state) => {
         }
 
         if (card.type === 'wild') {
-            // Classic rule: Wild+4 only playable if you have NO card matching current color
+            // Classic rule: Wild+4 only playable if no card matching current color
             if (card.value === 'Wild+4' && !isMercyMode && gameState.yourHand) {
-                const hasColor = gameState.yourHand.some((c, i) => {
-                    // Exclude the card being evaluated (by index, not reference — safer after JSON parse)
-                    if (i === handIndex) return false;
-                    // Only non-wild cards count against Wild+4
-                    return c.type !== 'wild' && c.color === gameState.currentColor;
-                });
+                const hasColor = gameState.yourHand.some(c => c !== card && c.color === gameState.currentColor);
                 if (hasColor) return false;
             }
             return true;
@@ -4669,54 +4549,33 @@ socket.on('gameStarted', (state) => {
         return card.color === gameState.currentColor || card.value === gameState.currentValue;
     }
 
-    // Safety valve: if isWaitingForServer gets stuck, auto-clear after 8s
-    let _waitingTimeout = null;
-    function setWaiting(val) {
-        if (val) {
-            isWaitingForServer = true;
-            clearTimeout(_waitingTimeout);
-            _waitingTimeout = setTimeout(() => {
-                console.warn('[O,No] isWaitingForServer stuck — auto-clearing');
-                setWaiting(false);
-                if (gameState) updateGameUI();
-            }, 8000);
-        } else {
-            setWaiting(false);
-            clearTimeout(_waitingTimeout);
-            _waitingTimeout = null;
-        }
-    }
-
     function playCard(index, isJumpIn = false) {
         if (!gameState || !gameState.yourHand) return;
         if (isSpectator) return;
         if (!gameState.isYourTurn && !isJumpIn) return;
         if (isWaitingForServer) return;
-
+        
         const card = gameState.yourHand[index];
         if (!card) return;
-
+        
         // Validate: normal turn needs canPlayCard, jump-in needs canJumpIn
         if (isJumpIn) {
             if (!canJumpIn(card)) return;
         } else {
             if (!canPlayCard(card)) return;
         }
-
-        // Lock immediately — before any async work — so rapid clicks can't double-send
-        setWaiting(true);
-
+        
         // Hide jump-in banner immediately on play
         updateJumpInBanner(false);
 
         const yourHandDiv = document.getElementById('playerHand');
         const cardElement = yourHandDiv.children[index];
-
+        
         if (card.type === 'wild') {
             pendingCardIndex = index;
-            // Show color picker — isWaitingForServer stays true until chooseColor fires
             showColorPicker();
         } else {
+            isWaitingForServer = true;
             animateCardToCenter(cardElement, card, () => {
                 if (socket && socket.connected) {
                     socket.emit('playCard', {
@@ -4737,12 +4596,15 @@ socket.on('gameStarted', (state) => {
     function chooseColor(color) {
         document.getElementById('overlay').classList.remove('active');
         document.getElementById('colorPicker').classList.remove('active');
-
+        
+        // Get the card element and animate it
         const card = gameState.yourHand[pendingCardIndex];
         const yourHandDiv = document.getElementById('playerHand');
         const cardElement = yourHandDiv.children[pendingCardIndex];
-
-        // isWaitingForServer is already true from setWaiting() called in playCard
+        
+        // Block further plays before starting animation
+        isWaitingForServer = true;
+        
         animateCardToCenter(cardElement, card, () => {
             if (socket && socket.connected) {
                 socket.emit('playCard', {
@@ -4751,6 +4613,7 @@ socket.on('gameStarted', (state) => {
                     chosenColor: color
                 });
             }
+            
             pendingCardIndex = null;
         });
     }
@@ -4805,10 +4668,12 @@ socket.on('gameStarted', (state) => {
         if (!gameState || !gameState.isYourTurn) return;
         if (isSpectator) return;
         if (gameState.hasDrawnThisTurn) return;
-        if (isWaitingForServer) return;
-
-        setWaiting(true);
-
+        if (isWaitingForServer) return; // Prevent rapid clicking
+        
+        // Block further actions while waiting for server
+        isWaitingForServer = true;
+        
+        // Send draw request to server (no animation yet - wait for response)
         if (socket && socket.connected) {
             socket.emit('drawCard', { roomId: roomId });
         }
@@ -4952,7 +4817,7 @@ socket.on('gameStarted', (state) => {
             document.querySelectorAll('.popup-ad-float').forEach(el => el.remove());
             if (adTimer) { clearInterval(adTimer); adTimer = null; }
             showMessage('⏰ Too slow closing ads! Your turn was SKIPPED!');
-            setWaiting(false);
+            isWaitingForServer = false;
             // Notify server to skip our turn by passing turn
             if (socket && socket.connected) socket.emit('adSkipTurn', { roomId });
         }
@@ -5049,207 +4914,5 @@ socket.on('gameStarted', (state) => {
     <div id="peekTimer">3</div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     FLOATING CUBES + CUSTOM CURSOR
-     ═══════════════════════════════════════════════════════════ -->
-<script>
-(function() {
-
-    // ── CUSTOM CURSOR ─────────────────────────────────────────
-    const cursorEl   = document.getElementById('customCursor');
-    const cursorName = document.getElementById('cursorName');
-    let   _cx = -200, _cy = -200;
-
-    document.addEventListener('mousemove', e => {
-        _cx = e.clientX;
-        _cy = e.clientY;
-        cursorEl.style.transform = `translate(calc(${_cx}px - 50%), calc(${_cy}px - 50%))`;
-    });
-
-    // Update cursor name from gameState when available
-    function refreshCursorName() {
-        if (typeof gameState !== 'undefined' && gameState && gameState.yourName) {
-            cursorName.textContent = gameState.yourName;
-        } else {
-            cursorName.textContent = '';
-        }
-    }
-
-    // Poll for name updates (gameState can change at any time)
-    setInterval(refreshCursorName, 1000);
-    refreshCursorName();
-
-    // Show custom cursor only on game screen
-    const observer = new MutationObserver(() => {
-        const onGame = document.getElementById('gameScreen')?.classList.contains('active');
-        document.body.classList.toggle('in-game', !!onGame);
-        if (onGame) {
-            cursorEl.style.display = '';
-            refreshCursorName();
-        } else {
-            cursorEl.style.display = 'none';
-        }
-    });
-    observer.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] });
-
-    // ── FLOATING CUBES CANVAS ─────────────────────────────────
-    const canvas = document.getElementById('cubeCanvas');
-    const ctx    = canvas.getContext('2d');
-
-    // Cube configuration
-    const NUM_CUBES = 10;
-    const cubes = [];
-
-    function getThemeColor() {
-        const dark = document.documentElement.getAttribute('data-theme') === 'dark';
-        const mercy = document.documentElement.getAttribute('data-mercy') === '1';
-        const glitch = document.documentElement.getAttribute('data-glitch') === '1';
-        if (glitch)  return { stroke: 'rgba(0,255,65,', fill: 'rgba(0,255,65,' };
-        if (mercy)   return { stroke: 'rgba(255,100,100,', fill: 'rgba(255,80,80,' };
-        if (dark)    return { stroke: 'rgba(167,139,250,', fill: 'rgba(124,58,237,' };
-        return { stroke: 'rgba(255,255,255,', fill: 'rgba(200,180,255,' };
-    }
-
-    // Build a cube given its 3D centre, size, rotation angles
-    function makeCube(cx, cy, size, rx, ry) {
-        const hs = size / 2;
-        // 8 vertices of a unit cube, unrotated
-        const verts = [
-            [-hs,-hs,-hs],[hs,-hs,-hs],[hs,hs,-hs],[-hs,hs,-hs],
-            [-hs,-hs, hs],[hs,-hs, hs],[hs,hs, hs],[-hs,hs, hs]
-        ];
-        // Rotate each vertex around X then Y
-        const cosX = Math.cos(rx), sinX = Math.sin(rx);
-        const cosY = Math.cos(ry), sinY = Math.sin(ry);
-        const projected = verts.map(([x, y, z]) => {
-            // Rotate X
-            const y2 = y * cosX - z * sinX;
-            const z2 = y * sinX + z * cosX;
-            // Rotate Y
-            const x3 = x * cosY + z2 * sinY;
-            const z3 = -x * sinY + z2 * cosY;
-            // Simple perspective
-            const fov = 400;
-            const scale = fov / (fov + z3 + 150);
-            return [cx + x3 * scale, cy + y2 * scale, z3];
-        });
-        return projected;
-    }
-
-    // 6 faces by vertex index
-    const FACES = [
-        [0,1,2,3], // back
-        [4,5,6,7], // front
-        [0,1,5,4], // bottom
-        [2,3,7,6], // top
-        [0,3,7,4], // left
-        [1,2,6,5], // right
-    ];
-
-    function initCubes() {
-        cubes.length = 0;
-        for (let i = 0; i < NUM_CUBES; i++) {
-            cubes.push({
-                x:    Math.random() * canvas.width,
-                y:    Math.random() * canvas.height,
-                baseY: 0,  // set below
-                size: 28 + Math.random() * 52,
-                rx:   Math.random() * Math.PI * 2,
-                ry:   Math.random() * Math.PI * 2,
-                rxV:  (Math.random() - 0.5) * 0.008,
-                ryV:  (Math.random() - 0.5) * 0.012,
-                // Bob: each cube has its own sine phase and speed
-                bobAmp:   25 + Math.random() * 35,
-                bobSpeed: 0.003 + Math.random() * 0.005,
-                bobPhase: Math.random() * Math.PI * 2,
-                // Drift slowly sideways
-                driftX:   (Math.random() - 0.5) * 0.12,
-                opacity:  0.12 + Math.random() * 0.22,
-            });
-            cubes[i].baseY = cubes[i].y;
-        }
-    }
-
-    function resize() {
-        canvas.width  = window.innerWidth;
-        canvas.height = window.innerHeight;
-        // Redistribute cubes across new size
-        cubes.forEach(c => {
-            c.x     = Math.random() * canvas.width;
-            c.baseY = Math.random() * canvas.height;
-        });
-    }
-
-    let frame = 0;
-    let animId = null;
-    let lastOnGame = false;
-
-    function draw() {
-        animId = requestAnimationFrame(draw);
-        frame++;
-
-        const onGame = document.getElementById('gameScreen')?.classList.contains('active');
-        if (!onGame) {
-            canvas.classList.remove('visible');
-            return;
-        }
-        canvas.classList.add('visible');
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        const t = frame;
-        const theme = getThemeColor();
-
-        cubes.forEach(c => {
-            // Bob up and down
-            const bobY = c.baseY + Math.sin(t * c.bobSpeed + c.bobPhase) * c.bobAmp;
-            // Slow drift
-            c.x += c.driftX;
-            if (c.x < -100) c.x = canvas.width + 80;
-            if (c.x > canvas.width + 100) c.x = -80;
-            // Rotate
-            c.rx += c.rxV;
-            c.ry += c.ryV;
-
-            const verts = makeCube(c.x, bobY, c.size, c.rx, c.ry);
-
-            // Draw back faces first (painter's algorithm — sort by avg Z)
-            const facesSorted = FACES.map((fi, idx) => ({
-                idx,
-                fi,
-                z: fi.reduce((s, vi) => s + verts[vi][2], 0) / 4
-            })).sort((a, b) => a.z - b.z);
-
-            facesSorted.forEach(({ fi }) => {
-                ctx.beginPath();
-                ctx.moveTo(verts[fi[0]][0], verts[fi[0]][1]);
-                for (let k = 1; k < 4; k++) ctx.lineTo(verts[fi[k]][0], verts[fi[k]][1]);
-                ctx.closePath();
-                ctx.fillStyle   = theme.fill   + (c.opacity * 0.35) + ')';
-                ctx.strokeStyle = theme.stroke  + (c.opacity) + ')';
-                ctx.lineWidth   = 1.2;
-                ctx.fill();
-                ctx.stroke();
-            });
-        });
-    }
-
-    // ── INIT ──────────────────────────────────────────────────
-    window.addEventListener('resize', () => { resize(); });
-    resize();
-    initCubes();
-    draw();
-
-    // When theme/mode changes, cubes re-color automatically (theme read each frame)
-    // Re-init cube positions when entering game screen
-    const screenObs = new MutationObserver(() => {
-        const onGame = document.getElementById('gameScreen')?.classList.contains('active');
-        if (onGame && !lastOnGame) initCubes();
-        lastOnGame = !!onGame;
-    });
-    screenObs.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] });
-
-})();
-</script>
 </body>
 </html>
