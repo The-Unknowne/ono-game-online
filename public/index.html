@@ -3253,8 +3253,11 @@
         });
 
         socket.on('error', (message) => {
-            isWaitingForServer = false; // Reset flag on error
+            isWaitingForServer = false; // FIX: Always reset on error
+            jumpInBannerVisible = false;
+            updateJumpInBanner(false);
             showPopup(message);
+            updateGameUI(); // FIX: Re-render UI
         });
 
         // Player presence events
@@ -4002,50 +4005,56 @@
         }
     }
 
-    function renderPlayerHand() {
+   function renderPlayerHand() {
         const handDiv = document.getElementById('playerHand');
-        handDiv.innerHTML = '';
-        
+     handDiv.innerHTML = '';
+    
         if (!gameState.yourHand) return;
-        
-        if (gameState.isYourTurn) {
-            handDiv.classList.add('your-turn');
-        } else {
-            handDiv.classList.remove('your-turn');
-        }
+    
+     if (gameState.isYourTurn) {
+        handDiv.classList.add('your-turn');
+     } else {
+        handDiv.classList.remove('your-turn');
+      }
 
-        let hasJumpInCard = false;
+     let hasJumpInCard = false;
         let jumpInLabel = '⚡ JUMP IN!';
+    
+      gameState.yourHand.forEach((card, index) => {
+        const isPlayable = canPlayCard(card);
+        const isJumpIn   = canJumpIn(card);
+        const displayCard = (isGlitch() && glitchScrambleActive) ? getGlitchDisplay(card, index) : card;
+        const cardDiv    = createCardElement(displayCard);
         
-        gameState.yourHand.forEach((card, index) => {
-            const isPlayable = canPlayCard(card);
-            const isJumpIn   = canJumpIn(card);
-            // Apply scramble display if active
-            const displayCard = (isGlitch() && glitchScrambleActive) ? getGlitchDisplay(card, index) : card;
-            const cardDiv    = createCardElement(displayCard);
-            if (isGlitch() && glitchScrambleActive && !card.glitch) {
-                cardDiv.classList.add('glitched');
-                cardDiv.style.setProperty('--glitch-hue', (index * 37) % 360 + 'deg');
-            }
-            
-            if (isJumpIn) {
-                hasJumpInCard = true;
-                // Pick the most specific label
-                if (card.value === 'Wild+4') jumpInLabel = '⚡ JUMP IN! Wild +4';
-                else if (card.value === '+2')  jumpInLabel = '⚡ JUMP IN! +2';
-                cardDiv.classList.add('jump-in-card');
-                cardDiv.onclick = () => playCard(index, true);
-            } else if (!isPlayable || !gameState.isYourTurn || isWaitingForServer) {
-                cardDiv.classList.add('disabled');
-            } else {
-                cardDiv.onclick = () => playCard(index, false);
-            }
-            
-            handDiv.appendChild(cardDiv);
-        });
+        if (isGlitch() && glitchScrambleActive && !card.glitch) {
+            cardDiv.classList.add('glitched');
+            cardDiv.style.setProperty('--glitch-hue', (index * 37) % 360 + 'deg');
+        }
+        
+        if (isJumpIn) {
+            hasJumpInCard = true;
+            if (card.value === 'Wild+4') jumpInLabel = '⚡ JUMP IN! Wild +4';
+            else if (card.value === '+2')  jumpInLabel = '⚡ JUMP IN! +2';
+            cardDiv.classList.add('jump-in-card');
+            // FIX: Ensure click handler is set
+            cardDiv.onclick = (e) => {
+                e.stopPropagation();
+                playCard(index, true);
+            };
+        } else if (!isPlayable || !gameState.isYourTurn || isWaitingForServer) {
+            cardDiv.classList.add('disabled');
+            cardDiv.onclick = null;
+        } else {
+            cardDiv.onclick = (e) => {
+                e.stopPropagation();
+                playCard(index, false);
+            };
+        }
+        
+     handDiv.appendChild(cardDiv);
+     });
 
-        // Show or hide the jump-in banner
-        updateJumpInBanner(hasJumpInCard, jumpInLabel);
+     updateJumpInBanner(hasJumpInCard, jumpInLabel);
     }
 
     let jumpInBannerVisible = false;
@@ -4517,106 +4526,110 @@
         return false;
     }
 
-    function canPlayCard(card) {
-        if (!gameState || !card) return false;
-        const isMercyMode = gameState.settings && gameState.settings.gameMode === 'mercy';
-        const stacking = gameState.settings.allowStacking || isMercyMode;
+function canPlayCard(card) {
+    if (!gameState || !card) return false;
+    const isMercyMode = gameState.settings && gameState.settings.gameMode === 'mercy';
+    const stacking = gameState.settings.allowStacking || isMercyMode;
 
-        if (stacking && gameState.stackedDrawCount > 0) {
-            if (isMercyMode) {
-                // Equal-or-higher draw value required
-                const DRAW_VALUES = { '+2': 2, 'Wild+4': 4, 'WildReverseD4': 4, 'Wild+6': 6, 'Wild+10': 10 };
-                const cardVal = DRAW_VALUES[card.value];
-                if (!cardVal) return false;
-                const topDiscard = gameState.discardPile;
-                const topVal = topDiscard ? (DRAW_VALUES[topDiscard.value] || 0) : 0;
-                return cardVal >= topVal;
-            }
-            if (gameState.currentValue === '+2'     && card.value === '+2')     return true;
-            if (gameState.currentValue === 'Wild+4' && card.value === 'Wild+4') return true;
-            return false;
+    // If there's a stacked draw, check if we can stack
+    if (stacking && gameState.stackedDrawCount > 0) {
+        if (isMercyMode) {
+            const DRAW_VALUES = { '+2': 2, 'Wild+4': 4, 'WildReverseD4': 4, 'Wild+6': 6, 'Wild+10': 10 };
+            const cardVal = DRAW_VALUES[card.value];
+            if (!cardVal) return false;
+            const topDiscard = gameState.discardPile;
+            const topVal = topDiscard ? (DRAW_VALUES[topDiscard.value] || 0) : 0;
+            return cardVal >= topVal;
         }
-
-        if (card.type === 'wild') {
-            // Classic rule: Wild+4 only playable if no card matching current color
-            if (card.value === 'Wild+4' && !isMercyMode && gameState.yourHand) {
-                const hasColor = gameState.yourHand.some(c => c !== card && c.color === gameState.currentColor);
-                if (hasColor) return false;
-            }
-            return true;
-        }
-
-        return card.color === gameState.currentColor || card.value === gameState.currentValue;
+        if (gameState.currentValue === '+2'     && card.value === '+2')     return true;
+        if (gameState.currentValue === 'Wild+4' && card.value === 'Wild+4') return true;
+        return false;
     }
 
-    function playCard(index, isJumpIn = false) {
-        if (!gameState || !gameState.yourHand) return;
-        if (isSpectator) return;
-        if (!gameState.isYourTurn && !isJumpIn) return;
-        if (isWaitingForServer) return;
-        
-        const card = gameState.yourHand[index];
-        if (!card) return;
-        
-        // Validate: normal turn needs canPlayCard, jump-in needs canJumpIn
-        if (isJumpIn) {
-            if (!canJumpIn(card)) return;
-        } else {
-            if (!canPlayCard(card)) return;
+    if (card.type === 'wild') {
+        // Wild+4: Only restrict if NOT mercy mode AND player has matching color
+        if (card.value === 'Wild+4' && !isMercyMode && gameState.yourHand) {
+            const hasColor = gameState.yourHand.some(c => 
+                c !== card && c.color === gameState.currentColor && c.type !== 'wild'
+            );
+            if (hasColor) return false;
         }
-        
-        // Hide jump-in banner immediately on play
-        updateJumpInBanner(false);
-
-        const yourHandDiv = document.getElementById('playerHand');
-        const cardElement = yourHandDiv.children[index];
-        
-        if (card.type === 'wild') {
-            pendingCardIndex = index;
-            showColorPicker();
-        } else {
-            isWaitingForServer = true;
-            animateCardToCenter(cardElement, card, () => {
-                if (socket && socket.connected) {
-                    socket.emit('playCard', {
-                        roomId: roomId,
-                        cardIndex: index,
-                        chosenColor: null
-                    });
-                }
-            });
-        }
+        return true;
     }
+
+    return card.color === gameState.currentColor || card.value === gameState.currentValue;
+}
+
+   function playCard(index, isJumpIn = false) {
+    if (!gameState || !gameState.yourHand) return;
+    if (isSpectator) return;
+    if (!gameState.isYourTurn && !isJumpIn) return;
+    
+    // FIX: Always reset isWaitingForServer at start
+    if (isWaitingForServer) {
+        console.warn('Still waiting for server, ignoring play');
+        return;
+    }
+    
+    const card = gameState.yourHand[index];
+    if (!card) return;
+    
+    if (isJumpIn) {
+        if (!canJumpIn(card)) return;
+    } else {
+        if (!canPlayCard(card)) return;
+    }
+    
+    updateJumpInBanner(false);
+
+    const yourHandDiv = document.getElementById('playerHand');
+    const cardElement = yourHandDiv.children[index];
+    
+    if (card.type === 'wild') {
+        pendingCardIndex = index;
+        showColorPicker();
+    } else {
+        isWaitingForServer = true;
+        animateCardToCenter(cardElement, card, () => {
+            if (socket && socket.connected) {
+                socket.emit('playCard', {
+                    roomId: roomId,
+                    cardIndex: index,
+                    chosenColor: null
+                });
+            }
+        });
+    }
+}
+
 
     function showColorPicker() {
         document.getElementById('overlay').classList.add('active');
         document.getElementById('colorPicker').classList.add('active');
     }
 
-    function chooseColor(color) {
-        document.getElementById('overlay').classList.remove('active');
-        document.getElementById('colorPicker').classList.remove('active');
-        
-        // Get the card element and animate it
-        const card = gameState.yourHand[pendingCardIndex];
-        const yourHandDiv = document.getElementById('playerHand');
-        const cardElement = yourHandDiv.children[pendingCardIndex];
-        
-        // Block further plays before starting animation
-        isWaitingForServer = true;
-        
-        animateCardToCenter(cardElement, card, () => {
-            if (socket && socket.connected) {
-                socket.emit('playCard', {
-                    roomId: roomId,
-                    cardIndex: pendingCardIndex,
-                    chosenColor: color
-                });
-            }
-            
-            pendingCardIndex = null;
-        });
-    }
+function chooseColor(color) {
+    document.getElementById('overlay').classList.remove('active');
+    document.getElementById('colorPicker').classList.remove('active');
+    
+    const card = gameState.yourHand[pendingCardIndex];
+    const yourHandDiv = document.getElementById('playerHand');
+    const cardElement = yourHandDiv.children[pendingCardIndex];
+    
+    isWaitingForServer = true;
+    
+    animateCardToCenter(cardElement, card, () => {
+        if (socket && socket.connected) {
+            socket.emit('playCard', {
+                roomId: roomId,
+                cardIndex: pendingCardIndex,
+                chosenColor: color
+            });
+        }
+        pendingCardIndex = null;
+    });
+}
+
 
     // ── 7-Swap picker ─────────────────────────────────────────────
     function showSwapPicker(opponents) {
@@ -4665,19 +4678,18 @@
     }
 
     function drawCard() {
-        if (!gameState || !gameState.isYourTurn) return;
-        if (isSpectator) return;
-        if (gameState.hasDrawnThisTurn) return;
-        if (isWaitingForServer) return; // Prevent rapid clicking
-        
-        // Block further actions while waiting for server
-        isWaitingForServer = true;
-        
-        // Send draw request to server (no animation yet - wait for response)
-        if (socket && socket.connected) {
-            socket.emit('drawCard', { roomId: roomId });
-        }
+    if (!gameState || !gameState.isYourTurn) return;
+    if (isSpectator) return;
+    if (gameState.hasDrawnThisTurn) return;
+    if (isWaitingForServer) return;
+    
+    isWaitingForServer = true;
+    
+    if (socket && socket.connected) {
+        socket.emit('drawCard', { roomId: roomId });
     }
+}
+
 
     function callUno() {
         if (socket && socket.connected) {
