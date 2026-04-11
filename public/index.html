@@ -598,18 +598,41 @@ html[data-glitch="1"] .mouse-name-tag {
        LOGIN SCREEN STYLES
     ═══════════════════════════════════════════════════ */
     .login-container {
-        background: var(--surface);
-        border-radius: 30px;
-        padding: 40px;
-        box-shadow: var(--menu-shadow);
-        text-align: center;
-        max-width: 500px;
-        width: 100%;
-        color: var(--text-primary);
+    background: var(--surface);
+    border-radius: 30px;
+    padding: 40px;
+    box-shadow: var(--menu-shadow);
+    text-align: center;
+    max-width: 600px !important;
+    width: 100%;
+    color: var(--text-primary);
+    max-height: 90vh;
+    overflow-y: auto;
+    transition: background 0.4s ease, box-shadow 0.4s ease;
+    
+    /* Position relative for absolute button */
+    position: relative;
+    padding-bottom: 100px !important;
+}
+
+
+
+     /* Force login container to match menu container size */
+@media (min-width: 1101px) {
+    .login-container,
+    .menu-container {
+        max-width: 600px !important;
+        width: 600px !important;
     }
+    
+    .login-screen-wrapper {
+        max-width: 1400px !important;
+    }
+}
+
 
     .login-header {
-        margin-bottom: 30px;
+        margin-bottom: 10px;
     }
 
     .login-header h1 {
@@ -670,36 +693,56 @@ html[data-glitch="1"] .mouse-name-tag {
     }
 
     .login-form-section {
-        display: none;
-    }
+    display: none;
+    
+}
 
-    .login-form-section.active {
-        display: flex;
-    }
+.login-form-section.active {
+    display: block;
+    
+}
 
-    .login-button {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        padding: 16px;
-        font-size: 1.1em;
-        font-weight: 700;
-        border-radius: 10px;
-        cursor: pointer;
-        transition: all 0.3s;
-        box-shadow: 0 6px 15px rgba(102, 126, 234, 0.4);
-        margin-top: 10px;
-    }
+    
 
-    .login-button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.5);
+     .login-button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+     border: none;
+      padding: 16px;
+      font-size: 1.1em;
+     font-weight: 700;
+     border-radius: 10px;
+     cursor: pointer;
+     transition: all 0.3s;
+     box-shadow: 0 6px 15px rgba(102, 126, 234, 0.4);
+     margin-top: 10px;
+    
+     /* Force button to bottom */
+     position: absolute;
+        bottom: 40px;
+     left: 50%;
+     transform: translateX(-50%);
+        width: 80%;
     }
+ 
 
-    .login-button:active {
-        transform: translateY(0);
-        box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
-    }
+
+/* NEW: Button wrapper to push button to bottom */
+.login-button-wrapper {
+    margin-top: auto;
+}
+
+.login-button:hover {
+    transform: translateX(-50%) translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.5);
+}
+
+.login-button:active {
+    transform: translateX(-50%) translateY(0);
+    box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+}
+
+
 
     /* ── LOGIN MENU BUTTON STYLES ── */
     .login-menu-left button {
@@ -832,11 +875,6 @@ html[data-glitch="1"] .mouse-name-tag {
         color: white;
     }
 
-    .login-info {
-        margin-top: 15px;
-        font-size: 0.9em;
-        color: var(--text-muted);
-    }
 
     .form-error {
         background: rgba(231, 76, 60, 0.15);
@@ -857,23 +895,25 @@ html[data-glitch="1"] .mouse-name-tag {
     }
 
     /* ── LOGIN SCREEN SIDE-BY-SIDE LAYOUT ── */
-    .login-screen-wrapper {
-        display: flex;
-        gap: 30px;
-        align-items: flex-start;
-        justify-content: center;
-        width: 100%;
-        max-width: 1200px;
-        padding: 20px;
-        flex-wrap: wrap;
-    }
+     .login-screen-wrapper {
+      display: flex;
+      gap: 30px;
+      align-items: stretch;
+      justify-content: center;
+      width: 100%;
+      max-width: 1300px;
+      padding: 20px;
+      flex-wrap: wrap;
+     }
 
-    .login-menu-left {
-        max-width: 480px;
-        width: 100%;
-        flex: 1;
-        min-width: 300px;
-    }
+
+     .login-menu-left {
+      max-width: 600px;
+      width: 100%;
+      flex: 1;
+      min-width: 300px;
+     }
+
 
     .login-right {
         max-width: 480px;
@@ -890,9 +930,10 @@ html[data-glitch="1"] .mouse-name-tag {
             gap: 20px;
         }
         
-        .login-menu-left,
-        .login-right {
-            max-width: 100%;
+         .login-menu-left,
+         .login-right {
+         max-width: 600px !important;
+         width: 100%;
         }
     }
 
@@ -3164,40 +3205,48 @@ observer.observe(document.documentElement, {
                 </div>
 
                 <!-- Login Form -->
-                <div id="loginForm" class="login-form-section active">
-                    <div class="login-input-group">
-                        <label>Username</label>
-                        <input type="text" id="loginUsername" placeholder="Enter your username" maxlength="20">
-                    </div>
-                    <div class="login-input-group">
-                        <label>Password</label>
-                        <input type="password" id="loginPassword" placeholder="Enter your password" maxlength="50">
-                    </div>
-                    <button class="login-button" onclick="handleLogin()">🔓 Login</button>
-                    <div class="login-info">
-                        🔒 Passwords are stored securely on the server
-                    </div>
-                </div>
+                <!-- Login Form -->
+<!-- Login Form -->
+<div id="loginForm" class="login-form-section active">
+    <div class="login-input-group">
+        <label>Username</label>
+        <input type="text" id="loginUsername" placeholder="Enter your username" maxlength="20">
+    </div>
+    <div class="login-input-group">
+        <label>Password</label>
+        <input type="password" id="loginPassword" placeholder="Enter your password" maxlength="50">
+    </div>
+    
+    <!-- Button wrapper to push to bottom -->
+    <div class="login-button-wrapper">
+        <button class="login-button" onclick="handleLogin()">🔓 Login</button>
+    </div>
+</div>
+
+
 
                 <!-- Sign Up Form -->
-                <div id="signupForm" class="login-form-section">
-                    <div class="login-input-group">
-                        <label>Username</label>
-                        <input type="text" id="signupUsername" placeholder="Create a username (3-20 chars)" maxlength="20">
-                    </div>
-                    <div class="login-input-group">
-                        <label>Password</label>
-                        <input type="password" id="signupPassword" placeholder="Create a password (min 4 chars)" maxlength="50">
-                    </div>
-                    <div class="login-input-group">
-                        <label>Confirm Password</label>
-                        <input type="password" id="signupPasswordConfirm" placeholder="Confirm password" maxlength="50">
-                    </div>
-                    <button class="login-button" onclick="handleSignup()">✍️ Create Account</button>
-                    <div class="login-info">
-                        💾 Your account data will be saved securely on our server
-                    </div>
-                </div>
+                <!-- Sign Up Form -->
+<div id="signupForm" class="login-form-section">
+    <div class="login-input-group">
+        <label>Username</label>
+        <input type="text" id="signupUsername" placeholder="Create a username (3-20 chars)" maxlength="20">
+    </div>
+    <div class="login-input-group">
+        <label>Password</label>
+        <input type="password" id="signupPassword" placeholder="Create a password (min 4 chars)" maxlength="50">
+    </div>
+    <div class="login-input-group">
+        <label>Confirm Password</label>
+        <input type="password" id="signupPasswordConfirm" placeholder="Confirm password" maxlength="50">
+    </div>
+    
+    <!-- Button wrapper to push to bottom -->
+    <div class="login-button-wrapper">
+        <button class="login-button" onclick="handleSignup()">✍️ Create Account</button>
+    </div>
+</div>
+
             </div>
         </div>
     </div>
@@ -4817,48 +4866,48 @@ observer.observe(document.documentElement, {
 
     function toggleModePicker() {
         const activeScreen = document.querySelector('.screen.active');
-        if (!activeScreen) return;
+     if (!activeScreen) return;
     
         const panel = activeScreen.querySelector('.mode-picker-wrapper');
         const chevron = activeScreen.querySelector('.mode-chevron');
     
-        if (panel && chevron) {
+      if (panel && chevron) {
             const isOpen = panel.classList.toggle('open');
-            chevron.classList.toggle('open', isOpen);
+          chevron.classList.toggle('open', isOpen);
         }
     }
 
-
     function isGlitch() { return selectedGameMode === 'glitch'; }
 
-function selectMode(mode) {
+    
+    function selectMode(mode) {
         // Find the active screen (Login or Main Menu)
         const activeScreen = document.querySelector('.screen.active');
-        if (!activeScreen) return;
+     if (!activeScreen) return;
     
-            // Update selection state - find cards within the active screen only
-            activeScreen.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
-    
-            // Find the clicked mode card within active screen
-            const modeCards = activeScreen.querySelectorAll('.mode-card');
-            modeCards.forEach(card => {
-            if (card.id.includes(mode)) {
+     // Update selection state - find cards within the active screen only
+        activeScreen.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
+        
+        // Find the clicked mode card within active screen
+     const modeCards = activeScreen.querySelectorAll('.mode-card');
+        modeCards.forEach(card => {
+        if (card.id.includes(mode)) {
             card.classList.add('selected');
         }
     });
     
-    // Update the label (find the span inside the button)
-            const modeBtn = activeScreen.querySelector('#modePickerBtn, #modePickerBtnMain');
-            if (modeBtn) {
-            const label = modeBtn.querySelector('span');
-            if (label) {
+        // Update the label (find the span inside the button)
+        const modeBtn = activeScreen.querySelector('#modePickerBtn, #modePickerBtnMain');
+        if (modeBtn) {
+        const label = modeBtn.querySelector('span');
+        if (label) {
             const labels = { original: 'Original', mercy: 'Please Have Mercy', glitch: "Glitched N'NO" };
             label.textContent = labels[mode] || mode;
         }
     }
     
-        // CLOSE the panel automatically
-        const panel = activeScreen.querySelector('.mode-picker-wrapper');
+     // CLOSE the panel automatically
+     const panel = activeScreen.querySelector('.mode-picker-wrapper');
         const chevron = activeScreen.querySelector('.mode-chevron');
         if (panel) panel.classList.remove('open');
         if (chevron) chevron.classList.remove('open');
@@ -4868,7 +4917,7 @@ function selectMode(mode) {
         applyGlitchTheme(mode === 'glitch');
     
         selectedGameMode = mode;
-        console.log(`[Menu] Selected game mode: ${mode}`);
+     console.log(`[Menu] Selected game mode: ${mode}`);
     }
 
 
