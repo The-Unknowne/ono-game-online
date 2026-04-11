@@ -2,12 +2,286 @@ const express  = require('express');
 const http     = require('http');
 const socketIO = require('socket.io');
 const path     = require('path');
+const fs       = require('fs');
+const bcrypt   = require('bcryptjs');
 const { PlayerPresenceManager, PlayerState } = require('./public/js/playerPresence.js');
 
 const app    = express();
 const server = http.createServer(app);
 const io     = socketIO(server, { cors: { origin: '*', methods: ['GET', 'POST'] } });
 const PORT   = process.env.PORT || 3000;
+
+/* -- ACCOUNT MANAGEMENT ---------------------------------------- */
+const ACCOUNTS_DIR = path.join(__dirname, 'accounts');
+
+// Create accounts directory if it doesn't exist
+if (!fs.existsSync(ACCOUNTS_DIR)) {
+    fs.mkdirSync(ACCOUNTS_DIR, { recursive: true });
+    console.log('[Auth] Created accounts directory');
+}
+
+// Get account file path
+function getAccountPath(username) {
+    return path.join(ACCOUNTS_DIR, `${username}.json`);
+}
+
+// Load account from file
+function loadAccount(username) {
+    try {
+        const filePath = getAccountPath(username);
+        if (fs.existsSync(filePath)) {
+            const data = fs.readFileSync(filePath, 'utf8');
+            return JSON.parse(data);
+        }
+    } catch (error) {
+        console.error(`[Auth] Error loading account ${username}:`, error.message);
+    }
+    return null;
+}
+
+// Save account to file
+function saveAccount(username, accountData) {
+    try {
+        const filePath = getAccountPath(username);
+        fs.writeFileSync(filePath, JSON.stringify(accountData, null, 2), 'utf8');
+        return true;
+    } catch (error) {
+        console.error(`[Auth] Error saving account ${username}:`, error.message);
+        return false;
+    }
+}
+
+// Hash password
+async function hashPassword(password) {
+    try {
+        return await bcrypt.hash(password, 10);
+    } catch (error) {
+        console.error('[Auth] Error hashing password:', error.message);
+        return null;
+    }
+}
+
+// Compare password
+async function comparePassword(password, hash) {
+    try {
+        return await bcrypt.compare(password, hash);
+    } catch (error) {
+        console.error('[Auth] Error comparing password:', error.message);
+        return false;
+    }
+}
+
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+/* -- AUTHENTICATION ENDPOINTS ---------------------------------------- */
+
+// Sign up - Create new account
+app.post('/api/auth/signup', async (req, res) => {
+    try {
+        const { username, password, confirmPassword } = req.body;
+
+        // Validation
+        if (!username || !password || !confirmPassword) {
+            return res.status(400).json({ success: false, message: 'All fields required' });
+        }
+
+        if (username.length < 3 || username.length > 20) {
+            return res.status(400).json({ success: false, message: 'Username must be 3-20 characters' });
+        }
+
+        if (password.length < 4) {
+            return res.status(400).json({ success: false, message: 'Password must be at least 4 characters' });
+        }
+
+        if (password !== confirmPassword) {
+            return res.status(400).json({ success: false, message: 'Passwords do not match' });
+        }
+
+        // Check if account already exists
+        if (loadAccount(username)) {
+            return res.status(409).json({ success: false, message: 'Username already exists' });
+        }
+
+        // Hash password and create account
+        const hashedPassword = await hashPassword(password);
+        if (!hashedPassword) {
+            return res.status(500).json({ success: false, message: 'Error creating account' });
+        }
+
+        const newAccount = {
+            username,
+            password: hashedPassword,
+            nickname: '',
+            wins: 0,
+            losses: 0,
+            createdAt: new Date().toISOString()
+        };
+
+        if (saveAccount(username, newAccount)) {
+            console.log(`[Auth] New account created: ${username}`);
+            res.json({ 
+                success: true, 
+                message: 'Account created successfully',
+                user: {
+                    username: newAccount.username,
+                    nickname: newAccount.nickname,
+                    wins: newAccount.wins,
+                    losses: newAccount.losses
+                }
+            });
+        } else {
+            res.status(500).json({ success: false, message: 'Error saving account' });
+        }
+    } catch (error) {
+        console.error('[Auth] Signup error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// Login - Authenticate user
+app.post('/api/auth/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+
+        if (!username || !password) {
+            return res.status(400).json({ success: false, message: 'Username and password required' });
+        }
+
+        const account = loadAccount(username);
+        if (!account) {
+            return res.status(401).json({ success: false, message: 'Username not found' });
+        }
+
+        const passwordMatch = await comparePassword(password, account.password);
+        if (!passwordMatch) {
+            return res.status(401).json({ success: false, message: 'Incorrect password' });
+        }
+
+        console.log(`[Auth] Login successful: ${username}`);
+        res.json({
+            success: true,
+            message: 'Login successful',
+            user: {
+                username: account.username,
+                nickname: account.nickname,
+                wins: account.wins,
+                losses: account.losses
+            }
+        });
+    } catch (error) {
+        console.error('[Auth] Login error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// Update nickname
+app.post('/api/auth/nickname', (req, res) => {
+    try {
+        const { username, nickname } = req.body;
+
+        if (!username) {
+            return res.status(400).json({ success: false, message: 'Username required' });
+        }
+
+        const account = loadAccount(username);
+        if (!account) {
+            return res.status(404).json({ success: false, message: 'Account not found' });
+        }
+
+        if (nickname && nickname.length > 20) {
+            return res.status(400).json({ success: false, message: 'Nickname too long (max 20 chars)' });
+        }
+
+        account.nickname = nickname || '';
+        if (saveAccount(username, account)) {
+            console.log(`[Auth] Nickname updated for ${username}: "${account.nickname}"`);
+            res.json({
+                success: true,
+                message: 'Nickname updated',
+                user: {
+                    username: account.username,
+                    nickname: account.nickname,
+                    wins: account.wins,
+                    losses: account.losses
+                }
+            });
+        } else {
+            res.status(500).json({ success: false, message: 'Error updating nickname' });
+        }
+    } catch (error) {
+        console.error('[Auth] Nickname update error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// Update stats (wins/losses)
+app.post('/api/auth/stats', (req, res) => {
+    try {
+        const { username, isWinner } = req.body;
+
+        if (!username) {
+            return res.status(400).json({ success: false, message: 'Username required' });
+        }
+
+        const account = loadAccount(username);
+        if (!account) {
+            return res.status(404).json({ success: false, message: 'Account not found' });
+        }
+
+        if (isWinner) {
+            account.wins = (account.wins || 0) + 1;
+        } else {
+            account.losses = (account.losses || 0) + 1;
+        }
+
+        if (saveAccount(username, account)) {
+            console.log(`[Auth] Stats updated for ${username}: ${account.wins}W-${account.losses}L`);
+            res.json({
+                success: true,
+                message: 'Stats updated',
+                user: {
+                    username: account.username,
+                    nickname: account.nickname,
+                    wins: account.wins,
+                    losses: account.losses
+                }
+            });
+        } else {
+            res.status(500).json({ success: false, message: 'Error updating stats' });
+        }
+    } catch (error) {
+        console.error('[Auth] Stats update error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// Get user info
+app.get('/api/auth/user/:username', (req, res) => {
+    try {
+        const { username } = req.params;
+        const account = loadAccount(username);
+        
+        if (!account) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        res.json({
+            success: true,
+            user: {
+                username: account.username,
+                nickname: account.nickname,
+                wins: account.wins,
+                losses: account.losses
+            }
+        });
+    } catch (error) {
+        console.error('[Auth] Get user error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
 
 /* -- STATIC FILES ---------------------------------------- */
 app.use(express.static(path.join(__dirname, 'public')));

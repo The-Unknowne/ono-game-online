@@ -582,6 +582,320 @@ html[data-glitch="1"] .mouse-name-tag {
         transition: background 0.3s, color 0.3s, border-color 0.3s;
     }
 
+    input[type="password"] {
+        width: 100%;
+        padding: 15px;
+        font-size: 1.2em;
+        border: 2px solid var(--input-border);
+        border-radius: 10px;
+        margin-bottom: 20px;
+        background: var(--input-bg);
+        color: var(--input-text);
+        transition: background 0.3s, color 0.3s, border-color 0.3s;
+    }
+
+    /* ═══════════════════════════════════════════════════
+       LOGIN SCREEN STYLES
+    ═══════════════════════════════════════════════════ */
+    .login-container {
+        background: var(--surface);
+        border-radius: 30px;
+        padding: 40px;
+        box-shadow: var(--menu-shadow);
+        text-align: center;
+        max-width: 500px;
+        width: 100%;
+        color: var(--text-primary);
+    }
+
+    .login-header {
+        margin-bottom: 30px;
+    }
+
+    .login-header h1 {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 3em;
+        color: var(--menu-h1);
+        margin-bottom: 10px;
+        text-shadow: 3px 3px 12px rgba(0, 0, 0, 0.2);
+        letter-spacing: 2px;
+    }
+
+    .login-header p {
+        color: var(--text-muted);
+        font-size: 1.1em;
+    }
+
+    .login-form {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .login-input-group {
+        text-align: left;
+    }
+
+    .login-input-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .login-tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 25px;
+        border-bottom: 2px solid var(--input-border);
+    }
+
+    .login-tab {
+        flex: 1;
+        padding: 12px;
+        background: transparent;
+        border: none;
+        color: var(--text-secondary);
+        font-size: 1.05em;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        border-bottom: 3px solid transparent;
+        margin-bottom: -2px;
+    }
+
+    .login-tab.active {
+        color: var(--menu-h1);
+        border-bottom-color: var(--menu-h1);
+    }
+
+    .login-form-section {
+        display: none;
+    }
+
+    .login-form-section.active {
+        display: flex;
+    }
+
+    .login-button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 16px;
+        font-size: 1.1em;
+        font-weight: 700;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s;
+        box-shadow: 0 6px 15px rgba(102, 126, 234, 0.4);
+        margin-top: 10px;
+    }
+
+    .login-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.5);
+    }
+
+    .login-button:active {
+        transform: translateY(0);
+        box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+    }
+
+    /* ── LOGIN MENU BUTTON STYLES ── */
+    .login-menu-left button {
+        transition: all 0.3s ease;
+    }
+
+    .login-menu-left button:hover > div {
+        transform: translateX(5px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        background: var(--input-border);
+    }
+
+    #gameModeSelect {
+        transition: all 0.3s ease;
+    }
+
+    #gameModeSelect:hover,
+    #gameModeSelect:focus {
+        background: var(--surface-glass-strong);
+        border-color: var(--menu-h1);
+        outline: none;
+        box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+    }
+
+    #gameModeSelect option {
+        background: var(--surface);
+        color: var(--text-primary);
+    }
+
+    .stats-display {
+        background: var(--surface-glass-strong);
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        border: 1px solid var(--surface-glass);
+    }
+
+    .stat-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        font-size: 1.05em;
+    }
+
+    .stat-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .stat-label {
+        color: var(--text-secondary);
+    }
+
+    .stat-value {
+        color: var(--menu-h1);
+        font-weight: 700;
+    }
+
+    .nickname-prompt {
+        background: var(--surface);
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: var(--menu-shadow);
+        text-align: center;
+        max-width: 450px;
+        width: 100%;
+        color: var(--text-primary);
+    }
+
+    .nickname-prompt h2 {
+        font-size: 1.8em;
+        margin-bottom: 15px;
+        color: var(--menu-h1);
+    }
+
+    .nickname-prompt p {
+        margin-bottom: 20px;
+        color: var(--text-secondary);
+        font-size: 1.05em;
+    }
+
+    .nickname-input-group {
+        margin-bottom: 20px;
+    }
+
+    .nickname-input-group input {
+        width: 100%;
+        padding: 15px;
+        font-size: 1.1em;
+        border: 2px solid var(--input-border);
+        border-radius: 10px;
+        background: var(--input-bg);
+        color: var(--input-text);
+    }
+
+    .nickname-buttons {
+        display: flex;
+        gap: 10px;
+    }
+
+    .nickname-buttons button {
+        flex: 1;
+        padding: 12px;
+        font-size: 1.05em;
+        font-weight: 600;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .nickname-buttons .confirm {
+        background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+        color: white;
+        box-shadow: 0 6px 15px rgba(46, 204, 113, 0.4);
+    }
+
+    .nickname-buttons .confirm:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(46, 204, 113, 0.5);
+    }
+
+    .nickname-buttons .skip {
+        background: var(--surface-glass-strong);
+        color: var(--text-primary);
+        border: 2px solid var(--input-border);
+    }
+
+    .nickname-buttons .skip:hover {
+        background: var(--input-border);
+        color: white;
+    }
+
+    .login-info {
+        margin-top: 15px;
+        font-size: 0.9em;
+        color: var(--text-muted);
+    }
+
+    .form-error {
+        background: rgba(231, 76, 60, 0.15);
+        color: #e74c3c;
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        font-weight: 600;
+    }
+
+    .form-success {
+        background: rgba(46, 204, 113, 0.15);
+        color: #2ecc71;
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        font-weight: 600;
+    }
+
+    /* ── LOGIN SCREEN SIDE-BY-SIDE LAYOUT ── */
+    .login-screen-wrapper {
+        display: flex;
+        gap: 30px;
+        align-items: flex-start;
+        justify-content: center;
+        width: 100%;
+        max-width: 1200px;
+        padding: 20px;
+        flex-wrap: wrap;
+    }
+
+    .login-menu-left {
+        max-width: 480px;
+        width: 100%;
+        flex: 1;
+        min-width: 300px;
+    }
+
+    .login-right {
+        max-width: 480px;
+        width: 100%;
+        flex: 1;
+        min-width: 300px;
+    }
+
+    /* Responsive: Stack on smaller screens */
+    @media (max-width: 1100px) {
+        .login-screen-wrapper {
+            flex-direction: column;
+            max-width: 600px;
+            gap: 20px;
+        }
+        
+        .login-menu-left,
+        .login-right {
+            max-width: 100%;
+        }
+    }
+
     .lobby-list {
         display: flex;
         flex-direction: column;
@@ -2746,8 +3060,194 @@ observer.observe(document.documentElement, {
     <!-- Disconnect Notification -->
     <div id="disconnectNotification" class="disconnect-notification"></div>
 
+    <!-- Login Screen -->
+    <div id="loginScreen" class="screen active">
+        <div class="login-screen-wrapper">
+            <!-- Left Menu Container -->
+            <div class="menu-container">
+                <h1>🎴 O,No 🎴</h1>
+                <p style="margin-bottom: 20px; color: var(--text-muted);">Choose how you want to play</p>
+
+                <!-- Game mode toggle trigger -->
+                <button class="menu-button" id="modePickerBtn"
+                        onclick="toggleModePicker()"
+                        style="background:linear-gradient(135deg,#f093fb,#f5576c);box-shadow:0 6px 18px rgba(240,147,251,0.4);margin-bottom:6px;">
+                    🎲 Game Mode: <span id="modeLabel">Original</span>
+                    <span class="mode-chevron" id="modeChevron">▼</span>
+                </button>
+
+                <!-- Expanding mode picker -->
+                <div class="mode-picker-wrapper" id="modePickerPanel">
+                    <div class="mode-picker-label">Select a game mode</div>
+                    <div class="mode-cards">
+
+                        <div class="mode-card selected" id="modeCard-original"
+                             onclick="selectMode('original')">
+                            <div class="mode-card-inner">
+                                <div class="mode-card-title">
+                                    🃏 Original
+                                    <span class="mode-card-badge">Classic</span>
+                                </div>
+                                <div class="mode-card-desc">The standard O,No experience. Familiar rules, pure card-game fun.</div>
+                                <div class="mode-card-rules">
+                                    <span class="mode-rule-tag">+2 / +4</span>
+                                    <span class="mode-rule-tag">Skip & Reverse</span>
+                                    <span class="mode-rule-tag">Wild Cards</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mode-card mercy" id="modeCard-mercy"
+                             onclick="selectMode('mercy')">
+                            <div class="mode-card-inner">
+                                <div class="mode-card-title">
+                                    💀 Please Have Mercy
+                                    <span class="mode-card-badge">Chaos</span>
+                                </div>
+                                <div class="mode-card-desc">
+                                    Brutal chaos mode. Stack devastating draw cards, get knocked out at 25 cards,
+                                    and survive new special wilds. Last player standing wins.
+                                </div>
+                                <div class="mode-card-rules">
+                                    <span class="mode-rule-tag">☠️ Mercy Rule (25 cards)</span>
+                                    <span class="mode-rule-tag">🔥 Stack +2/+4/+6/+10</span>
+                                    <span class="mode-rule-tag">🎯 Draw Until Play</span>
+                                    <span class="mode-rule-tag">↔️ 7s & 0s</span>
+                                    <span class="mode-rule-tag">⚡ Skip Everyone</span>
+                                    <span class="mode-rule-tag">🃏 Wild +6 / +10</span>
+                                    <span class="mode-rule-tag">🎰 Color Roulette</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mode-card glitch" id="modeCard-glitch"
+                             onclick="selectMode('glitch')">
+                            <div class="mode-card-inner">
+                                <div class="mode-card-title">
+                                    💾 Glitched N'NO
+                                    <span class="mode-card-badge">Chaos+</span>
+                                </div>
+                                <div class="mode-card-desc">
+                                    The game is broken. Cards lie, ads attack, and one hidden card
+                                    can make you a permanent spectator.
+                                </div>
+                                <div class="mode-card-rules">
+                                    <span class="mode-rule-tag">🔀 ScrambleCard (90s)</span>
+                                    <span class="mode-rule-tag">🎲 Random Draw (1–10)</span>
+                                    <span class="mode-rule-tag">📢 Pop-Up Ads</span>
+                                    <span class="mode-rule-tag">👁️ Peek Opponent</span>
+                                    <span class="mode-rule-tag">☠️ Glitched Out</span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <button class="menu-button online" onclick="showOnlineMenu()">🌐 Play Online</button>
+                <button class="menu-button offline" onclick="playOffline()">🤖 Play vs Computer</button>
+            </div>
+
+            <!-- Right Login Container -->
+            <div class="login-container login-right">
+                <div class="login-header">
+                    <h1 style="font-size: 2.2em; margin-bottom: 5px;">Welcome</h1>
+                    <p>Sign up or log in to play</p>
+                </div>
+
+                <div id="loginError" class="form-error" style="display: none;"></div>
+                <div id="loginSuccess" class="form-success" style="display: none;"></div>
+
+                <div class="login-tabs">
+                    <button class="login-tab active" onclick="switchLoginTab('login')">🔓 Login</button>
+                    <button class="login-tab" onclick="switchLoginTab('signup')">✍️ Sign Up</button>
+                </div>
+
+                <!-- Login Form -->
+                <div id="loginForm" class="login-form-section active">
+                    <div class="login-input-group">
+                        <label>Username</label>
+                        <input type="text" id="loginUsername" placeholder="Enter your username" maxlength="20">
+                    </div>
+                    <div class="login-input-group">
+                        <label>Password</label>
+                        <input type="password" id="loginPassword" placeholder="Enter your password" maxlength="50">
+                    </div>
+                    <button class="login-button" onclick="handleLogin()">🔓 Login</button>
+                    <div class="login-info">
+                        🔒 Passwords are stored securely on the server
+                    </div>
+                </div>
+
+                <!-- Sign Up Form -->
+                <div id="signupForm" class="login-form-section">
+                    <div class="login-input-group">
+                        <label>Username</label>
+                        <input type="text" id="signupUsername" placeholder="Create a username (3-20 chars)" maxlength="20">
+                    </div>
+                    <div class="login-input-group">
+                        <label>Password</label>
+                        <input type="password" id="signupPassword" placeholder="Create a password (min 4 chars)" maxlength="50">
+                    </div>
+                    <div class="login-input-group">
+                        <label>Confirm Password</label>
+                        <input type="password" id="signupPasswordConfirm" placeholder="Confirm password" maxlength="50">
+                    </div>
+                    <button class="login-button" onclick="handleSignup()">✍️ Create Account</button>
+                    <div class="login-info">
+                        💾 Your account data will be saved securely on our server
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nickname Prompt (after signup) -->
+    <div id="nicknamePrompt" class="screen">
+        <div style="position: absolute; top: 20px; left: 20px;">
+            <button class="menu-button" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); font-size: 0.9em; padding: 10px 20px;" onclick="showMainMenu()">← Leave</button>
+        </div>
+        
+        <div class="nickname-prompt">
+            <h2>Welcome! 👋</h2>
+            <p id="nicknameWelcomeText">Your account was created successfully!</p>
+            <p id="nicknameSubtext" style="color: var(--text-muted); font-size: 0.95em;">Add a nickname to personalize your profile</p>
+            
+            <div class="nickname-input-group">
+                <input type="text" id="nicknameInput" placeholder="Enter your nickname (optional)" maxlength="20">
+            </div>
+
+            <div class="nickname-buttons">
+                <button class="confirm" onclick="confirmNickname()">✓ Confirm</button>
+                <button class="skip" onclick="skipNickname()">Skip for Now</button>
+            </div>
+        </div>
+
+        <!-- Display stats after login -->
+        <div style="margin-top: 20px; max-width: 450px; width: 100%; margin-left: auto; margin-right: auto;">
+            <div id="userStatsDisplay" class="stats-display" style="display: none;">
+                <div class="stat-item">
+                    <span class="stat-label">👤 Nickname:</span>
+                    <span class="stat-value" id="displayNickname">-</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">🏆 Total Wins:</span>
+                    <span class="stat-value" id="displayWins">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">📉 Total Losses:</span>
+                    <span class="stat-value" id="displayLosses">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">📊 Win Rate:</span>
+                    <span class="stat-value" id="displayWinRate">0%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Main Menu -->
-    <div id="mainMenu" class="screen active">
+    <div id="mainMenu" class="screen">
         <div class="menu-container">
             <h1>🎴 O,No 🎴</h1>
             <p style="margin-bottom: 20px; color: var(--text-muted);">Choose how you want to play</p>
@@ -2830,6 +3330,16 @@ observer.observe(document.documentElement, {
 
             <button class="menu-button online" onclick="showOnlineMenu()">🌐 Play Online</button>
             <button class="menu-button offline" onclick="playOffline()">🤖 Play vs Computer</button>
+            
+            <!-- User Account Section -->
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--input-border);">
+                <div style="background: var(--surface-glass-strong); padding: 15px; border-radius: 10px; margin-bottom: 10px; text-align: left; color: var(--text-primary);">
+                    <div style="font-size: 0.85em; color: var(--text-muted); margin-bottom: 3px;">👤 Logged in as</div>
+                    <div style="font-weight: 700; font-size: 1.1em;" id="userDisplayName">Player</div>
+                </div>
+                <button class="menu-button" style="background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); font-size: 0.95em; margin-bottom: 5px;" onclick="showUserStats()">📊 View Stats</button>
+                <button class="menu-button" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); font-size: 0.95em;" onclick="logout()">🚪 Logout</button>
+            </div>
         </div>
     </div>
 
@@ -2867,7 +3377,8 @@ observer.observe(document.documentElement, {
         
         <div class="setting-item">
             <label>Your Name</label>
-            <input type="text" id="playerName" placeholder="Enter your name" maxlength="20">
+            <input type="text" id="playerName" placeholder="Enter your name" maxlength="20" style="display: none;">
+            <div id="playerNameDisplay" style="padding: 12px; background: var(--input-bg); color: var(--input-text); border-radius: 6px; border: 1px solid var(--input-border); font-weight: 700; display: none;"></div>
         </div>
 
         <div class="setting-item">
@@ -2878,8 +3389,7 @@ observer.observe(document.documentElement, {
         <div class="setting-item">
             <label>Number of Players</label>
             <select id="maxPlayers">
-                <option value="2">2 Players (1v1)</option>
-                <option value="3" selected>3 Players (1v1v1)</option>
+                <option value="3" selected>3 Players</option>
                 <option value="4">4 Players</option>
                 <option value="5">5 Players</option>
                 <option value="6">6 Players</option>
@@ -3380,6 +3890,365 @@ observer.observe(document.documentElement, {
         ]);
     }
 
+    // ── USER ACCOUNT MANAGEMENT SYSTEM ──────────────────────────────────
+    // Handles user registration, login, and stats tracking
+
+    let currentUser = null;
+
+    // Initialize user system - check if user is already logged in
+    async function initializeUserSystem() {
+        const savedUsername = localStorage.getItem('ono-currentUser');
+        if (savedUsername) {
+            try {
+                // Fetch user data from server
+                const response = await fetch(`/api/auth/user/${savedUsername}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentUser = data.user;
+                    localStorage.setItem('ono-playerName', data.user.nickname || data.user.username);
+                    
+                    // If user already has a nickname, go to main menu; otherwise show nickname prompt
+                    if (data.user.nickname) {
+                        showScreen('mainMenu');
+                        updateUserDisplayName();
+                    } else {
+                        showNicknamePrompt(false);
+                    }
+                } else {
+                    // User doesn't exist on server, clear local storage and show login
+                    localStorage.removeItem('ono-currentUser');
+                    localStorage.removeItem('ono-playerName');
+                    currentUser = null;
+                    showLoginScreen();
+                }
+            } catch (e) {
+                console.error('Error loading user:', e);
+                currentUser = null;
+                showLoginScreen();
+            }
+        } else {
+            showLoginScreen();
+        }
+    }
+
+    // ── SERVER-SIDE ACCOUNT MANAGEMENT ──────────────────────────────────
+    
+    async function handleLogin() {
+        const username = document.getElementById('loginUsername').value.trim();
+        const password = document.getElementById('loginPassword').value;
+        const errorDiv = document.getElementById('loginError');
+        const successDiv = document.getElementById('loginSuccess');
+        
+        errorDiv.style.display = 'none';
+        successDiv.style.display = 'none';
+
+        if (!username || !password) {
+            errorDiv.textContent = '❌ Please enter username and password';
+            errorDiv.style.display = 'block';
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            const data = await response.json();
+
+            if (!data.success) {
+                errorDiv.textContent = '❌ ' + data.message;
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            // Login successful
+            currentUser = data.user;
+            localStorage.setItem('ono-currentUser', username);
+            localStorage.setItem('ono-playerName', data.user.nickname || username);
+            
+            successDiv.textContent = `✓ Welcome back, ${data.user.nickname || username}!`;
+            successDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                showNicknamePrompt(false);
+            }, 500);
+        } catch (error) {
+            console.error('Login error:', error);
+            errorDiv.textContent = '❌ Connection error. Please try again.';
+            errorDiv.style.display = 'block';
+        }
+    }
+
+    async function handleSignup() {
+        const username = document.getElementById('signupUsername').value.trim();
+        const password = document.getElementById('signupPassword').value;
+        const confirmPassword = document.getElementById('signupPasswordConfirm').value;
+        const errorDiv = document.getElementById('loginError');
+        const successDiv = document.getElementById('loginSuccess');
+        
+        errorDiv.style.display = 'none';
+        successDiv.style.display = 'none';
+
+        if (!username || !password || !confirmPassword) {
+            errorDiv.textContent = '❌ Please fill in all fields';
+            errorDiv.style.display = 'block';
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            errorDiv.textContent = '❌ Passwords do not match!';
+            errorDiv.style.display = 'block';
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/auth/signup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password, confirmPassword })
+            });
+
+            const data = await response.json();
+
+            if (!data.success) {
+                errorDiv.textContent = '❌ ' + data.message;
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            // Signup successful
+            currentUser = data.user;
+            localStorage.setItem('ono-currentUser', username);
+            
+            successDiv.textContent = '✓ Account created successfully! Now add a nickname:';
+            successDiv.style.display = 'block';
+
+            // Clear form
+            document.getElementById('signupUsername').value = '';
+            document.getElementById('signupPassword').value = '';
+            document.getElementById('signupPasswordConfirm').value = '';
+
+            setTimeout(() => {
+                showNicknamePrompt(true);
+            }, 800);
+        } catch (error) {
+            console.error('Signup error:', error);
+            errorDiv.textContent = '❌ Connection error. Please try again.';
+            errorDiv.style.display = 'block';
+        }
+    }
+
+    function showNicknamePrompt(newAccount = false) {
+        if (!currentUser) {
+            showLoginScreen();
+            return;
+        }
+
+        const nicknamePrompt = document.getElementById('nicknamePrompt');
+        const loginScreen = document.getElementById('loginScreen');
+        const mainMenu = document.getElementById('mainMenu');
+        const nicknameWelcomeText = document.getElementById('nicknameWelcomeText');
+        const nicknameSubtext = document.getElementById('nicknameSubtext');
+        
+        // Update welcome text based on whether it's new or returning user
+        if (newAccount) {
+            nicknameWelcomeText.textContent = 'Your account was created successfully!';
+            nicknameSubtext.style.display = 'block';
+            document.getElementById('nicknameInput').style.display = 'block';
+            document.querySelector('.nickname-buttons').style.display = 'flex';
+        } else {
+            nicknameWelcomeText.textContent = `Welcome back, ${currentUser.nickname || currentUser.username}!`;
+            nicknameSubtext.style.display = 'none';
+            document.getElementById('nicknameInput').style.display = 'none';
+            document.querySelector('.nickname-buttons').style.display = 'none';
+        }
+
+        // Display user stats
+        displayUserStats();
+        
+        // Show screens
+        loginScreen.classList.remove('active');
+        mainMenu.classList.remove('active');
+        nicknamePrompt.classList.add('active');
+    }
+
+    function displayUserStats() {
+        if (!currentUser) return;
+
+        const displayNickname = document.getElementById('displayNickname');
+        const displayWins = document.getElementById('displayWins');
+        const displayLosses = document.getElementById('displayLosses');
+        const displayWinRate = document.getElementById('displayWinRate');
+        const userStatsDisplay = document.getElementById('userStatsDisplay');
+
+        displayNickname.textContent = currentUser.nickname || currentUser.username;
+        displayWins.textContent = currentUser.wins || 0;
+        displayLosses.textContent = currentUser.losses || 0;
+
+        const total = (currentUser.wins || 0) + (currentUser.losses || 0);
+        let winRate = 0;
+        if (total > 0) {
+            winRate = Math.round(((currentUser.wins || 0) / total) * 100);
+        }
+        displayWinRate.textContent = winRate + '%';
+
+        userStatsDisplay.style.display = 'block';
+    }
+
+    function confirmNickname() {
+        if (!currentUser) return;
+
+        const nickname = document.getElementById('nicknameInput').value.trim();
+        
+        if (nickname.length === 0) {
+            alert('Please enter a nickname!');
+            return;
+        }
+
+        if (nickname.length > 20) {
+            alert('Nickname must be 20 characters or less!');
+            return;
+        }
+
+        // Update nickname on server
+        const username = localStorage.getItem('ono-currentUser');
+        fetch('/api/auth/nickname', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, nickname })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                currentUser.nickname = nickname;
+                localStorage.setItem('ono-playerName', nickname);
+                document.getElementById('nicknameInput').value = '';
+                continueToMainMenu();
+            } else {
+                alert('Error updating nickname: ' + data.message);
+            }
+        })
+        .catch(err => {
+            console.error('Nickname update error:', err);
+            alert('Connection error. Please try again.');
+        });
+    }
+
+    function skipNickname() {
+        if (!currentUser) return;
+
+        localStorage.setItem('ono-playerName', currentUser.username);
+        document.getElementById('nicknameInput').value = '';
+        continueToMainMenu();
+    }
+
+    function continueToMainMenu() {
+        const nicknamePrompt = document.getElementById('nicknamePrompt');
+        const mainMenu = document.getElementById('mainMenu');
+
+        nicknamePrompt.classList.remove('active');
+        mainMenu.classList.add('active');
+        
+        // Update display name in main menu
+        updateUserDisplayName();
+    }
+
+    function switchLoginTab(tab) {
+        // Hide all forms
+        document.getElementById('loginForm').classList.remove('active');
+        document.getElementById('signupForm').classList.remove('active');
+        
+        // Hide all tabs
+        document.querySelectorAll('.login-tab').forEach(t => t.classList.remove('active'));
+        
+        // Show selected form and tab
+        if (tab === 'login') {
+            document.getElementById('loginForm').classList.add('active');
+            document.querySelectorAll('.login-tab')[0].classList.add('active');
+        } else {
+            document.getElementById('signupForm').classList.add('active');
+            document.querySelectorAll('.login-tab')[1].classList.add('active');
+        }
+        
+        // Clear error/success messages
+        document.getElementById('loginError').style.display = 'none';
+        document.getElementById('loginSuccess').style.display = 'none';
+    }
+
+    function showLoginScreen() {
+        // Hide all screens first
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        
+        // Show login screen
+        const loginScreen = document.getElementById('loginScreen');
+        loginScreen.classList.add('active');
+
+        document.getElementById('loginError').style.display = 'none';
+        document.getElementById('loginSuccess').style.display = 'none';
+        document.getElementById('loginUsername').value = '';
+        document.getElementById('loginPassword').value = '';
+    }
+
+    function logout() {
+        currentUser = null;
+        localStorage.removeItem('ono-currentUser');
+        localStorage.removeItem('ono-playerName');
+        showLoginScreen();
+    }
+
+    function showUserStats() {
+        if (!currentUser) {
+            showLoginScreen();
+            return;
+        }
+
+        showNicknamePrompt(false);
+    }
+
+    function updateUserDisplayName() {
+        const displayNameEl = document.getElementById('userDisplayName');
+        if (currentUser && displayNameEl) {
+            displayNameEl.textContent = currentUser.nickname || currentUser.username;
+        } else if (displayNameEl) {
+            // If not logged in, set to placeholder
+            displayNameEl.textContent = 'Not Logged In';
+        }
+    }
+
+    async function recordGameResult(won) {
+        const username = localStorage.getItem('ono-currentUser');
+        if (!username) return;
+
+        try {
+            const response = await fetch('/api/auth/stats', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, isWinner: won })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                // Update local currentUser with new stats
+                currentUser.wins = data.user.wins;
+                currentUser.losses = data.user.losses;
+                console.log(`[Stats] Updated: ${data.user.wins}W - ${data.user.losses}L`);
+            } else {
+                console.error('Failed to update stats:', data.message);
+            }
+        } catch (error) {
+            console.error('recordGameResult error:', error);
+        }
+    }
+
+    // ── LOGIN SCREEN GAME MODE SELECTION ─────────────────────────────────
+    function setLoginGameMode(gameMode) {
+        selectedGameMode = gameMode;
+        console.log(`[Login] Selected game mode: ${gameMode}`);
+    }
+
     // ── PERSISTENT PLAYER ID ─────────────────────────────────────────────
     // Generated once, stored forever in localStorage.
     // Stable across page refreshes — the server uses it to identify players for rejoin.
@@ -3841,6 +4710,8 @@ observer.observe(document.documentElement, {
         // Apply saved volume to SFX
         const savedVol = parseFloat(localStorage.getItem('ono-volume') || '0.7');
         Object.values(SFX).forEach(a => { try { a.volume = savedVol; } catch(e) {} });
+        // Initialize user account system first
+        initializeUserSystem();
         // Ensure a stable persistent ID exists before connecting.
         // The server checks it via 'announcePersistentId' and sends 'canRejoin'
         // automatically if there is an active game session for this player.
@@ -3864,7 +4735,15 @@ observer.observe(document.documentElement, {
         isReady = false;
         stopHeartbeat();
         hideDisconnectNotification();
+        
+        // If user is not logged in, show login screen instead
+        if (!currentUser) {
+            showLoginScreen();
+            return;
+        }
+        
         showScreen('mainMenu');
+        updateUserDisplayName();
     }
 
     function showOnlineMenu() {
@@ -3886,6 +4765,21 @@ observer.observe(document.documentElement, {
 
     function showCreateLobby() {
         showScreen('createLobby');
+        
+        // Show nickname as text or input field based on login status
+        const playerNameInput = document.getElementById('playerName');
+        const playerNameDisplay = document.getElementById('playerNameDisplay');
+        
+        if (currentUser && currentUser.nickname) {
+            playerNameInput.style.display = 'none';
+            playerNameDisplay.style.display = 'block';
+            playerNameDisplay.textContent = currentUser.nickname;
+            playerNameInput.value = currentUser.nickname;
+        } else {
+            playerNameInput.style.display = 'block';
+            playerNameDisplay.style.display = 'none';
+            playerNameInput.value = '';
+        }
     }
 
 
@@ -5243,6 +6137,11 @@ function chooseColor(color) {
     function showScoreboard(data) {
         const isWinner = data.winnerId === socket.id;
         const scores   = data.scores || [];
+
+        // Record game result for user stats
+        if (currentUser) {
+            recordGameResult(isWinner);
+        }
 
         // Reset rematch UI
         const rematchBtn = document.getElementById('rematchBtn');
