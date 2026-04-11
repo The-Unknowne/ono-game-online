@@ -4816,11 +4816,18 @@ observer.observe(document.documentElement, {
     }
 
     function toggleModePicker() {
-        const panel   = document.getElementById('modePickerPanel');
-        const chevron = document.getElementById('modeChevron');
-        const isOpen  = panel.classList.toggle('open');
-        chevron.classList.toggle('open', isOpen);
+        const activeScreen = document.querySelector('.screen.active');
+        if (!activeScreen) return;
+    
+        const panel = activeScreen.querySelector('.mode-picker-wrapper');
+        const chevron = activeScreen.querySelector('.mode-chevron');
+    
+        if (panel && chevron) {
+            const isOpen = panel.classList.toggle('open');
+            chevron.classList.toggle('open', isOpen);
+        }
     }
+
 
     function isGlitch() { return selectedGameMode === 'glitch'; }
 
