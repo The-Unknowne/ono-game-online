@@ -1767,6 +1767,56 @@ html[data-glitch="1"] .mouse-name-tag {
         animation: popupFadeIn 0.3s ease-out;
         transition: background 0.3s, color 0.3s;
     }
+    /* Player Name Modal Styles */
+#namePopup {
+    max-width: 450px;
+    padding: 35px 40px;
+}
+
+#namePopup h2 {
+    font-size: 1.8em;
+    margin-bottom: 10px;
+}
+
+#namePopup p {
+    font-size: 1em;
+    margin-bottom: 25px;
+}
+
+#playerNameInput {
+    width: 100%;
+    padding: 15px;
+    font-size: 1.1em;
+    border: 2px solid var(--input-border);
+    border-radius: 10px;
+    background: var(--input-bg);
+    color: var(--input-text);
+    margin-bottom: 20px;
+    text-align: center;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+#playerNameInput:focus {
+    outline: none;
+    border-color: var(--menu-h1);
+    box-shadow: 0 0 15px rgba(102, 126, 234, 0.3);
+}
+
+#nameOverlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 999;
+}
+
+#nameOverlay.active {
+    display: block;
+}
+
 
     .custom-popup.active {
         display: block;
@@ -3222,8 +3272,6 @@ observer.observe(document.documentElement, {
 </div>
 
 
-
-                <!-- Sign Up Form -->
                 <!-- Sign Up Form -->
 <div id="signupForm" class="login-form-section">
     <div class="login-input-group">
@@ -3389,6 +3437,20 @@ observer.observe(document.documentElement, {
             </div>
         </div>
     </div>
+
+    <!-- Passcode Modal -->
+<div class="custom-popup" id="passcodePopup">
+    <h2>🔒 Private Lobby</h2>
+    <p style="margin-bottom: 20px; color: var(--text-muted);">Enter the passcode to join</p>
+    <input type="text" id="passcodeInput" placeholder="Enter passcode" maxlength="12" 
+           style="width: 100%; padding: 15px; font-size: 1.1em; border: 2px solid var(--input-border); 
+                  border-radius: 10px; background: var(--input-bg); color: var(--input-text); 
+                  margin-bottom: 20px; text-align: center; letter-spacing: 3px; font-weight: 700;">
+    <div class="popup-buttons">
+        <button class="popup-button secondary" onclick="closePasscodePopup()">Cancel</button>
+        <button class="popup-button" onclick="confirmPasscode()">✓ Join</button>
+    </div>
+</div>
 
 
 <!-- Online Menu -->
@@ -5001,24 +5063,171 @@ observer.observe(document.documentElement, {
         });
     }
 
-    function joinLobby(lobbyId) {
-        const lobby = currentLobbies.find(l => l.id === lobbyId);
-        const name = prompt('Enter your name:');
-        if (!name || !name.trim()) return;
+    // Global variables (make sure these are at the TOP of your script section)
+// ═══════════════════════════════════════════════════
+// LOBBY JOIN MODAL FUNCTIONS
+// ═══════════════════════════════════════════════════
 
-        if (!socket || !socket.connected) {
-            showPopup('Not connected to server. Please refresh the page.');
-            return;
-        }
+let pendingLobbyId = null;
+let pendingPlayerName = null;
 
-        if (lobby && lobby.isPrivate) {
-            const passcode = prompt('🔒 This lobby is private. Enter the passcode:');
-            if (passcode === null) return; // cancelled
-            socket.emit('joinLobby', { lobbyId, playerName: name.trim(), passcode: passcode.trim(), persistentId: getOrCreatePersistentId() });
-        } else {
-            socket.emit('joinLobby', { lobbyId, playerName: name.trim(), persistentId: getOrCreatePersistentId() });
-        }
+function joinLobby(lobbyId) {
+    console.log('🎮 joinLobby called with:', lobbyId);
+    pendingLobbyId = lobbyId;
+    
+    // ✅ Check if user is logged in
+    if (currentUser && currentUser.nickname) {
+        console.log('User logged in, using nickname:', currentUser.nickname);
+        // Skip popup, use logged-in nickname directly
+        proceedJoinLobby(currentUser.nickname);
+    } else if (currentUser && currentUser.username) {
+        console.log('User logged in, using username:', currentUser.username);
+        // No nickname set, use username
+        proceedJoinLobby(currentUser.username);
+    } else {
+        console.log('User not logged in, showing name popup');
+        // Not logged in, show the name popup
+        openNamePopup();
     }
+}
+
+function openNamePopup() {
+    const overlay = document.getElementById('nameOverlay');
+    const popup = document.getElementById('namePopup');
+    const input = document.getElementById('playerNameInput');
+    
+    console.log('Modal elements:', { overlay, popup, input });
+    
+    if (overlay && popup && input) {
+        overlay.classList.add('active');
+        popup.classList.add('active');
+        input.value = '';
+        input.focus();
+    } else {
+        console.error('❌ Modal elements not found!');
+    }
+}
+
+function closeNamePopup() {
+    const overlay = document.getElementById('nameOverlay');
+    const popup = document.getElementById('namePopup');
+    
+    if (overlay) overlay.classList.remove('active');
+    if (popup) popup.classList.remove('active');
+}
+
+function confirmPlayerName() {
+    const name = document.getElementById('playerNameInput').value.trim();
+    
+    console.log('Name entered:', name);
+    
+    if (!name) {
+        showToast('⚠️ Please enter a name!', '#f39c12');
+        return;
+    }
+    
+    if (name.length > 20) {
+        showToast('⚠️ Name must be 20 characters or less!', '#f39c12');
+        return;
+    }
+    
+    closeNamePopup();
+    proceedJoinLobby(name);
+}
+
+function proceedJoinLobby(playerName) {
+    console.log('Proceeding with name:', playerName);
+    console.log('Socket connected:', socket && socket.connected);
+    console.log('Pending lobby:', pendingLobbyId);
+    
+    if (!socket || !socket.connected) {
+        console.error('❌ Socket not connected!');
+        showPopup('Not connected to server. Please refresh the page.');
+        return;
+    }
+
+    const lobby = currentLobbies.find(l => l.id === pendingLobbyId);
+    console.log('Found lobby:', lobby);
+
+    if (lobby && lobby.isPrivate) {
+        console.log('Private lobby, opening passcode...');
+        openPasscodePopup(playerName);
+    } else {
+        console.log('Public lobby, emitting joinLobby...');
+        socket.emit('joinLobby', { 
+            lobbyId: pendingLobbyId, 
+            playerName: playerName, 
+            persistentId: getOrCreatePersistentId() 
+        });
+    }
+    pendingLobbyId = null;
+}
+
+function openPasscodePopup(playerName) {
+    pendingPlayerName = playerName;
+    const popup = document.getElementById('passcodePopup');
+    const input = document.getElementById('passcodeInput');
+    
+    console.log('Opening passcode popup...');
+    
+    if (popup && input) {
+        popup.classList.add('active');
+        document.getElementById('nameOverlay').classList.add('active');
+        input.value = '';
+        input.focus();
+    }
+}
+
+function closePasscodePopup() {
+    const popup = document.getElementById('passcodePopup');
+    const overlay = document.getElementById('nameOverlay');
+    
+    if (popup) popup.classList.remove('active');
+    if (overlay) overlay.classList.remove('active');
+    pendingPlayerName = null;
+}
+
+function confirmPasscode() {
+    const passcode = document.getElementById('passcodeInput').value.trim();
+    
+    console.log('Passcode entered:', passcode);
+    
+    if (!passcode) {
+        showToast('⚠️ Please enter the passcode!', '#f39c12');
+        return;
+    }
+    
+    closePasscodePopup();
+    
+    socket.emit('joinLobby', { 
+        lobbyId: pendingLobbyId, 
+        playerName: pendingPlayerName, 
+        passcode: passcode,
+        persistentId: getOrCreatePersistentId() 
+    });
+    pendingLobbyId = null;
+    pendingPlayerName = null;
+}
+
+// Enter key support for modals
+document.addEventListener('DOMContentLoaded', function() {
+    const nameInput = document.getElementById('playerNameInput');
+    const passcodeInput = document.getElementById('passcodeInput');
+    
+    if (nameInput) {
+        nameInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') confirmPlayerName();
+        });
+    }
+    
+    if (passcodeInput) {
+        passcodeInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') confirmPasscode();
+        });
+    }
+});
+
+
 
     function leaveLobby() {
         const tempRoomId = roomId;
@@ -6439,6 +6648,35 @@ function chooseColor(color) {
 
 <!-- Mouse Name Tag -->
 <div class="mouse-name-tag" id="mouseNameTag">Player</div>
+
+<!-- Player Name Modal (MOVE HERE) -->
+<div class="overlay" id="nameOverlay"></div>
+<div class="custom-popup" id="namePopup">
+    <h2>🎮 Enter Your Name</h2>
+    <p style="margin-bottom: 20px; color: var(--text-muted);">What should we call you in the game?</p>
+    <input type="text" id="playerNameInput" placeholder="Enter your name" maxlength="20" 
+           style="width: 100%; padding: 15px; font-size: 1.1em; border: 2px solid var(--input-border); 
+                  border-radius: 10px; background: var(--input-bg); color: var(--input-text); 
+                  margin-bottom: 20px; text-align: center;">
+    <div class="popup-buttons">
+        <button class="popup-button secondary" onclick="closeNamePopup()">Cancel</button>
+        <button class="popup-button" onclick="confirmPlayerName()">✓ Join</button>
+    </div>
+</div>
+
+<!-- Passcode Modal (already in correct place, keep it) -->
+<div class="custom-popup" id="passcodePopup">
+    <h2>🔒 Private Lobby</h2>
+    <p style="margin-bottom: 20px; color: var(--text-muted);">Enter the passcode to join</p>
+    <input type="text" id="passcodeInput" placeholder="Enter passcode" maxlength="12" 
+           style="width: 100%; padding: 15px; font-size: 1.1em; border: 2px solid var(--input-border); 
+                  border-radius: 10px; background: var(--input-bg); color: var(--input-text); 
+                  margin-bottom: 20px; text-align: center; letter-spacing: 3px; font-weight: 700;">
+    <div class="popup-buttons">
+        <button class="popup-button secondary" onclick="closePasscodePopup()">Cancel</button>
+        <button class="popup-button" onclick="confirmPasscode()">✓ Join</button>
+    </div>
+</div>
 
 </body>
 </html>
