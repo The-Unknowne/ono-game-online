@@ -3202,7 +3202,21 @@ body:not(.in-game) #customCursor { display: none; }
             if (isVictim) showMessage(`🎲 RandDraw! You draw ${count} card${count > 1 ? 's' : ''}!`);
             else showMessage(`🎲 RandDraw! An opponent draws ${count} card${count > 1 ? 's' : ''}!`);
         });
-
+socket.on('gameStarted', (state) => {
+    console.log('[Client] Game started! Received initial game state:', state);
+    gameState = state;
+    currentLobbyData = null; // Clear lobby data
+    showScreen('gameScreen');
+    updateGameUI();
+    
+    // Start heartbeat for presence tracking
+    const heartbeatInterval = setInterval(() => {
+        socket.emit('heartbeat', { roomId: state.roomId });
+    }, 5000);
+    
+    // Store interval ID so we can clear it later if needed
+    window.gameHeartbeatInterval = heartbeatInterval;
+});
         socket.on('gameState', (state) => {
             setWaiting(false);
 
