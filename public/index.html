@@ -2989,7 +2989,7 @@
 
         socket.on('gameStarted', (state) => {
             gameState = state;
-            isWaitingForServer = false;
+            setWaiting(false);
             applyMercyTheme(state.settings && state.settings.gameMode === 'mercy');
             applyGlitchTheme(state.settings && state.settings.gameMode === 'glitch');
             showScreen('gameScreen');
@@ -3007,7 +3007,7 @@
         socket.on('gameRejoined', (state) => {
             gameState = state;
             roomId = state.roomId;
-            isWaitingForServer = false;
+            setWaiting(false);
             applyMercyTheme(state.settings && state.settings.gameMode === 'mercy');
             applyGlitchTheme(state.settings && state.settings.gameMode === 'glitch');
             showScreen('gameScreen');
@@ -3111,7 +3111,7 @@
         });
 
         socket.on('gameState', (state) => {
-            isWaitingForServer = false;
+            setWaiting(false);
 
             // Detect if an opponent just played a card (discard changed, not our draw)
             const discardChanged = gameState &&
@@ -3253,7 +3253,7 @@
         });
 
         socket.on('error', (message) => {
-            isWaitingForServer = false; // Reset flag on error
+            setWaiting(false); // Reset flag on error
             showPopup(message);
         });
 
@@ -3858,7 +3858,7 @@
                 });
                 if (!hasStackCard) {
                     // No stackable card — automatically absorb the penalty
-                    isWaitingForServer = true;
+                    setWaiting(true);
                     setTimeout(() => {
                         if (socket && socket.connected) {
                             socket.emit('drawCard', { roomId });
@@ -4018,7 +4018,7 @@
         let jumpInLabel = '⚡ JUMP IN!';
         
         gameState.yourHand.forEach((card, index) => {
-            const isPlayable = canPlayCard(card);
+            const isPlayable = canPlayCard(card, index);
             const isJumpIn   = canJumpIn(card);
             // Apply scramble display if active
             const displayCard = (isGlitch() && glitchScrambleActive) ? getGlitchDisplay(card, index) : card;
@@ -4027,17 +4027,25 @@
                 cardDiv.classList.add('glitched');
                 cardDiv.style.setProperty('--glitch-hue', (index * 37) % 360 + 'deg');
             }
-            
+
             if (isJumpIn) {
+                // Not your turn but you can jump in — highlight it
                 hasJumpInCard = true;
-                // Pick the most specific label
                 if (card.value === 'Wild+4') jumpInLabel = '⚡ JUMP IN! Wild +4';
                 else if (card.value === '+2')  jumpInLabel = '⚡ JUMP IN! +2';
                 cardDiv.classList.add('jump-in-card');
                 cardDiv.onclick = () => playCard(index, true);
-            } else if (!isPlayable || !gameState.isYourTurn || isWaitingForServer) {
+            } else if (isWaitingForServer) {
+                // Waiting for server response — disable everything
+                cardDiv.classList.add('disabled');
+            } else if (!gameState.isYourTurn) {
+                // Not your turn and not a jump-in — disable
+                cardDiv.classList.add('disabled');
+            } else if (!isPlayable) {
+                // Your turn but card isn't playable
                 cardDiv.classList.add('disabled');
             } else {
+                // Your turn and playable — enable
                 cardDiv.onclick = () => playCard(index, false);
             }
             
@@ -4517,14 +4525,13 @@
         return false;
     }
 
-    function canPlayCard(card) {
+    function canPlayCard(card, handIndex) {
         if (!gameState || !card) return false;
         const isMercyMode = gameState.settings && gameState.settings.gameMode === 'mercy';
         const stacking = gameState.settings.allowStacking || isMercyMode;
 
         if (stacking && gameState.stackedDrawCount > 0) {
             if (isMercyMode) {
-                // Equal-or-higher draw value required
                 const DRAW_VALUES = { '+2': 2, 'Wild+4': 4, 'WildReverseD4': 4, 'Wild+6': 6, 'Wild+10': 10 };
                 const cardVal = DRAW_VALUES[card.value];
                 if (!cardVal) return false;
@@ -4538,9 +4545,14 @@
         }
 
         if (card.type === 'wild') {
-            // Classic rule: Wild+4 only playable if no card matching current color
+            // Classic rule: Wild+4 only playable if you have NO card matching current color
             if (card.value === 'Wild+4' && !isMercyMode && gameState.yourHand) {
-                const hasColor = gameState.yourHand.some(c => c !== card && c.color === gameState.currentColor);
+                const hasColor = gameState.yourHand.some((c, i) => {
+                    // Exclude the card being evaluated (by index, not reference — safer after JSON parse)
+                    if (i === handIndex) return false;
+                    // Only non-wild cards count against Wild+4
+                    return c.type !== 'wild' && c.color === gameState.currentColor;
+                });
                 if (hasColor) return false;
             }
             return true;
@@ -4549,33 +4561,54 @@
         return card.color === gameState.currentColor || card.value === gameState.currentValue;
     }
 
+    // Safety valve: if isWaitingForServer gets stuck, auto-clear after 8s
+    let _waitingTimeout = null;
+    function setWaiting(val) {
+        if (val) {
+            isWaitingForServer = true;
+            clearTimeout(_waitingTimeout);
+            _waitingTimeout = setTimeout(() => {
+                console.warn('[O,No] isWaitingForServer stuck — auto-clearing');
+                setWaiting(false);
+                if (gameState) updateGameUI();
+            }, 8000);
+        } else {
+            setWaiting(false);
+            clearTimeout(_waitingTimeout);
+            _waitingTimeout = null;
+        }
+    }
+
     function playCard(index, isJumpIn = false) {
         if (!gameState || !gameState.yourHand) return;
         if (isSpectator) return;
         if (!gameState.isYourTurn && !isJumpIn) return;
         if (isWaitingForServer) return;
-        
+
         const card = gameState.yourHand[index];
         if (!card) return;
-        
+
         // Validate: normal turn needs canPlayCard, jump-in needs canJumpIn
         if (isJumpIn) {
             if (!canJumpIn(card)) return;
         } else {
             if (!canPlayCard(card)) return;
         }
-        
+
+        // Lock immediately — before any async work — so rapid clicks can't double-send
+        setWaiting(true);
+
         // Hide jump-in banner immediately on play
         updateJumpInBanner(false);
 
         const yourHandDiv = document.getElementById('playerHand');
         const cardElement = yourHandDiv.children[index];
-        
+
         if (card.type === 'wild') {
             pendingCardIndex = index;
+            // Show color picker — isWaitingForServer stays true until chooseColor fires
             showColorPicker();
         } else {
-            isWaitingForServer = true;
             animateCardToCenter(cardElement, card, () => {
                 if (socket && socket.connected) {
                     socket.emit('playCard', {
@@ -4596,15 +4629,12 @@
     function chooseColor(color) {
         document.getElementById('overlay').classList.remove('active');
         document.getElementById('colorPicker').classList.remove('active');
-        
-        // Get the card element and animate it
+
         const card = gameState.yourHand[pendingCardIndex];
         const yourHandDiv = document.getElementById('playerHand');
         const cardElement = yourHandDiv.children[pendingCardIndex];
-        
-        // Block further plays before starting animation
-        isWaitingForServer = true;
-        
+
+        // isWaitingForServer is already true from setWaiting() called in playCard
         animateCardToCenter(cardElement, card, () => {
             if (socket && socket.connected) {
                 socket.emit('playCard', {
@@ -4613,7 +4643,6 @@
                     chosenColor: color
                 });
             }
-            
             pendingCardIndex = null;
         });
     }
@@ -4668,12 +4697,10 @@
         if (!gameState || !gameState.isYourTurn) return;
         if (isSpectator) return;
         if (gameState.hasDrawnThisTurn) return;
-        if (isWaitingForServer) return; // Prevent rapid clicking
-        
-        // Block further actions while waiting for server
-        isWaitingForServer = true;
-        
-        // Send draw request to server (no animation yet - wait for response)
+        if (isWaitingForServer) return;
+
+        setWaiting(true);
+
         if (socket && socket.connected) {
             socket.emit('drawCard', { roomId: roomId });
         }
@@ -4817,7 +4844,7 @@
             document.querySelectorAll('.popup-ad-float').forEach(el => el.remove());
             if (adTimer) { clearInterval(adTimer); adTimer = null; }
             showMessage('⏰ Too slow closing ads! Your turn was SKIPPED!');
-            isWaitingForServer = false;
+            setWaiting(false);
             // Notify server to skip our turn by passing turn
             if (socket && socket.connected) socket.emit('adSkipTurn', { roomId });
         }
