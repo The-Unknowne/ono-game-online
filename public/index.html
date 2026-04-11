@@ -4831,17 +4831,46 @@ observer.observe(document.documentElement, {
 
     function isGlitch() { return selectedGameMode === 'glitch'; }
 
-    function selectMode(mode) {
-        selectedGameMode = mode;
-        document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
-        document.getElementById('modeCard-' + mode).classList.add('selected');
-        const labels = { original: 'Original', mercy: 'Please Have Mercy', glitch: "Glitched N'NO" };
-        document.getElementById('modeLabel').textContent = labels[mode] || mode;
-        document.getElementById('modePickerPanel').classList.remove('open');
-        document.getElementById('modeChevron').classList.remove('open');
+function selectMode(mode) {
+        // Find the active screen (Login or Main Menu)
+        const activeScreen = document.querySelector('.screen.active');
+        if (!activeScreen) return;
+    
+            // Update selection state - find cards within the active screen only
+            activeScreen.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
+    
+            // Find the clicked mode card within active screen
+            const modeCards = activeScreen.querySelectorAll('.mode-card');
+            modeCards.forEach(card => {
+            if (card.id.includes(mode)) {
+            card.classList.add('selected');
+        }
+    });
+    
+    // Update the label (find the span inside the button)
+            const modeBtn = activeScreen.querySelector('#modePickerBtn, #modePickerBtnMain');
+            if (modeBtn) {
+            const label = modeBtn.querySelector('span');
+            if (label) {
+            const labels = { original: 'Original', mercy: 'Please Have Mercy', glitch: "Glitched N'NO" };
+            label.textContent = labels[mode] || mode;
+        }
+    }
+    
+        // CLOSE the panel automatically
+        const panel = activeScreen.querySelector('.mode-picker-wrapper');
+        const chevron = activeScreen.querySelector('.mode-chevron');
+        if (panel) panel.classList.remove('open');
+        if (chevron) chevron.classList.remove('open');
+    
+        // Apply theme
         applyMercyTheme(mode === 'mercy');
         applyGlitchTheme(mode === 'glitch');
+    
+        selectedGameMode = mode;
+        console.log(`[Menu] Selected game mode: ${mode}`);
     }
+
 
     function playOffline() {
         const mode = selectedGameMode || 'original';
