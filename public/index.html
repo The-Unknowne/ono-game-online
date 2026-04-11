@@ -111,6 +111,188 @@
             --lobby-id-color: rgba(200,200,255,0.6);
             --rules-bg: rgba(255,255,255,0.05);
         }
+        /* ═══════════════════════════════════════════════════
+            FLOATING CUBES BACKGROUND
+        ═══════════════════════════════════════════════════ */
+.cube-container {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+}
+
+.floating-cube {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    transform-style: preserve-3d;
+    animation: floatHover 6s ease-in-out infinite, 
+               rotateCube 12s linear infinite;
+    opacity: 0.6;
+}
+
+.cube-face {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    border: 2px solid rgba(102, 126, 234, 0.4);
+    background: rgba(102, 126, 234, 0.1);
+    backdrop-filter: blur(2px);
+}
+
+.cube-face:nth-child(1) { transform: rotateY(0deg) translateZ(15px); }
+.cube-face:nth-child(2) { transform: rotateY(90deg) translateZ(15px); }
+.cube-face:nth-child(3) { transform: rotateY(180deg) translateZ(15px); }
+.cube-face:nth-child(4) { transform: rotateY(-90deg) translateZ(15px); }
+.cube-face:nth-child(5) { transform: rotateX(90deg) translateZ(15px); }
+.cube-face:nth-child(6) { transform: rotateX(-90deg) translateZ(15px); }
+
+@keyframes floatHover {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-40px); }
+}
+
+@keyframes rotateCube {
+    0% { transform: rotateX(0deg) rotateY(0deg); }
+    100% { transform: rotateX(360deg) rotateY(360deg); }
+}
+
+/* Dark mode cube colors */
+html[data-theme="dark"] .cube-face {
+    border-color: rgba(140, 100, 255, 0.5);
+    background: rgba(140, 100, 255, 0.15);
+}
+
+/* Mercy mode cube colors */
+html[data-mercy="1"] .cube-face {
+    border-color: rgba(231, 76, 60, 0.5);
+    background: rgba(231, 76, 60, 0.15);
+}
+
+/* Glitch mode cube colors */
+html[data-glitch="1"] .cube-face {
+    border-color: rgba(0, 255, 65, 0.5);
+    background: rgba(0, 255, 65, 0.15);
+}
+
+/* ═══════════════════════════════════════════════════
+   CUSTOM CURSOR
+   ═══════════════════════════════════════════════════ */
+.custom-cursor {
+    position: fixed;
+    width: 40px;
+    height: 40px;
+    pointer-events: none;
+    z-index: 10000;
+    transform: translate(-50%, -50%);
+    transition: transform 0.1s ease;
+}
+
+.cursor-outer {
+    position: absolute;
+    inset: 0;
+    border: 3px solid rgba(102, 126, 234, 0.8);
+    border-radius: 50%;
+    animation: cursorPulse 2s ease-in-out infinite;
+}
+
+.cursor-inner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 8px;
+    height: 8px;
+    background: rgba(102, 126, 234, 0.9);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.cursor-outer.clicking {
+    transform: scale(0.7);
+    border-color: rgba(241, 196, 15, 0.9);
+}
+
+.cursor-inner.clicking {
+    background: rgba(241, 196, 15, 0.9);
+    transform: translate(-50%, -50%) scale(1.5);
+}
+
+@keyframes cursorPulse {
+    0%, 100% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.2); opacity: 0.5; }
+}
+
+/* Shape change on hover over interactive elements */
+.custom-cursor.hovering .cursor-outer {
+    border-radius: 50%;
+    border-style: dashed;
+    animation: cursorSpin 1s linear infinite;
+}
+
+.custom-cursor.hovering .cursor-inner {
+    transform: translate(-50%, -50%) rotate(45deg);
+}
+
+@keyframes cursorSpin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ═══════════════════════════════════════════════════
+   MOUSE NAME TAG
+   ═══════════════════════════════════════════════════ */
+.mouse-name-tag {
+    position: fixed;
+    padding: 6px 14px;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.9), rgba(118, 75, 162, 0.9));
+    color: white;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.85em;
+    font-weight: 700;
+    border-radius: 20px;
+    pointer-events: none;
+    z-index: 10001;
+    transform: translate(15px, 15px);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.5);
+    white-space: nowrap;
+    backdrop-filter: blur(4px);
+}
+
+.mouse-name-tag.visible {
+    opacity: 1;
+}
+
+html[data-theme="dark"] .mouse-name-tag {
+    background: linear-gradient(135deg, rgba(140, 100, 255, 0.9), rgba(79, 70, 229, 0.9));
+    box-shadow: 0 4px 15px rgba(140, 100, 255, 0.5);
+}
+
+html[data-mercy="1"] .mouse-name-tag {
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.9), rgba(192, 57, 43, 0.9));
+    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.5);
+}
+
+html[data-glitch="1"] .mouse-name-tag {
+    background: linear-gradient(135deg, rgba(0, 255, 65, 0.9), rgba(0, 170, 34, 0.9));
+    box-shadow: 0 4px 15px rgba(0, 255, 65, 0.5);
+}
+
+/* Hide default cursor on game screen */
+#gameScreen {
+    cursor: none;
+}
+
+#gameScreen * {
+    cursor: none;
+}
+
+/* Show default cursor on menus */
+#mainMenu, #onlineMenu, #lobbyList, #createLobby, #waitingLobby, #scoreboardScreen {
+    cursor: default;
+}
 
         * {
             margin: 0;
@@ -2267,6 +2449,139 @@
     .mode-card.glitch .mode-card-badge { background: rgba(0,255,65,0.12); color: #00ff41; }
     .mode-card.glitch .mode-card-desc  { color: #aaffaa; }
     .mode-card.glitch .mode-rule-tag   { background: rgba(0,255,65,0.1); color: #00dd33; border-color: rgba(0,255,65,0.2); }
+    // ═══════════════════════════════════════════════════
+    // FLOATING CUBES & CUSTOM CURSOR
+    // ═══════════════════════════════════════════════════
+
+    function createFloatingCubes() {
+    const container = document.getElementById('cubeContainer');
+    if (!container) return;
+    
+    const cubeCount = 8;
+    
+    for (let i = 0; i < cubeCount; i++) {
+        const cube = document.createElement('div');
+        cube.className = 'floating-cube';
+        cube.style.left = Math.random() * 100 + '%';
+        cube.style.top = Math.random() * 100 + '%';
+        cube.style.animationDelay = `${Math.random() * 3}s`;
+        cube.style.animationDuration = `${5 + Math.random() * 3}s`;
+        
+        // Create 6 faces for 3D cube
+        for (let j = 0; j < 6; j++) {
+            const face = document.createElement('div');
+            face.className = 'cube-face';
+            cube.appendChild(face);
+        }
+        
+        container.appendChild(cube);
+    }
+}
+
+    // Custom Cursor Logic
+    function initCustomCursor() {
+        const cursor = document.getElementById('customCursor');
+        const nameTag = document.getElementById('mouseNameTag');
+    
+     if (!cursor || !nameTag) return;
+    
+     const cursorOuter = cursor.querySelector('.cursor-outer');
+        const cursorInner = cursor.querySelector('.cursor-inner');
+    
+     // Get player name from game state or default
+        const getPlayerName = () => {
+        if (gameState && gameState.yourName) {
+            return gameState.yourName;
+        }
+        const stored = localStorage.getItem('ono-playerName');
+        return stored || 'Player';
+    };
+    
+    // Mouse move handler
+    document.addEventListener('mousemove', (e) => {
+        // Move cursor
+        cursor.style.left = e.clientX + 'px';
+        cursor.style.top = e.clientY + 'px';
+        
+        // Move name tag
+        nameTag.style.left = e.clientX + 'px';
+        nameTag.style.top = e.clientY + 'px';
+        nameTag.textContent = getPlayerName();
+        
+        // Show name tag only on game screen
+        const gameScreen = document.getElementById('gameScreen');
+        if (gameScreen && gameScreen.classList.contains('active')) {
+            nameTag.classList.add('visible');
+        } else {
+            nameTag.classList.remove('visible');
+        }
+    });
+    
+    // Click effect
+    document.addEventListener('mousedown', () => {
+        cursorOuter.classList.add('clicking');
+        cursorInner.classList.add('clicking');
+    });
+    
+    document.addEventListener('mouseup', () => {
+        cursorOuter.classList.remove('clicking');
+        cursorInner.classList.remove('clicking');
+    });
+    
+    // Hover effect on interactive elements
+    const interactiveElements = document.querySelectorAll('button, .card, .menu-button, .lobby-card, input, select');
+    
+    interactiveElements.forEach(el => {
+        el.addEventListener('mouseenter', () => {
+            cursor.classList.add('hovering');
+        });
+        
+        el.addEventListener('mouseleave', () => {
+            cursor.classList.remove('hovering');
+        });
+    });
+    
+    // Update name tag when game state changes
+    const originalUpdateGameUI = window.updateGameUI;
+    if (originalUpdateGameUI) {
+        window.updateGameUI = function() {
+            originalUpdateGameUI();
+            nameTag.textContent = getPlayerName();
+        };
+    }
+}
+
+// Initialize on page load
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        createFloatingCubes();
+        initCustomCursor();
+    });
+} else {
+    createFloatingCubes();
+    initCustomCursor();
+}
+
+// Re-create cubes when theme changes
+const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'data-theme' || 
+            mutation.attributeName === 'data-mercy' || 
+            mutation.attributeName === 'data-glitch') {
+            const container = document.getElementById('cubeContainer');
+            if (container) {
+                container.innerHTML = '';
+                createFloatingCubes();
+            }
+        }
+    });
+});
+
+observer.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['data-theme', 'data-mercy', 'data-glitch']
+});
+
 </style>
 
 </head>
@@ -4925,6 +5240,16 @@ function chooseColor(color) {
     <div id="peekCards"></div>
     <div id="peekTimer">3</div>
 </div>
+<div class="cube-container" id="cubeContainer"></div>
+
+<!-- Custom Cursor -->
+<div class="custom-cursor" id="customCursor">
+    <div class="cursor-outer"></div>
+    <div class="cursor-inner"></div>
+</div>
+
+<!-- Mouse Name Tag -->
+<div class="mouse-name-tag" id="mouseNameTag">Player</div>
 
 </body>
 </html>
