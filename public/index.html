@@ -3261,8 +3261,31 @@ observer.observe(document.documentElement, {
     let isReady = false;
     let currentLobbyData = null;
     let isWaitingForServer = false;
+    let waitingForServerTimeout = null; // Timeout to recover from stuck state
+    let lastAutoDrawId = null; // Track auto-draw to prevent loops
     let heartbeatInterval = null;
     let disconnectNotificationTimeout = null;
+    
+    function setRecoveryTimeout() {
+        // FIX: Clear any existing timeout
+        if (waitingForServerTimeout) clearTimeout(waitingForServerTimeout);
+        // Set a 10-second timeout to recover if server doesn't respond
+        waitingForServerTimeout = setTimeout(() => {
+            if (isWaitingForServer) {
+                console.warn('Server response timeout - recovering waiting state');
+                isWaitingForServer = false;
+                updateGameUI();
+                showMessage('⚠️ Connection delayed, please check your status');
+            }
+        }, 10000);
+    }
+    
+    function clearRecoveryTimeout() {
+        if (waitingForServerTimeout) {
+            clearTimeout(waitingForServerTimeout);
+            waitingForServerTimeout = null;
+        }
+    }
 
     // =============================================
     //  DARK MODE
@@ -3584,6 +3607,8 @@ observer.observe(document.documentElement, {
 
         socket.on('gameState', (state) => {
             isWaitingForServer = false;
+            clearRecoveryTimeout();
+            lastAutoDrawId = null; // Reset auto-draw tracking
 
             // Detect if an opponent just played a card (discard changed, not our draw)
             const discardChanged = gameState &&
@@ -4316,7 +4341,10 @@ observer.observe(document.documentElement, {
             }
             // Auto-draw stacked cards if it's your turn, there's a stack,
             // and you have no card that can stack on it
-            if (gameState.isYourTurn && gameState.stackedDrawCount > 0 && !isWaitingForServer) {
+            // FIX: Track if auto-draw already happened for this stack to prevent loops
+            const currentStackId = `stack_${gameState.stackedDrawCount}_${gameState.discardPile?.value}`;
+            if (gameState.isYourTurn && gameState.stackedDrawCount > 0 && !isWaitingForServer && 
+                lastAutoDrawId !== currentStackId) {
                 const MERCY_DRAW_CARDS = ['+2', 'Wild+4', 'WildReverseD4'];
                 const isMercyMode = gameState.settings && gameState.settings.gameMode === 'mercy';
                 const topDiscard = gameState.discardPile;
@@ -4333,10 +4361,17 @@ observer.observe(document.documentElement, {
                 });
                 if (!hasStackCard) {
                     // No stackable card — automatically absorb the penalty
+                    lastAutoDrawId = currentStackId; // Mark that we're processing this stack
                     isWaitingForServer = true;
+                    setRecoveryTimeout();
                     setTimeout(() => {
                         if (socket && socket.connected) {
                             socket.emit('drawCard', { roomId });
+                        } else {
+                            // Socket not connected, reset flags
+                            isWaitingForServer = false;
+                            lastAutoDrawId = null;
+                            clearRecoveryTimeout();
                         }
                     }, 600); // short delay so player sees the stack count before it resolves
                 }
@@ -5037,7 +5072,7 @@ function canPlayCard(card) {
     if (isSpectator) return;
     if (!gameState.isYourTurn && !isJumpIn) return;
     
-    // FIX: Always reset isWaitingForServer at start
+    // FIX: Prevent double-click while waiting for server
     if (isWaitingForServer) {
         console.warn('Still waiting for server, ignoring play');
         return;
@@ -5062,6 +5097,7 @@ function canPlayCard(card) {
         showColorPicker();
     } else {
         isWaitingForServer = true;
+        setRecoveryTimeout();
         animateCardToCenter(cardElement, card, () => {
             if (socket && socket.connected) {
                 socket.emit('playCard', {
@@ -5069,6 +5105,10 @@ function canPlayCard(card) {
                     cardIndex: index,
                     chosenColor: null
                 });
+            } else {
+                // Socket not connected, reset flag
+                isWaitingForServer = false;
+                clearRecoveryTimeout();
             }
         });
     }
@@ -5089,6 +5129,7 @@ function chooseColor(color) {
     const cardElement = yourHandDiv.children[pendingCardIndex];
     
     isWaitingForServer = true;
+    setRecoveryTimeout();
     
     animateCardToCenter(cardElement, card, () => {
         if (socket && socket.connected) {
@@ -5097,6 +5138,10 @@ function chooseColor(color) {
                 cardIndex: pendingCardIndex,
                 chosenColor: color
             });
+        } else {
+            // Socket not connected, reset flag
+            isWaitingForServer = false;
+            clearRecoveryTimeout();
         }
         pendingCardIndex = null;
     });
@@ -5155,11 +5200,16 @@ function chooseColor(color) {
     if (gameState.hasDrawnThisTurn) return;
     if (isWaitingForServer) return;
     
-    isWaitingForServer = true;
-    
-    if (socket && socket.connected) {
-        socket.emit('drawCard', { roomId: roomId });
+    // Verify socket is connected before proceeding
+    if (!socket || !socket.connected) {
+        showMessage('⚠️ Connection lost, cannot draw card');
+        return;
     }
+    
+    isWaitingForServer = true;
+    setRecoveryTimeout();
+    
+    socket.emit('drawCard', { roomId: roomId });
 }
 
 
