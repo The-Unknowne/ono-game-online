@@ -3743,11 +3743,6 @@ socket.on('gameStarted', (state) => {
                 ? '🎉 All players ready! Starting game...'
                 : `⏳ Waiting for players to ready up... (${readyCount}/${playerCount} ready)`;
                 // ADD THIS: Actually start the game when all are ready
-           if (allReady) {
-            setTimeout(() => {
-            socket.emit('startGame', { roomId: currentLobbyData.roomId });
-            }, 1500); // Small delay so players see the celebration message
-                        }
         } else {
             readyStatusBar.style.display = 'none';
         }
