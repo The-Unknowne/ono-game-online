@@ -755,9 +755,14 @@ io.on('connection', socket => {
             io.to(roomId).emit('error', 'Some players disconnected before game start. Please ready up again.');
             return;
         }
-        // finalPresenceCheck intentionally removed — the heartbeat/presence system
-        // only runs during games, not in the lobby, so it always reports players
-        // as 'not responding' and silently blocks every game start.
+        if (pm) {
+            const check = pm.finalPresenceCheck();
+            if (!check.success) {
+                const names = check.missingPlayers.map(p => p.name).join(', ');
+                io.to(roomId).emit('error', `Cannot start: Players not responding: ${names}`);
+                return;
+            }
+        }
 
         console.log(`[Server] Starting game in lobby ${roomId} with ${lobby.players.length} players`);
         const room = new GameRoom(roomId, lobby.players, lobby.settings);
