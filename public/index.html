@@ -128,51 +128,169 @@
     transform-style: preserve-3d;
     animation: floatHover 6s ease-in-out infinite, 
                rotateCube 12s linear infinite;
-    opacity: 0.7;
+    opacity: 0.9;
+    filter: drop-shadow(0 10px 25px rgba(0, 0, 0, 0.35)) drop-shadow(0 0 20px rgba(102, 126, 234, 0.2));
 }
 
 .cube-face {
     position: absolute;
-    border: 2px solid rgba(102, 126, 234, 0.4);
-    background: rgba(102, 126, 234, 0.1);
-    backdrop-filter: blur(2px);
+    border: 2px solid rgba(102, 126, 234, 0.6);
+    backdrop-filter: blur(3px);
     width: 100%;
     height: 100%;
+    box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.1);
 }
 
-.cube-face:nth-child(1) { transform: rotateY(0deg) translateZ(50%); }
-.cube-face:nth-child(2) { transform: rotateY(90deg) translateZ(50%); }
-.cube-face:nth-child(3) { transform: rotateY(180deg) translateZ(50%); }
-.cube-face:nth-child(4) { transform: rotateY(-90deg) translateZ(50%); }
-.cube-face:nth-child(5) { transform: rotateX(90deg) translateZ(50%); }
-.cube-face:nth-child(6) { transform: rotateX(-90deg) translateZ(50%); }
+/* Front face - brightest, most visible */
+.cube-face:nth-child(1) { 
+    transform: rotateY(0deg) translateZ(50%);
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.25) 0%, rgba(102, 126, 234, 0.12) 100%);
+    opacity: 0.95;
+    box-shadow: inset 0 0 30px rgba(255, 255, 255, 0.15), inset -2px -2px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Right face */
+.cube-face:nth-child(2) { 
+    transform: rotateY(90deg) translateZ(50%);
+    background: linear-gradient(135deg, rgba(70, 90, 200, 0.18) 0%, rgba(70, 90, 200, 0.08) 100%);
+    opacity: 0.75;
+    box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.08), inset -3px -3px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* Back face - darker, less visible */
+.cube-face:nth-child(3) { 
+    transform: rotateY(180deg) translateZ(50%);
+    background: linear-gradient(135deg, rgba(40, 60, 150, 0.12) 0%, rgba(40, 60, 150, 0.05) 100%);
+    opacity: 0.55;
+    box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.4), inset -2px -2px 10px rgba(0, 0, 0, 0.25);
+}
+
+/* Left face */
+.cube-face:nth-child(4) { 
+    transform: rotateY(-90deg) translateZ(50%);
+    background: linear-gradient(135deg, rgba(80, 100, 220, 0.2) 0%, rgba(80, 100, 220, 0.1) 100%);
+    opacity: 0.8;
+    box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.12), inset -3px -3px 15px rgba(0, 0, 0, 0.25);
+}
+
+/* Top face - well-lit */
+.cube-face:nth-child(5) { 
+    transform: rotateX(90deg) translateZ(50%);
+    background: linear-gradient(135deg, rgba(140, 160, 255, 0.28) 0%, rgba(102, 126, 234, 0.15) 100%);
+    opacity: 0.85;
+    box-shadow: inset 0 0 25px rgba(255, 255, 255, 0.2), inset -2px -2px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* Bottom face - darkened */
+.cube-face:nth-child(6) { 
+    transform: rotateX(-90deg) translateZ(50%);
+    background: linear-gradient(135deg, rgba(30, 50, 120, 0.1) 0%, rgba(20, 40, 100, 0.05) 100%);
+    opacity: 0.45;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5), inset -2px -2px 10px rgba(0, 0, 0, 0.3);
+}
 
 @keyframes floatHover {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-40px); }
+    0%, 100% { transform: translateY(0px) rotateZ(0deg); }
+    50% { transform: translateY(-50px) rotateZ(5deg); }
 }
 
 @keyframes rotateCube {
-    0% { transform: rotateX(0deg) rotateY(0deg); }
-    100% { transform: rotateX(360deg) rotateY(360deg); }
+    0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
+    25% { transform: rotateX(45deg) rotateY(90deg) rotateZ(15deg); }
+    50% { transform: rotateX(120deg) rotateY(180deg) rotateZ(-10deg); }
+    75% { transform: rotateX(250deg) rotateY(270deg) rotateZ(20deg); }
+    100% { transform: rotateX(360deg) rotateY(360deg) rotateZ(360deg); }
 }
 
 /* Dark mode cube colors */
 html[data-theme="dark"] .cube-face {
-    border-color: rgba(140, 100, 255, 0.5);
-    background: rgba(140, 100, 255, 0.15);
+    border-color: rgba(140, 100, 255, 0.7);
+}
+
+/* Dark mode individual face styling */
+html[data-theme="dark"] .cube-face:nth-child(1) { 
+    background: linear-gradient(135deg, rgba(140, 100, 255, 0.3) 0%, rgba(120, 80, 255, 0.15) 100%);
+    opacity: 0.95;
+}
+html[data-theme="dark"] .cube-face:nth-child(2) { 
+    background: linear-gradient(135deg, rgba(100, 70, 220, 0.22) 0%, rgba(100, 70, 220, 0.1) 100%);
+    opacity: 0.75;
+}
+html[data-theme="dark"] .cube-face:nth-child(3) { 
+    background: linear-gradient(135deg, rgba(70, 50, 180, 0.15) 0%, rgba(70, 50, 180, 0.05) 100%);
+    opacity: 0.55;
+}
+html[data-theme="dark"] .cube-face:nth-child(4) { 
+    background: linear-gradient(135deg, rgba(110, 80, 240, 0.25) 0%, rgba(110, 80, 240, 0.12) 100%);
+    opacity: 0.8;
+}
+html[data-theme="dark"] .cube-face:nth-child(5) { 
+    background: linear-gradient(135deg, rgba(150, 120, 255, 0.32) 0%, rgba(130, 100, 255, 0.18) 100%);
+    opacity: 0.85;
+}
+html[data-theme="dark"] .cube-face:nth-child(6) { 
+    background: linear-gradient(135deg, rgba(50, 30, 140, 0.12) 0%, rgba(40, 20, 120, 0.06) 100%);
+    opacity: 0.45;
 }
 
 /* Mercy mode cube colors */
 html[data-mercy="1"] .cube-face {
-    border-color: rgba(231, 76, 60, 0.5);
-    background: rgba(231, 76, 60, 0.15);
+    border-color: rgba(231, 76, 60, 0.7);
+}
+
+html[data-mercy="1"] .cube-face:nth-child(1) { 
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.28) 0%, rgba(210, 60, 45, 0.15) 100%);
+    opacity: 0.95;
+}
+html[data-mercy="1"] .cube-face:nth-child(2) { 
+    background: linear-gradient(135deg, rgba(190, 60, 45, 0.2) 0%, rgba(190, 60, 45, 0.1) 100%);
+    opacity: 0.75;
+}
+html[data-mercy="1"] .cube-face:nth-child(3) { 
+    background: linear-gradient(135deg, rgba(150, 50, 35, 0.12) 0%, rgba(150, 50, 35, 0.05) 100%);
+    opacity: 0.55;
+}
+html[data-mercy="1"] .cube-face:nth-child(4) { 
+    background: linear-gradient(135deg, rgba(210, 70, 55, 0.24) 0%, rgba(210, 70, 55, 0.12) 100%);
+    opacity: 0.8;
+}
+html[data-mercy="1"] .cube-face:nth-child(5) { 
+    background: linear-gradient(135deg, rgba(245, 100, 80, 0.3) 0%, rgba(220, 80, 65, 0.18) 100%);
+    opacity: 0.85;
+}
+html[data-mercy="1"] .cube-face:nth-child(6) { 
+    background: linear-gradient(135deg, rgba(120, 40, 30, 0.1) 0%, rgba(100, 30, 20, 0.05) 100%);
+    opacity: 0.45;
 }
 
 /* Glitch mode cube colors */
 html[data-glitch="1"] .cube-face {
-    border-color: rgba(0, 255, 65, 0.5);
-    background: rgba(0, 255, 65, 0.15);
+    border-color: rgba(0, 255, 65, 0.7);
+}
+
+html[data-glitch="1"] .cube-face:nth-child(1) { 
+    background: linear-gradient(135deg, rgba(0, 255, 65, 0.28) 0%, rgba(0, 220, 55, 0.15) 100%);
+    opacity: 0.95;
+}
+html[data-glitch="1"] .cube-face:nth-child(2) { 
+    background: linear-gradient(135deg, rgba(0, 200, 50, 0.2) 0%, rgba(0, 200, 50, 0.1) 100%);
+    opacity: 0.75;
+}
+html[data-glitch="1"] .cube-face:nth-child(3) { 
+    background: linear-gradient(135deg, rgba(0, 150, 40, 0.12) 0%, rgba(0, 150, 40, 0.05) 100%);
+    opacity: 0.55;
+}
+html[data-glitch="1"] .cube-face:nth-child(4) { 
+    background: linear-gradient(135deg, rgba(0, 220, 60, 0.24) 0%, rgba(0, 220, 60, 0.12) 100%);
+    opacity: 0.8;
+}
+html[data-glitch="1"] .cube-face:nth-child(5) { 
+    background: linear-gradient(135deg, rgba(50, 255, 100, 0.3) 0%, rgba(20, 255, 80, 0.18) 100%);
+    opacity: 0.85;
+}
+html[data-glitch="1"] .cube-face:nth-child(6) { 
+    background: linear-gradient(135deg, rgba(0, 100, 30, 0.1) 0%, rgba(0, 80, 20, 0.05) 100%);
+    opacity: 0.45;
 }
 
 /* ═══════════════════════════════════════════════════
@@ -2497,6 +2615,14 @@ html[data-glitch="1"] .mouse-name-tag {
         cube.style.top = top + '%';
         cube.style.animationDelay = `${Math.random() * 5}s`;
         cube.style.animationDuration = `${8 + Math.random() * 8}s`;
+        
+        // Add custom CSS variable for individual rotation timing
+        const rotateDuration = 10 + Math.random() * 6;
+        cube.style.setProperty('--rotate-duration', rotateDuration + 's');
+        
+        // Create random animation direction
+        const direction = Math.random() > 0.5 ? 'normal' : 'reverse';
+        cube.style.animationDirection = direction;
         
         // Create 6 faces for 3D cube
         for (let j = 0; j < 6; j++) {
