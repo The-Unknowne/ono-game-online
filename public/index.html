@@ -120,33 +120,32 @@
     pointer-events: none;
     z-index: 0;
     overflow: hidden;
+    perspective: 1200px;
 }
 
 .floating-cube {
     position: absolute;
-    width: 30px;
-    height: 30px;
     transform-style: preserve-3d;
     animation: floatHover 6s ease-in-out infinite, 
                rotateCube 12s linear infinite;
-    opacity: 0.6;
+    opacity: 0.7;
 }
 
 .cube-face {
     position: absolute;
-    width: 30px;
-    height: 30px;
     border: 2px solid rgba(102, 126, 234, 0.4);
     background: rgba(102, 126, 234, 0.1);
     backdrop-filter: blur(2px);
+    width: 100%;
+    height: 100%;
 }
 
-.cube-face:nth-child(1) { transform: rotateY(0deg) translateZ(15px); }
-.cube-face:nth-child(2) { transform: rotateY(90deg) translateZ(15px); }
-.cube-face:nth-child(3) { transform: rotateY(180deg) translateZ(15px); }
-.cube-face:nth-child(4) { transform: rotateY(-90deg) translateZ(15px); }
-.cube-face:nth-child(5) { transform: rotateX(90deg) translateZ(15px); }
-.cube-face:nth-child(6) { transform: rotateX(-90deg) translateZ(15px); }
+.cube-face:nth-child(1) { transform: rotateY(0deg) translateZ(50%); }
+.cube-face:nth-child(2) { transform: rotateY(90deg) translateZ(50%); }
+.cube-face:nth-child(3) { transform: rotateY(180deg) translateZ(50%); }
+.cube-face:nth-child(4) { transform: rotateY(-90deg) translateZ(50%); }
+.cube-face:nth-child(5) { transform: rotateX(90deg) translateZ(50%); }
+.cube-face:nth-child(6) { transform: rotateX(-90deg) translateZ(50%); }
 
 @keyframes floatHover {
     0%, 100% { transform: translateY(0px); }
@@ -2460,15 +2459,44 @@ html[data-glitch="1"] .mouse-name-tag {
     const container = document.getElementById('cubeContainer');
     if (!container) return;
     
-    const cubeCount = 8;
+    const cubeCount = 12;
     
     for (let i = 0; i < cubeCount; i++) {
+        // Random size between 20px and 70px
+        const size = 20 + Math.random() * 50;
+        
+        // Position cubes to avoid clustering in center
+        // Use quadrants + random offset
+        const quadrant = i % 4;
+        let left, top;
+        
+        switch(quadrant) {
+            case 0: // Top-left
+                left = Math.random() * 40;
+                top = Math.random() * 40;
+                break;
+            case 1: // Top-right
+                left = 60 + Math.random() * 40;
+                top = Math.random() * 40;
+                break;
+            case 2: // Bottom-left
+                left = Math.random() * 40;
+                top = 60 + Math.random() * 40;
+                break;
+            case 3: // Bottom-right
+                left = 60 + Math.random() * 40;
+                top = 60 + Math.random() * 40;
+                break;
+        }
+        
         const cube = document.createElement('div');
         cube.className = 'floating-cube';
-        cube.style.left = Math.random() * 100 + '%';
-        cube.style.top = Math.random() * 100 + '%';
-        cube.style.animationDelay = `${Math.random() * 3}s`;
-        cube.style.animationDuration = `${5 + Math.random() * 3}s`;
+        cube.style.width = size + 'px';
+        cube.style.height = size + 'px';
+        cube.style.left = left + '%';
+        cube.style.top = top + '%';
+        cube.style.animationDelay = `${Math.random() * 5}s`;
+        cube.style.animationDuration = `${8 + Math.random() * 8}s`;
         
         // Create 6 faces for 3D cube
         for (let j = 0; j < 6; j++) {
