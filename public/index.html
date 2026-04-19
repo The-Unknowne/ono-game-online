@@ -5690,14 +5690,15 @@ document.addEventListener('DOMContentLoaded', function() {
             // Auto-draw stacked cards if it's your turn, there's a stack,
             // and you have no card that can stack on it
             // FIX: Track if auto-draw already happened for this stack to prevent loops
-            const currentStackId = `stack_${gameState.stackedDrawCount}_${gameState.discardPile?.value}`;
+            // Auto-draw stacked cards if it's your turn, there's a stack,
+// and you have no card that can stack on it
+const currentStackId = `stack_${gameState.stackedDrawCount}_${gameState.discardPile?.value}`;
 if (gameState.isYourTurn && gameState.stackedDrawCount > 0 && !isWaitingForServer && 
     lastAutoDrawId !== currentStackId) {
     
-    const MERCY_DRAW_CARDS = ['+2', 'Wild+4', 'WildReverseD4'];
     const isMercyMode = gameState.settings && gameState.settings.gameMode === 'mercy';
-    const topDiscard = gameState.discardPile;
     const DRAW_VALUES = { '+2': 2, 'Wild+4': 4, 'WildReverseD4': 4, 'Wild+6': 6, 'Wild+10': 10 };
+    const topDiscard = gameState.discardPile;
     const topVal = topDiscard ? (DRAW_VALUES[topDiscard.value] || 0) : 0;
     
     const hasStackCard = gameState.yourHand && gameState.yourHand.some(card => {
@@ -5711,7 +5712,6 @@ if (gameState.isYourTurn && gameState.stackedDrawCount > 0 && !isWaitingForServe
     });
     
     if (!hasStackCard) {
-        // ⚠️ CRITICAL FIX #3: Add timeout to prevent infinite loop
         lastAutoDrawId = currentStackId;
         isWaitingForServer = true;
         setRecoveryTimeout();
@@ -5719,14 +5719,12 @@ if (gameState.isYourTurn && gameState.stackedDrawCount > 0 && !isWaitingForServe
         setTimeout(() => {
             if (socket && socket.connected) {
                 socket.emit('drawCard', { roomId });
-                // ⚠️ CRITICAL FIX #4: Reset flags after emit
                 setTimeout(() => {
                     isWaitingForServer = false;
                     lastAutoDrawId = null;
                     clearRecoveryTimeout();
                 }, 1000);
             } else {
-                // Socket not connected, reset flags immediately
                 isWaitingForServer = false;
                 lastAutoDrawId = null;
                 clearRecoveryTimeout();
@@ -5734,6 +5732,7 @@ if (gameState.isYourTurn && gameState.stackedDrawCount > 0 && !isWaitingForServe
         }, 600);
     }
 }
+
 
         } catch (error) {
             console.error('Error updating UI:', error);
@@ -6446,18 +6445,20 @@ console.log('[UI Debug]', {
             return cardValue >= topValue;
         } else {
             // Original: must match exact card type
-            if (gameState.currentValue === '+2' && card.value === '+2') return true;
+            // ⚠️ CRITICAL: Wild+4 can ONLY stack on Wild+4 (not on +2)
             if (gameState.currentValue === 'Wild+4' && card.value === 'Wild+4') return true;
+            if (gameState.currentValue === '+2' && card.value === '+2') return true;
             return false;
         }
     }
     
     // ─────────────────────────────────────────────────
     // Rule #5: NORMAL JUMP-IN (no stack active)
+    // ⚠️ CRITICAL: Wild+4 can ONLY jump-in on another Wild+4
     // ─────────────────────────────────────────────────
     
-    // Wild+4: ONLY jump-in on another Wild+4
     if (card.value === 'Wild+4') {
+        // ✅ Wild+4 can ONLY jump-in if current card is ALSO Wild+4
         return gameState.currentValue === 'Wild+4';
     }
     
@@ -6483,15 +6484,34 @@ console.log('[UI Debug]', {
 
 
 
+
 function canPlayCard(card) {
     if (!gameState || !card) return false;
-    const isMercyMode = gameState.settings && gameState.settings.gameMode === 'mercy';
-    const stacking = gameState.settings.allowStacking || isMercyMode;
-
+    
     // ─────────────────────────────────────────────────
-    // STACK HANDLING
+    // Must be your turn (unless jump-in)
     // ─────────────────────────────────────────────────
-    if (stacking && gameState.stackedDrawCount > 0) {
+    if (!gameState.isYourTurn) {
+        // Check if this is a valid jump-in
+        return canJumpIn(card);
+    }
+    
+    // ─────────────────────────────────────────────────
+    // Can't play if already drew this turn (unless stacking)
+    // ─────────────────────────────────────────────────
+    if (gameState.hasDrawnThisTurn && gameState.stackedDrawCount === 0) {
+        return false;
+    }
+    
+    // ─────────────────────────────────────────────────
+    // STACK MODE: Must match stack card
+    // ─────────────────────────────────────────────────
+    if (gameState.stackedDrawCount > 0) {
+        const isMercyMode = gameState.settings && gameState.settings.gameMode === 'mercy';
+        const stacking = gameState.settings.allowStacking || isMercyMode;
+        
+        if (!stacking) return false;
+        
         if (isMercyMode) {
             const DRAW_VALUES = { '+2': 2, 'Wild+4': 4, 'WildReverseD4': 4, 'Wild+6': 6, 'Wild+10': 10 };
             const cardVal = DRAW_VALUES[card.value];
@@ -6500,24 +6520,26 @@ function canPlayCard(card) {
             const topVal = topDiscard ? (DRAW_VALUES[topDiscard.value] || 0) : 0;
             return cardVal >= topVal;
         }
-        // Original mode: must match exact card type
-        if (gameState.currentValue === '+2'     && card.value === '+2')     return true;
+        
+        // Original mode: match exact type
+        if (gameState.currentValue === '+2' && card.value === '+2') return true;
         if (gameState.currentValue === 'Wild+4' && card.value === 'Wild+4') return true;
         return false;
     }
-
+    
     // ─────────────────────────────────────────────────
-    // Wild cards - ALWAYS playable (no restrictions!)
+    // WILD CARDS: ALWAYS PLAYABLE on your turn!
     // ─────────────────────────────────────────────────
     if (card.type === 'wild') {
         return true;
     }
-
+    
     // ─────────────────────────────────────────────────
-    // Normal card validation (color or value match)
+    // NORMAL CARDS: Match color OR value
     // ─────────────────────────────────────────────────
     return card.color === gameState.currentColor || card.value === gameState.currentValue;
 }
+
 
 
 
