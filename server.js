@@ -462,11 +462,14 @@ class GameRoom {
 
     canPlayCard(card, playerId = null, isJumpIn = false) {
     if (!card) return false;
+    
+    const playerIndex = this.players.findIndex(p => p.id === playerId);
+    const isPlayersTurn = (playerIndex === this.currentPlayer);
     const mercy = this.isMercy();
     const stacking = this.settings.allowStacking || mercy;
 
     // ─────────────────────────────────────────────────
-    // STACK HANDLING
+    // STACK MODE: Must match stack card
     // ─────────────────────────────────────────────────
     if (stacking && this.stackedDrawCount > 0) {
         if (mercy) {
@@ -477,14 +480,14 @@ class GameRoom {
             const topVal  = topCard ? (DRAW_VALUES[topCard.value] || 0) : 0;
             return cardVal >= topVal;
         }
-        // Original mode: must match exact card type
+        // Original mode: match exact type
         if (this.currentValue === '+2'     && card.value === '+2')     return true;
         if (this.currentValue === 'Wild+4' && card.value === 'Wild+4') return true;
         return false;
     }
 
     // ─────────────────────────────────────────────────
-    // Jump-in validation (when NOT during stack)
+    // Jump-in validation (NOT during stack)
     // ─────────────────────────────────────────────────
     if (isJumpIn && this.settings.allowJumpIn && this.stackedDrawCount === 0) {
         // Wild+4: ONLY jump-in on another Wild+4
@@ -507,17 +510,32 @@ class GameRoom {
     }
 
     // ─────────────────────────────────────────────────
-    // Wild cards - ALWAYS playable (no restrictions!)
+    // Must be player's turn (unless jump-in)
+    // ─────────────────────────────────────────────────
+    if (!isPlayersTurn) {
+        return false;
+    }
+
+    // ─────────────────────────────────────────────────
+    // Can't play if already drew this turn (unless stack active)
+    // ─────────────────────────────────────────────────
+    if (this.hasDrawnThisTurn && this.stackedDrawCount === 0) {
+        return false;
+    }
+
+    // ─────────────────────────────────────────────────
+    // WILD CARDS: ALWAYS PLAYABLE on your turn!
     // ─────────────────────────────────────────────────
     if (card.type === 'wild') {
         return true;
     }
     
     // ─────────────────────────────────────────────────
-    // Normal card validation (color or value match)
+    // Normal cards: Match color OR value
     // ─────────────────────────────────────────────────
     return card.color === this.currentColor || card.value === this.currentValue;
 }
+
 
 
 
@@ -718,6 +736,7 @@ class GameRoom {
     break;
 
 case 'Wild+4':
+    // ⚠️ CRITICAL: Wild+4 works exactly like +2 but draws 4
     if (stacking) { 
         this.stackedDrawCount += 4; 
         this.advanceTurn(); 
@@ -726,6 +745,7 @@ case 'Wild+4':
         this.skipNextPlayer(); 
     }
     break;
+
 
 case 'Wild+6':
     if (stacking) { 
