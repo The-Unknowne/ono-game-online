@@ -460,118 +460,231 @@ class GameRoom {
         };
     }
 
-    canPlayCard(card, playerId = null) {
-        if (!card) return false;
-        const mercy = this.isMercy();
-        const stacking = this.settings.allowStacking || mercy;
+    canPlayCard(card, playerId = null, isJumpIn = false) {
+    if (!card) return false;
+    const mercy = this.isMercy();
+    const stacking = this.settings.allowStacking || mercy;
 
-        if (stacking && this.stackedDrawCount > 0) {
-            if (mercy) {
-                const DRAW_VALUES = { '+2': 2, 'Wild+4': 4, 'WildReverseD4': 4, 'Wild+6': 6, 'Wild+10': 10 };
-                const cardVal = DRAW_VALUES[card.value];
-                if (!cardVal) return false;
-                const topCard = this.discardPile.at(-1);
-                const topVal  = topCard ? (DRAW_VALUES[topCard.value] || 0) : 0;
-                return cardVal >= topVal;
-            }
-            return (this.currentValue === '+2'     && card.value === '+2') ||
-                   (this.currentValue === 'Wild+4' && card.value === 'Wild+4');
+    // ─────────────────────────────────────────────────
+    // STACK HANDLING
+    // ─────────────────────────────────────────────────
+    if (stacking && this.stackedDrawCount > 0) {
+        if (mercy) {
+            const DRAW_VALUES = { '+2': 2, 'Wild+4': 4, 'WildReverseD4': 4, 'Wild+6': 6, 'Wild+10': 10 };
+            const cardVal = DRAW_VALUES[card.value];
+            if (!cardVal) return false;
+            const topCard = this.discardPile.at(-1);
+            const topVal  = topCard ? (DRAW_VALUES[topCard.value] || 0) : 0;
+            return cardVal >= topVal;
         }
-
-        if (card.type === 'wild') {
-            if (card.value === 'Wild+4' && !mercy && playerId) {
-                const player = this.players.find(p => p.id === playerId);
-                if (player) {
-                    const hasColor = player.hand.some(c => c !== card && c.color === this.currentColor);
-                    if (hasColor) return false;
-                }
-            }
-            return true;
-        }
-        return card.color === this.currentColor || card.value === this.currentValue;
+        // Original mode: must match exact card type
+        if (this.currentValue === '+2'     && card.value === '+2')     return true;
+        if (this.currentValue === 'Wild+4' && card.value === 'Wild+4') return true;
+        return false;
     }
 
-    playCard(playerId, cardIndex, chosenColor) {
-        this._lastSwapEvent = null;
-        const playerIndex = this.players.findIndex(p => p.id === playerId);
-        if (playerIndex === -1) return { success: false, error: 'Player not found' };
+    // ─────────────────────────────────────────────────
+    // Jump-in validation (when NOT during stack)
+    // ─────────────────────────────────────────────────
+    if (isJumpIn && this.settings.allowJumpIn && this.stackedDrawCount === 0) {
+        // Wild+4: ONLY jump-in on another Wild+4
+        if (card.value === 'Wild+4') {
+            return this.currentValue === 'Wild+4';
+        }
+        // +2: Jump-in on same COLOR
+        if (card.value === '+2') {
+            return card.color === this.currentColor;
+        }
+        // Number cards: EXACT match (color + value)
+        if (card.type === 'number') {
+            return card.color === this.currentColor && card.value === this.currentValue;
+        }
+        // Skip/Reverse: Same COLOR
+        if (card.type === 'action' && (card.value === 'Skip' || card.value === 'Reverse')) {
+            return card.color === this.currentColor;
+        }
+        return false;
+    }
 
-        const player = this.players[playerIndex];
-        const card   = player.hand[cardIndex];
-        if (!card) return { success: false, error: 'Invalid card' };
-        if ((this.glitchSpectators||[]).includes(playerId)) return { success: false, error: 'You are a spectator' };
+    // ─────────────────────────────────────────────────
+    // Wild cards - ALWAYS playable (no restrictions!)
+    // ─────────────────────────────────────────────────
+    if (card.type === 'wild') {
+        return true;
+    }
+    
+    // ─────────────────────────────────────────────────
+    // Normal card validation (color or value match)
+    // ─────────────────────────────────────────────────
+    return card.color === this.currentColor || card.value === this.currentValue;
+}
 
-        if (playerIndex !== this.currentPlayer) {
-            const { allowJumpIn } = this.settings;
-            const isJumpIn = allowJumpIn && (
-                card.value === 'Wild+4' ||
-                (card.value === '+2' && card.color === this.currentColor) ||
-                (card.type === 'number' && card.color === this.currentColor && card.value === this.currentValue)
-            );
-            if (!isJumpIn) return { success: false, error: 'Not your turn' };
+
+
+
+    playCard(playerId, cardIndex, chosenColor, isJumpIn = false) {
+    this._lastSwapEvent = null;
+    const playerIndex = this.players.findIndex(p => p.id === playerId);
+    if (playerIndex === -1) return { success: false, error: 'Player not found' };
+
+    const player = this.players[playerIndex];
+    const card   = player.hand[cardIndex];
+    if (!card) return { success: false, error: 'Invalid card' };
+    
+    // Check if player is eliminated
+    if ((this.glitchSpectators||[]).includes(playerId)) {
+        return { success: false, error: 'You are a spectator' };
+    }
+    if (this.knockedOut.includes(playerId)) {
+        return { success: false, error: 'You are knocked out' };
+    }
+    
+    // Ensure currentPlayer is valid (not eliminated)
+    if (this.isEliminated(this.players[this.currentPlayer]?.id)) {
+        this.currentPlayer = this.getNextPlayerIndex();
+    }
+
+    // ─────────────────────────────────────────────────
+    // TURN VALIDATION WITH JUMP-IN + STACK
+    // ─────────────────────────────────────────────────
+    if (playerIndex !== this.currentPlayer) {
+        const stacking = this.settings.allowStacking || this.isMercy();
+        
+        // ─────────────────────────────────────────────────
+        // CASE 1: Stack Jump-In (during active stack)
+        // ─────────────────────────────────────────────────
+        if (stacking && this.stackedDrawCount > 0) {
+            if (!this.settings.allowJumpIn) {
+                return { 
+                    success: false, 
+                    error: 'Jump-in not allowed - must wait for your turn to stack or draw'
+                };
+            }
+            
+            // Validate stack card
+            if (!this.canPlayCard(card, playerId, false)) {
+                return {
+                    success: false,
+                    error: 'Cannot stack with that card',
+                    debug: {
+                        cardValue: card.value,
+                        stackedDrawCount: this.stackedDrawCount,
+                        currentValue: this.currentValue
+                    }
+                };
+            }
+            
+            // ✅ Valid stack jump-in!
+            // Add to stack and pass to NEXT player after jump-in player
+            this.currentPlayer = playerIndex;
+            this.hasDrawnThisTurn = false;
+            // Stack count already increased by handleCardEffect
+        }
+        // ─────────────────────────────────────────────────
+        // CASE 2: Normal Jump-In (no stack)
+        // ─────────────────────────────────────────────────
+        else if (this.settings.allowJumpIn && isJumpIn) {
+            if (!this.canPlayCard(card, playerId, true)) {
+                return {
+                    success: false,
+                    error: 'Invalid jump-in card',
+                    debug: {
+                        cardValue: card.value,
+                        cardColor: card.color,
+                        currentValue: this.currentValue,
+                        currentColor: this.currentColor
+                    }
+                };
+            }
+            
+            this.hasDrawnThisTurn = false;
             this.currentPlayer = playerIndex;
         }
-
-        if (!this.canPlayCard(card, playerId)) return { success: false, error: "Can't play that card" };
-
-        player.hand.splice(cardIndex, 1);
-        this.discardPile.push(card);
-        if (card.type === 'wild') {
-            this.currentColor = chosenColor || 'red';
-            this.currentValue = card.value;
-        } else {
-            this.currentColor = card.color;
-            this.currentValue = card.value;
-        }
-
-        const effectResult = this.handleCardEffect(card, playerIndex);
-        if (effectResult === 'needSwapTarget') {
-            return { success: true, needSwapTarget: true, winner: null, drawAnimation: null };
-        }
-        if (effectResult === 'needPeekTarget') {
-            return { success: true, needPeekTarget: true, winner: null, drawAnimation: null };
-        }
-
-        this.checkUnoAfterPlay(playerIndex);
-
-        const PENALTY = { '+2': 2, 'Wild+4': 4, '+12': 12, 'WildReverseD4': 4, 'Wild+6': 6, 'Wild+10': 10 };
-        let drawAnimation = null;
-        if (PENALTY[card.value]) {
-            const nextIdx = this.getNextPlayerIndex(playerIndex);
-            drawAnimation = {
-                victimId:   this.players[nextIdx]?.id,
-                victimName: this.players[nextIdx]?.name,
-                playerId:   player.id,
-                playerName: player.name,
-                count:      PENALTY[card.value],
-                cardValue:  card.value,
-                stacking:   card.value !== '+12' && !!this.settings.allowStacking
+        // ─────────────────────────────────────────────────
+        // CASE 3: Not your turn, no valid jump-in
+        // ─────────────────────────────────────────────────
+        else {
+            return { 
+                success: false, 
+                error: 'Not your turn',
+                debug: {
+                    currentPlayer: this.currentPlayer,
+                    currentPlayerName: this.players[this.currentPlayer]?.name,
+                    yourIndex: playerIndex,
+                    isJumpIn: isJumpIn,
+                    stackedDrawCount: this.stackedDrawCount
+                }
             };
         }
+    }
 
-        let newlyKnocked = [];
-        if (this.isMercy()) newlyKnocked = this.checkMercyKnockouts();
+    // Validate card playability
+    if (!this.canPlayCard(card, playerId, isJumpIn)) {
+        return { success: false, error: "Can't play that card" };
+    }
 
-        let winner = null;
-        if (player.hand.length === 0) {
-            winner = playerIndex;
-        } else {
-            const active = this.activePlayers();
-            if (active.length === 1) {
-                winner = this.players.findIndex(p => p.id === active[0].id);
-            } else if (active.length === 0) {
-                winner = playerIndex;
-            }
-        }
+    // ... rest of playCard method (card removal, discard, etc.) ...
+    
+    player.hand.splice(cardIndex, 1);
+    this.discardPile.push(card);
+    if (card.type === 'wild') {
+        this.currentColor = chosenColor || 'red';
+        this.currentValue = card.value;
+    } else {
+        this.currentColor = card.color;
+        this.currentValue = card.value;
+    }
 
-        return {
-            success:       true,
-            winner,
-            swapHappened:  this._lastSwapEvent || null,
-            drawAnimation,
-            newlyKnocked
+    const effectResult = this.handleCardEffect(card, playerIndex);
+    if (effectResult === 'needSwapTarget') {
+        return { success: true, needSwapTarget: true, winner: null, drawAnimation: null };
+    }
+    if (effectResult === 'needPeekTarget') {
+        return { success: true, needPeekTarget: true, winner: null, drawAnimation: null };
+    }
+
+    this.checkUnoAfterPlay(playerIndex);
+
+    const PENALTY = { '+2': 2, 'Wild+4': 4, '+12': 12, 'WildReverseD4': 4, 'Wild+6': 6, 'Wild+10': 10 };
+    let drawAnimation = null;
+    if (PENALTY[card.value]) {
+        const nextIdx = this.getNextPlayerIndex(playerIndex);
+        drawAnimation = {
+            victimId:   this.players[nextIdx]?.id,
+            victimName: this.players[nextIdx]?.name,
+            playerId:   player.id,
+            playerName: player.name,
+            count:      PENALTY[card.value],
+            cardValue:  card.value,
+            stacking:   card.value !== '+12' && !!this.settings.allowStacking
         };
     }
+
+    let newlyKnocked = [];
+    if (this.isMercy()) newlyKnocked = this.checkMercyKnockouts();
+
+    let winner = null;
+    if (player.hand.length === 0) {
+        winner = playerIndex;
+    } else {
+        const active = this.activePlayers();
+        if (active.length === 1) {
+            winner = this.players.findIndex(p => p.id === active[0].id);
+        } else if (active.length === 0) {
+            winner = playerIndex;
+        }
+    }
+
+    return {
+        success:       true,
+        winner,
+        swapHappened:  this._lastSwapEvent || null,
+        drawAnimation,
+        newlyKnocked
+    };
+}
+
+
 
     handleCardEffect(card, playerIndex) {
         const player  = this.players[playerIndex];
@@ -582,34 +695,57 @@ class GameRoom {
                 this.skipNextPlayer();
                 break;
 
-            case 'Reverse':
-                this.direction *= -1;
-                if (this.players.length === 2) {
-                    this.hasDrawnThisTurn = false;
-                } else {
-                    this.advanceTurn();
-                }
-                break;
+           case 'Reverse':
+    this.direction *= -1;
+    if (this.players.length === 2) {
+        // ⚠️ CRITICAL FIX: In 2-player, Reverse acts like Skip
+        this.hasDrawnThisTurn = false;
+        this.advanceTurn(); // Skip to next player
+    } else {
+        this.advanceTurn();
+    }
+    break;
+
 
             case '+2':
-                if (stacking) { this.stackedDrawCount += 2; this.advanceTurn(); }
-                else { this.drawCards(this.getNextPlayerIndex(), 2); this.skipNextPlayer(); }
-                break;
+    if (stacking) { 
+        this.stackedDrawCount += 2; 
+        this.advanceTurn(); 
+    } else { 
+        this.drawCards(this.getNextPlayerIndex(), 2); 
+        this.skipNextPlayer(); 
+    }
+    break;
 
-            case 'Wild+4':
-                if (stacking) { this.stackedDrawCount += 4; this.advanceTurn(); }
-                else { this.drawCards(this.getNextPlayerIndex(), 4); this.skipNextPlayer(); }
-                break;
+case 'Wild+4':
+    if (stacking) { 
+        this.stackedDrawCount += 4; 
+        this.advanceTurn(); 
+    } else { 
+        this.drawCards(this.getNextPlayerIndex(), 4); 
+        this.skipNextPlayer(); 
+    }
+    break;
 
-            case 'Wild+6':
-                if (stacking) { this.stackedDrawCount += 6; this.advanceTurn(); }
-                else { this.drawCards(this.getNextPlayerIndex(), 6); this.skipNextPlayer(); }
-                break;
+case 'Wild+6':
+    if (stacking) { 
+        this.stackedDrawCount += 6; 
+        this.advanceTurn(); 
+    } else { 
+        this.drawCards(this.getNextPlayerIndex(), 6); 
+        this.skipNextPlayer(); 
+    }
+    break;
 
-            case 'Wild+10':
-                if (stacking) { this.stackedDrawCount += 10; this.advanceTurn(); }
-                else { this.drawCards(this.getNextPlayerIndex(), 10); this.skipNextPlayer(); }
-                break;
+case 'Wild+10':
+    if (stacking) { 
+        this.stackedDrawCount += 10; 
+        this.advanceTurn(); 
+    } else { 
+        this.drawCards(this.getNextPlayerIndex(), 10); 
+        this.skipNextPlayer(); 
+    }
+    break;
 
             case 'DiscardAll': {
                 const chosenCol = this.currentColor;
@@ -621,15 +757,24 @@ class GameRoom {
                 break;
             }
 
-            case 'WildReverseD4':
-                this.direction *= -1;
-                if (stacking) { this.stackedDrawCount += 4; this.advanceTurn(); }
-                else { this.drawCards(this.getNextPlayerIndex(), 4); this.skipNextPlayer(); }
-                break;
+           case 'WildReverseD4':
+    this.direction *= -1;
+    if (stacking) { 
+        this.stackedDrawCount += 4; 
+        this.advanceTurn(); 
+    } else { 
+        this.drawCards(this.getNextPlayerIndex(), 4); 
+        this.skipNextPlayer(); 
+    }
+    break;
 
             case 'SkipAll':
+    // ⚠️ CRITICAL FIX: Reset hasDrawnThisTurn for ALL players
+                this.players.forEach(p => p.hand); // Trigger state refresh
                 this.hasDrawnThisTurn = false;
+                 this.advanceTurn();
                 break;
+
 
             case 'Roulette': {
                 const targetColor = this.currentColor;
@@ -747,14 +892,28 @@ class GameRoom {
     }
 
     getNextPlayerIndex(fromIndex = null) {
-        const index = fromIndex !== null ? fromIndex : this.currentPlayer;
-        let next = (index + this.direction + this.players.length) % this.players.length;
-        let guard = 0;
-        while (this.isEliminated(this.players[next]?.id) && guard++ < this.players.length) {
-            next = (next + this.direction + this.players.length) % this.players.length;
-        }
-        return next;
+    const index = fromIndex !== null ? fromIndex : this.currentPlayer;
+    let next = (index + this.direction + this.players.length) % this.players.length;
+    let guard = 0;
+    
+    // Skip eliminated players (Mercy knockout or Glitch spectator)
+    while (this.isEliminated(this.players[next]?.id) && guard++ < this.players.length) {
+        next = (next + this.direction + this.players.length) % this.players.length;
     }
+    
+    // ⚠️ CRITICAL FIX: If all players eliminated, return current player
+    if (guard >= this.players.length) {
+        const active = this.activePlayers();
+        if (active.length > 0) {
+            next = this.players.findIndex(p => p.id === active[0].id);
+        } else {
+            next = this.currentPlayer; // Fallback
+        }
+    }
+    
+    return next;
+}
+
 
     swapHands(a, b) {
         [this.players[a].hand, this.players[b].hand] = [this.players[b].hand, this.players[a].hand];
@@ -1074,108 +1233,124 @@ io.on('connection', socket => {
         broadcastLobbyList();
     });
 
-    socket.on('playCard', ({ roomId, cardIndex, chosenColor }) => {
-        const room = rooms.get(roomId);
-        if (!room || !room.gameStarted) return;
-        const result = room.playCard(socket.id, cardIndex, chosenColor);
-        if (!result.success) { socket.emit('error', result.error); return; }
+   socket.on('playCard', ({ roomId, cardIndex, chosenColor, isJumpIn }) => {
+    const room = rooms.get(roomId);
+    if (!room || !room.gameStarted) {
+        console.warn(`[PlayCard] Room ${roomId} not found or not started`);
+        return;
+    }
+    
+    const player = room.players.find(p => p.id === socket.id);
+    const isStackJumpIn = room.stackedDrawCount > 0 && isJumpIn;
+    console.log(`[PlayCard] ${player?.name} playing card ${cardIndex} (jump-in: ${!!isJumpIn}, stack: ${room.stackedDrawCount})`);
+    
+    const result = room.playCard(socket.id, cardIndex, chosenColor, isJumpIn || false);
+    
+    if (!result.success) {
+        console.warn(`[PlayCard] Failed: ${result.error}`, result.debug);
+        socket.emit('error', result.error);
+        return;
+    }
+    
+    console.log(`[PlayCard] Success: ${player?.name} played ${room.discardPile.at(-1)?.value}${isStackJumpIn ? ' (STACK JUMP-IN!)' : ''}`);
 
-        if (result.needSwapTarget) {
-            socket.emit('chooseSwapTarget', { opponents: room.players.filter(p => p.id !== socket.id).map(p => ({ id: p.id, name: p.name })) });
-            broadcastGameState(room);
-            return;
-        }
-
-        if (result.needPeekTarget) {
-            socket.emit('choosePeekTarget', { opponents: room.players.filter(p => p.id !== socket.id && !(room.glitchSpectators||[]).includes(p.id)).map(p => ({ id: p.id, name: p.name })) });
-            broadcastGameState(room);
-            return;
-        }
-
-        if (result.drawAnimation) io.to(roomId).emit('drawAnimation', result.drawAnimation);
-
-        if (room._discardAllRemoved !== undefined && room._discardAllRemoved !== null) {
-            const playerName = room.players.find(p => p.id === socket.id)?.name;
-            io.to(roomId).emit('discardAllAnnounce', { playerName, color: room.currentColor, removed: room._discardAllRemoved });
-            room._discardAllRemoved = null;
-        }
-
-        if (room._glitchPopupAdTargetId) {
-            io.to(room._glitchPopupAdTargetId).emit('glitchPopupAd', { count: room._glitchPopupAdCount });
-            io.to(roomId).emit('glitchPopupAdAnnounce', { targetName: room.players.find(p=>p.id===room._glitchPopupAdTargetId)?.name, count: room._glitchPopupAdCount });
-            room._glitchPopupAdTargetId = null; room._glitchPopupAdCount = null;
-        }
-        if (room._glitchRandDrawCount) {
-            io.to(roomId).emit('glitchRandDraw', { count: room._glitchRandDrawCount, victimId: room.players.find(p=>p.id!==socket.id)?.id });
-            room._glitchRandDrawCount = null;
-        }
-        if (room._glitchScrambleTargetId) {
-            io.to(room._glitchScrambleTargetId).emit('glitchScramble', { duration: 90000 });
-            io.to(roomId).emit('glitchScrambleAnnounce', { targetId: room._glitchScrambleTargetId, targetName: room.players.find(p=>p.id===room._glitchScrambleTargetId)?.name });
-            room._glitchScrambleTargetId = null;
-        }
-        if (room._glitchedOutTargetId) {
-            io.to(room._glitchedOutTargetId).emit('glitchedOut');
-            io.to(roomId).emit('glitchedOutAnnounce', { targetId: room._glitchedOutTargetId, targetName: room.players.find(p=>p.id===room._glitchedOutTargetId)?.name });
-            room._glitchedOutTargetId = null;
-            const aliveAfterGO = room.activePlayers();
-            if (aliveAfterGO.length <= 1) {
-                const winnerPlayer = aliveAfterGO[0] || room.players[0];
-                const scores = room.players.map(p => {
-                    const score = p.hand.reduce((sum, c) => c.type==='wild' ? sum-1 : c.type==='action' ? sum-2 : sum-3, 0);
-                    return { name: p.name, id: p.id, score, hand: p.hand };
-                });
-                io.to(roomId).emit('gameOver', { winner: winnerPlayer.name, winnerId: winnerPlayer.id, scores, reason: 'last-standing' });
-                room.players.forEach(p => clearRejoin(p.persistentId));
-                rematchQueues.set(roomId, { players: room.players.map(p=>({id:p.id,name:p.name})), settings: room.settings, votes: new Set(), total: room.players.length });
-                setTimeout(() => rematchQueues.delete(roomId), 60000);
-                rooms.delete(roomId);
-                return;
-            }
-        }
-        if (result.newlyKnocked && result.newlyKnocked.length > 0) {
-            result.newlyKnocked.forEach(p => io.to(roomId).emit('playerKnockedOut', { playerId: p.id, playerName: p.name }));
-            const aliveAfterKnock = room.activePlayers();
-            if (aliveAfterKnock.length <= 1) {
-                const winnerPlayer = aliveAfterKnock[0] || room.players[0];
-                const scores = room.players.map(p => {
-                    const score = p.hand.reduce((sum, c) => c.type==='wild' ? sum-1 : c.type==='action' ? sum-2 : sum-3, 0);
-                    return { name: p.name, id: p.id, score, hand: p.hand };
-                });
-                io.to(roomId).emit('gameOver', { winner: winnerPlayer.name, winnerId: winnerPlayer.id, scores, reason: 'last-standing' });
-                room.players.forEach(p => clearRejoin(p.persistentId));
-                rematchQueues.set(roomId, { players: room.players.map(p=>({id:p.id,name:p.name})), settings: room.settings, votes: new Set(), total: room.players.length });
-                setTimeout(() => rematchQueues.delete(roomId), 60000);
-                rooms.delete(roomId);
-                return;
-            }
-        }
-        if (result.swapHappened) {
-            io.to(roomId).emit('swapHappened', result.swapHappened);
-            if (result.swapHappened.unoTransfer) io.to(roomId).emit('unoTransfer', { playerName: result.swapHappened.unoTransfer });
-        }
-
+    if (result.needSwapTarget) {
+        socket.emit('chooseSwapTarget', { opponents: room.players.filter(p => p.id !== socket.id).map(p => ({ id: p.id, name: p.name })) });
         broadcastGameState(room);
+        return;
+    }
 
-        if (result.winner !== null) {
+    if (result.needPeekTarget) {
+        socket.emit('choosePeekTarget', { opponents: room.players.filter(p => p.id !== socket.id && !(room.glitchSpectators||[]).includes(p.id)).map(p => ({ id: p.id, name: p.name })) });
+        broadcastGameState(room);
+        return;
+    }
+
+    if (result.drawAnimation) io.to(roomId).emit('drawAnimation', result.drawAnimation);
+
+    if (room._discardAllRemoved !== undefined && room._discardAllRemoved !== null) {
+        const playerName = room.players.find(p => p.id === socket.id)?.name;
+        io.to(roomId).emit('discardAllAnnounce', { playerName, color: room.currentColor, removed: room._discardAllRemoved });
+        room._discardAllRemoved = null;
+    }
+
+    if (room._glitchPopupAdTargetId) {
+        io.to(room._glitchPopupAdTargetId).emit('glitchPopupAd', { count: room._glitchPopupAdCount });
+        io.to(roomId).emit('glitchPopupAdAnnounce', { targetName: room.players.find(p=>p.id===room._glitchPopupAdTargetId)?.name, count: room._glitchPopupAdCount });
+        room._glitchPopupAdTargetId = null; room._glitchPopupAdCount = null;
+    }
+    if (room._glitchRandDrawCount) {
+        io.to(roomId).emit('glitchRandDraw', { count: room._glitchRandDrawCount, victimId: room.players.find(p=>p.id!==socket.id)?.id });
+        room._glitchRandDrawCount = null;
+    }
+    if (room._glitchScrambleTargetId) {
+        io.to(room._glitchScrambleTargetId).emit('glitchScramble', { duration: 90000 });
+        io.to(roomId).emit('glitchScrambleAnnounce', { targetId: room._glitchScrambleTargetId, targetName: room.players.find(p=>p.id===room._glitchScrambleTargetId)?.name });
+        room._glitchScrambleTargetId = null;
+    }
+    if (room._glitchedOutTargetId) {
+        io.to(room._glitchedOutTargetId).emit('glitchedOut');
+        io.to(roomId).emit('glitchedOutAnnounce', { targetId: room._glitchedOutTargetId, targetName: room.players.find(p=>p.id===room._glitchedOutTargetId)?.name });
+        room._glitchedOutTargetId = null;
+        const aliveAfterGO = room.activePlayers();
+        if (aliveAfterGO.length <= 1) {
+            const winnerPlayer = aliveAfterGO[0] || room.players[0];
             const scores = room.players.map(p => {
-                if (p.hand.length === 0) return { name: p.name, id: p.id, score: 0, hand: [] };
-                const score = p.hand.reduce((sum, card) => {
-                    if (card.type === 'wild')   return sum - 1;
-                    if (card.type === 'action') return sum - 2;
-                    return sum - 3;
-                }, 0);
+                const score = p.hand.reduce((sum, c) => c.type==='wild' ? sum-1 : c.type==='action' ? sum-2 : sum-3, 0);
                 return { name: p.name, id: p.id, score, hand: p.hand };
             });
-            const sorted = [...scores].sort((a, b) => b.score - a.score);
-            io.to(roomId).emit('gameOver', { winner: room.players[result.winner].name, winnerId: room.players[result.winner].id, scores: sorted });
-            // Game over — clear rejoin entries
+            io.to(roomId).emit('gameOver', { winner: winnerPlayer.name, winnerId: winnerPlayer.id, scores, reason: 'last-standing' });
             room.players.forEach(p => clearRejoin(p.persistentId));
-            rematchQueues.set(roomId, { players: room.players.map(p => ({ id: p.id, name: p.name })), settings: room.settings, votes: new Set(), total: room.players.length });
+            rematchQueues.set(roomId, { players: room.players.map(p=>({id:p.id,name:p.name})), settings: room.settings, votes: new Set(), total: room.players.length });
             setTimeout(() => rematchQueues.delete(roomId), 60000);
             rooms.delete(roomId);
+            return;
         }
-    });
+    }
+    if (result.newlyKnocked && result.newlyKnocked.length > 0) {
+        result.newlyKnocked.forEach(p => io.to(roomId).emit('playerKnockedOut', { playerId: p.id, playerName: p.name }));
+        const aliveAfterKnock = room.activePlayers();
+        if (aliveAfterKnock.length <= 1) {
+            const winnerPlayer = aliveAfterKnock[0] || room.players[0];
+            const scores = room.players.map(p => {
+                const score = p.hand.reduce((sum, c) => c.type==='wild' ? sum-1 : c.type==='action' ? sum-2 : sum-3, 0);
+                return { name: p.name, id: p.id, score, hand: p.hand };
+            });
+            io.to(roomId).emit('gameOver', { winner: winnerPlayer.name, winnerId: winnerPlayer.id, scores, reason: 'last-standing' });
+            room.players.forEach(p => clearRejoin(p.persistentId));
+            rematchQueues.set(roomId, { players: room.players.map(p=>({id:p.id,name:p.name})), settings: room.settings, votes: new Set(), total: room.players.length });
+            setTimeout(() => rematchQueues.delete(roomId), 60000);
+            rooms.delete(roomId);
+            return;
+        }
+    }
+    if (result.swapHappened) {
+        io.to(roomId).emit('swapHappened', result.swapHappened);
+        if (result.swapHappened.unoTransfer) io.to(roomId).emit('unoTransfer', { playerName: result.swapHappened.unoTransfer });
+    }
+
+    broadcastGameState(room);
+
+    if (result.winner !== null) {
+        const scores = room.players.map(p => {
+            if (p.hand.length === 0) return { name: p.name, id: p.id, score: 0, hand: [] };
+            const score = p.hand.reduce((sum, card) => {
+                if (card.type === 'wild')   return sum - 1;
+                if (card.type === 'action') return sum - 2;
+                return sum - 3;
+            }, 0);
+            return { name: p.name, id: p.id, score, hand: p.hand };
+        });
+        const sorted = [...scores].sort((a, b) => b.score - a.score);
+        io.to(roomId).emit('gameOver', { winner: room.players[result.winner].name, winnerId: room.players[result.winner].id, scores: sorted });
+        room.players.forEach(p => clearRejoin(p.persistentId));
+        rematchQueues.set(roomId, { players: room.players.map(p => ({ id: p.id, name: p.name })), settings: room.settings, votes: new Set(), total: room.players.length });
+        setTimeout(() => rematchQueues.delete(roomId), 60000);
+        rooms.delete(roomId);
+    }
+});
+
+
 
     socket.on('drawCard', ({ roomId }) => {
         const room = rooms.get(roomId);
