@@ -294,7 +294,7 @@ html[data-glitch="1"] .cube-face:nth-child(6) {
 }
 
 /* ═══════════════════════════════════════════════════
-   CUSTOM CURSOR
+   CUSTOM CURSOR - WORKS ON TOUCH & MOUSE
    ═══════════════════════════════════════════════════ */
 .custom-cursor {
     position: fixed;
@@ -303,7 +303,8 @@ html[data-glitch="1"] .cube-face:nth-child(6) {
     pointer-events: none;
     z-index: 10000;
     transform: translate(-50%, -50%);
-    transition: transform 0.1s ease;
+    transition: transform 0.1s ease, opacity 0.3s ease;
+    opacity: 1;
 }
 
 .cursor-outer {
@@ -323,6 +324,7 @@ html[data-glitch="1"] .cube-face:nth-child(6) {
     background: rgba(102, 126, 234, 0.9);
     border-radius: 50%;
     transform: translate(-50%, -50%);
+    transition: transform 0.1s ease, background 0.1s ease;
 }
 
 .cursor-outer.clicking {
@@ -357,7 +359,7 @@ html[data-glitch="1"] .cube-face:nth-child(6) {
 }
 
 /* ═══════════════════════════════════════════════════
-   MOUSE NAME TAG
+   MOUSE NAME TAG - WORKS ON TOUCH & MOUSE
    ═══════════════════════════════════════════════════ */
 .mouse-name-tag {
     position: fixed;
@@ -397,7 +399,7 @@ html[data-glitch="1"] .mouse-name-tag {
     box-shadow: 0 4px 15px rgba(0, 255, 65, 0.5);
 }
 
-/* Hide default cursor on game screen */
+/* Hide default cursor on game screen (ALL devices) */
 #gameScreen {
     cursor: none;
 }
@@ -406,10 +408,64 @@ html[data-glitch="1"] .mouse-name-tag {
     cursor: none;
 }
 
-/* Show default cursor on menus */
+/* Show default cursor on menus (ALL devices) */
 #mainMenu, #onlineMenu, #lobbyList, #createLobby, #waitingLobby, #scoreboardScreen {
     cursor: default;
 }
+
+/* ═══════════════════════════════════════════════════
+   TOUCH OPTIMIZATIONS
+   ═══════════════════════════════════════════════════ */
+
+/* Prevent zoom on double-tap */
+* {
+    touch-action: manipulation;
+}
+
+/* Larger tap targets for mobile */
+@media (max-width: 768px) {
+    .card {
+        min-width: 70px;
+        min-height: 105px;
+    }
+    
+    .menu-button,
+    .popup-button,
+    .controls button {
+        min-height: 50px;
+        padding: 15px 25px;
+        font-size: 1.1em;
+    }
+    
+    /* Cursor slightly larger on mobile for visibility */
+    .custom-cursor {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .cursor-inner {
+        width: 10px;
+        height: 10px;
+    }
+    
+    /* Name tag more visible on mobile */
+    .mouse-name-tag {
+        font-size: 1em;
+        padding: 8px 16px;
+    }
+}
+
+/* Disable cursor fade on desktop (keep it always visible) */
+@media (min-width: 769px) {
+    .custom-cursor {
+        opacity: 1 !important;
+    }
+    
+    .mouse-name-tag.visible {
+        opacity: 1 !important;
+    }
+}
+
 
         * {
             margin: 0;
@@ -2972,42 +3028,27 @@ html[data-glitch="1"] .mouse-name-tag {
 </style>
 
 <script>
-    // ═══════════════════════════════════════════════════
-    // FLOATING CUBES & CUSTOM CURSOR
-    // ═══════════════════════════════════════════════════
+   // ═══════════════════════════════════════════════════
+// FLOATING CUBES & CUSTOM CURSOR (ALWAYS VISIBLE WHEN LOGGED IN)
+// ═══════════════════════════════════════════════════
 
-    function createFloatingCubes() {
+function createFloatingCubes() {
     const container = document.getElementById('cubeContainer');
     if (!container) return;
     
     const cubeCount = 12;
     
     for (let i = 0; i < cubeCount; i++) {
-        // Random size between 20px and 70px
         const size = 20 + Math.random() * 50;
         
-        // Position cubes to avoid clustering in center
-        // Use quadrants + random offset
         const quadrant = i % 4;
         let left, top;
         
         switch(quadrant) {
-            case 0: // Top-left
-                left = Math.random() * 40;
-                top = Math.random() * 40;
-                break;
-            case 1: // Top-right
-                left = 60 + Math.random() * 40;
-                top = Math.random() * 40;
-                break;
-            case 2: // Bottom-left
-                left = Math.random() * 40;
-                top = 60 + Math.random() * 40;
-                break;
-            case 3: // Bottom-right
-                left = 60 + Math.random() * 40;
-                top = 60 + Math.random() * 40;
-                break;
+            case 0: left = Math.random() * 40; top = Math.random() * 40; break;
+            case 1: left = 60 + Math.random() * 40; top = Math.random() * 40; break;
+            case 2: left = Math.random() * 40; top = 60 + Math.random() * 40; break;
+            case 3: left = 60 + Math.random() * 40; top = 60 + Math.random() * 40; break;
         }
         
         const cube = document.createElement('div');
@@ -3019,15 +3060,12 @@ html[data-glitch="1"] .mouse-name-tag {
         cube.style.animationDelay = `${Math.random() * 5}s`;
         cube.style.animationDuration = `${8 + Math.random() * 8}s`;
         
-        // Add custom CSS variable for individual rotation timing
         const rotateDuration = 10 + Math.random() * 6;
         cube.style.setProperty('--rotate-duration', rotateDuration + 's');
         
-        // Create random animation direction
         const direction = Math.random() > 0.5 ? 'normal' : 'reverse';
         cube.style.animationDirection = direction;
         
-        // Create 6 faces for 3D cube
         for (let j = 0; j < 6; j++) {
             const face = document.createElement('div');
             face.className = 'cube-face';
@@ -3038,46 +3076,83 @@ html[data-glitch="1"] .mouse-name-tag {
     }
 }
 
-    // Custom Cursor Logic
-    function initCustomCursor() {
-        const cursor = document.getElementById('customCursor');
-        const nameTag = document.getElementById('mouseNameTag');
+function initCustomCursor() {
+    const cursor = document.getElementById('customCursor');
+    const nameTag = document.getElementById('mouseNameTag');
     
-     if (!cursor || !nameTag) return;
+    if (!cursor || !nameTag) return;
     
-     const cursorOuter = cursor.querySelector('.cursor-outer');
-        const cursorInner = cursor.querySelector('.cursor-inner');
+    const cursorOuter = cursor.querySelector('.cursor-outer');
+    const cursorInner = cursor.querySelector('.cursor-inner');
     
-     // Get player name from game state or default
-        const getPlayerName = () => {
+    // ─────────────────────────────────────────────────
+    // CHECK IF USER IS LOGGED IN
+    // ─────────────────────────────────────────────────
+    function isLoggedIn() {
+        return currentUser !== null && currentUser !== undefined;
+    }
+    
+    // ─────────────────────────────────────────────────
+    // GET PLAYER NAME (Priority Order)
+    // ─────────────────────────────────────────────────
+    function getPlayerName() {
+        // Priority 1: Current game state name (during gameplay)
         if (gameState && gameState.yourName) {
             return gameState.yourName;
         }
+        // Priority 2: Logged in user nickname
+        if (currentUser && currentUser.nickname) {
+            return currentUser.nickname;
+        }
+        // Priority 3: Logged in username
+        if (currentUser && currentUser.username) {
+            return currentUser.username;
+        }
+        // Priority 4: LocalStorage saved name (lobby name)
         const stored = localStorage.getItem('ono-playerName');
-        return stored || 'Player';
-    };
+        if (stored) return stored;
+        // Default
+        return 'Player';
+    }
     
-    // Mouse move handler
-    document.addEventListener('mousemove', (e) => {
+    // ─────────────────────────────────────────────────
+    // UPDATE CURSOR & NAMETAG POSITION
+    // ─────────────────────────────────────────────────
+    function updateCursorPosition(x, y) {
         // Move cursor
-        cursor.style.left = e.clientX + 'px';
-        cursor.style.top = e.clientY + 'px';
+        cursor.style.left = x + 'px';
+        cursor.style.top = y + 'px';
         
-        // Move name tag
-        nameTag.style.left = e.clientX + 'px';
-        nameTag.style.top = e.clientY + 'px';
+        // Move name tag (offset from cursor)
+        nameTag.style.left = (x + 15) + 'px';
+        nameTag.style.top = (y + 15) + 'px';
+        
+        // Update name (always use current name)
         nameTag.textContent = getPlayerName();
         
-        // Show name tag only on game screen
-        const gameScreen = document.getElementById('gameScreen');
-        if (gameScreen && gameScreen.classList.contains('active')) {
+        // ✅ VISIBILITY RULE:
+        // - If logged in → ALWAYS VISIBLE (all screens)
+        // - If NOT logged in → Only visible on game screen
+        if (isLoggedIn()) {
             nameTag.classList.add('visible');
         } else {
-            nameTag.classList.remove('visible');
+            // Not logged in - only show on game screen
+            const gameScreen = document.getElementById('gameScreen');
+            if (gameScreen && gameScreen.classList.contains('active')) {
+                nameTag.classList.add('visible');
+            } else {
+                nameTag.classList.remove('visible');
+            }
         }
+    }
+    
+    // ─────────────────────────────────────────────────
+    // MOUSE EVENTS (Desktop)
+    // ─────────────────────────────────────────────────
+    document.addEventListener('mousemove', (e) => {
+        updateCursorPosition(e.clientX, e.clientY);
     });
     
-    // Click effect
     document.addEventListener('mousedown', () => {
         cursorOuter.classList.add('clicking');
         cursorInner.classList.add('clicking');
@@ -3088,10 +3163,45 @@ html[data-glitch="1"] .mouse-name-tag {
         cursorInner.classList.remove('clicking');
     });
     
-    // Hover effect on interactive elements
+    // ─────────────────────────────────────────────────
+    // TOUCH EVENTS (Mobile/Tablet)
+    // ✅ BEHAVES EXACTLY LIKE PC
+    // ─────────────────────────────────────────────────
+    document.addEventListener('touchstart', (e) => {
+        const touch = e.touches[0];
+        const x = touch.clientX;
+        const y = touch.clientY;
+        
+        // Update cursor position (same as mousemove on PC)
+        updateCursorPosition(x, y);
+        
+        // Click animation
+        cursorOuter.classList.add('clicking');
+        cursorInner.classList.add('clicking');
+    }, { passive: true });
+    
+    // ✅ Cursor follows finger continuously (like mouse on PC)
+    document.addEventListener('touchmove', (e) => {
+        const touch = e.touches[0];
+        const x = touch.clientX;
+        const y = touch.clientY;
+        
+        // Update cursor position while dragging (same as mousemove on PC)
+        updateCursorPosition(x, y);
+    }, { passive: true });
+    
+    document.addEventListener('touchend', () => {
+        cursorOuter.classList.remove('clicking');
+        cursorInner.classList.remove('clicking');
+    });
+    
+    // ─────────────────────────────────────────────────
+    // HOVER EFFECTS (Both Mouse & Touch)
+    // ─────────────────────────────────────────────────
     const interactiveElements = document.querySelectorAll('button, .card, .menu-button, .lobby-card, input, select');
     
     interactiveElements.forEach(el => {
+        // Mouse hover
         el.addEventListener('mouseenter', () => {
             cursor.classList.add('hovering');
         });
@@ -3099,15 +3209,55 @@ html[data-glitch="1"] .mouse-name-tag {
         el.addEventListener('mouseleave', () => {
             cursor.classList.remove('hovering');
         });
+        
+        // Touch hover (same behavior as mouse)
+        el.addEventListener('touchstart', () => {
+            cursor.classList.add('hovering');
+        }, { passive: true });
+        
+        el.addEventListener('touchend', () => {
+            cursor.classList.remove('hovering');
+        });
     });
     
-    // Update name tag when game state changes
+    // ─────────────────────────────────────────────────
+    // UPDATE NAME TAG WHEN GAME STATE CHANGES
+    // ─────────────────────────────────────────────────
     const originalUpdateGameUI = window.updateGameUI;
     if (originalUpdateGameUI) {
         window.updateGameUI = function() {
             originalUpdateGameUI();
             nameTag.textContent = getPlayerName();
+            // Re-check visibility in case login state changed
+            if (isLoggedIn()) {
+                nameTag.classList.add('visible');
+            }
         };
+    }
+    
+    // Update when screens change
+    const originalShowScreen = window.showScreen;
+    if (originalShowScreen) {
+        window.showScreen = function(screenId) {
+            originalShowScreen(screenId);
+            // Re-check visibility
+            if (isLoggedIn()) {
+                nameTag.classList.add('visible');
+            } else {
+                const gameScreen = document.getElementById('gameScreen');
+                if (gameScreen && gameScreen.classList.contains('active')) {
+                    nameTag.classList.add('visible');
+                } else {
+                    nameTag.classList.remove('visible');
+                }
+            }
+            nameTag.textContent = getPlayerName();
+        };
+    }
+    
+    // Initial visibility check
+    if (isLoggedIn()) {
+        nameTag.classList.add('visible');
     }
 }
 
@@ -3141,6 +3291,7 @@ observer.observe(document.documentElement, {
     attributes: true,
     attributeFilter: ['data-theme', 'data-mercy', 'data-glitch']
 });
+
 
 </script>
 
@@ -4588,6 +4739,16 @@ observer.observe(document.documentElement, {
             clearRecoveryTimeout();
             lastAutoDrawId = null; // Reset auto-draw tracking
 
+             const stateChanged = !gameState || 
+                state.currentPlayer !== gameState.currentPlayer ||
+                state.currentColor !== gameState.currentColor ||
+                state.currentValue !== gameState.currentValue ||
+             state.stackedDrawCount !== gameState.stackedDrawCount;
+    
+                if (stateChanged) {
+                 console.log('[Client] Game state changed, refreshing UI');
+                 }
+
             // Detect if an opponent just played a card (discard changed, not our draw)
             const discardChanged = gameState &&
                 state.discardPile &&
@@ -4626,6 +4787,7 @@ observer.observe(document.documentElement, {
                     const c = state.lastDrawInfo.cardsDrawn;
                     showMessage(c === 1 ? 'Opponent drew a card!' : `Opponent drew ${c} cards!`);
                 }
+                 gameState = state;
                 updateGameUI();
             }
         });
@@ -5529,43 +5691,65 @@ document.addEventListener('DOMContentLoaded', function() {
             // and you have no card that can stack on it
             // FIX: Track if auto-draw already happened for this stack to prevent loops
             const currentStackId = `stack_${gameState.stackedDrawCount}_${gameState.discardPile?.value}`;
-            if (gameState.isYourTurn && gameState.stackedDrawCount > 0 && !isWaitingForServer && 
-                lastAutoDrawId !== currentStackId) {
-                const MERCY_DRAW_CARDS = ['+2', 'Wild+4', 'WildReverseD4'];
-                const isMercyMode = gameState.settings && gameState.settings.gameMode === 'mercy';
-                const topDiscard = gameState.discardPile;
-                const DRAW_VALUES = { '+2': 2, 'Wild+4': 4, 'WildReverseD4': 4, 'Wild+6': 6, 'Wild+10': 10 };
-                const topVal = topDiscard ? (DRAW_VALUES[topDiscard.value] || 0) : 0;
-                const hasStackCard = gameState.yourHand && gameState.yourHand.some(card => {
-                    if (isMercyMode) {
-                        const v = DRAW_VALUES[card.value];
-                        return v && v >= topVal;
-                    }
-                    if (gameState.currentValue === '+2'     && card.value === '+2')     return true;
-                    if (gameState.currentValue === 'Wild+4' && card.value === 'Wild+4') return true;
-                    return false;
-                });
-                if (!hasStackCard) {
-                    // No stackable card — automatically absorb the penalty
-                    lastAutoDrawId = currentStackId; // Mark that we're processing this stack
-                    isWaitingForServer = true;
-                    setRecoveryTimeout();
-                    setTimeout(() => {
-                        if (socket && socket.connected) {
-                            socket.emit('drawCard', { roomId });
-                        } else {
-                            // Socket not connected, reset flags
-                            isWaitingForServer = false;
-                            lastAutoDrawId = null;
-                            clearRecoveryTimeout();
-                        }
-                    }, 600); // short delay so player sees the stack count before it resolves
-                }
+if (gameState.isYourTurn && gameState.stackedDrawCount > 0 && !isWaitingForServer && 
+    lastAutoDrawId !== currentStackId) {
+    
+    const MERCY_DRAW_CARDS = ['+2', 'Wild+4', 'WildReverseD4'];
+    const isMercyMode = gameState.settings && gameState.settings.gameMode === 'mercy';
+    const topDiscard = gameState.discardPile;
+    const DRAW_VALUES = { '+2': 2, 'Wild+4': 4, 'WildReverseD4': 4, 'Wild+6': 6, 'Wild+10': 10 };
+    const topVal = topDiscard ? (DRAW_VALUES[topDiscard.value] || 0) : 0;
+    
+    const hasStackCard = gameState.yourHand && gameState.yourHand.some(card => {
+        if (isMercyMode) {
+            const v = DRAW_VALUES[card.value];
+            return v && v >= topVal;
+        }
+        if (gameState.currentValue === '+2'     && card.value === '+2')     return true;
+        if (gameState.currentValue === 'Wild+4' && card.value === 'Wild+4') return true;
+        return false;
+    });
+    
+    if (!hasStackCard) {
+        // ⚠️ CRITICAL FIX #3: Add timeout to prevent infinite loop
+        lastAutoDrawId = currentStackId;
+        isWaitingForServer = true;
+        setRecoveryTimeout();
+        
+        setTimeout(() => {
+            if (socket && socket.connected) {
+                socket.emit('drawCard', { roomId });
+                // ⚠️ CRITICAL FIX #4: Reset flags after emit
+                setTimeout(() => {
+                    isWaitingForServer = false;
+                    lastAutoDrawId = null;
+                    clearRecoveryTimeout();
+                }, 1000);
+            } else {
+                // Socket not connected, reset flags immediately
+                isWaitingForServer = false;
+                lastAutoDrawId = null;
+                clearRecoveryTimeout();
             }
+        }, 600);
+    }
+}
 
         } catch (error) {
             console.error('Error updating UI:', error);
         }
+
+        // Add this at the end of updateGameUI()
+console.log('[UI Debug]', {
+    stackedDrawCount: gameState.stackedDrawCount,
+    currentValue: gameState.currentValue,
+    currentColor: gameState.currentColor,
+    isYourTurn: gameState.isYourTurn,
+    hasDrawn: gameState.hasDrawnThisTurn,
+    lastAutoDrawId: lastAutoDrawId
+});
+
+
     }
 
     // =============================================
@@ -5699,21 +5883,23 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
    function renderPlayerHand() {
-        const handDiv = document.getElementById('playerHand');
-     handDiv.innerHTML = '';
+    const handDiv = document.getElementById('playerHand');
+    handDiv.innerHTML = '';
     
-        if (!gameState.yourHand) return;
+    if (!gameState.yourHand) return;
     
-     if (gameState.isYourTurn) {
+    if (gameState.isYourTurn) {
         handDiv.classList.add('your-turn');
-     } else {
+    } else {
         handDiv.classList.remove('your-turn');
-      }
+    }
 
-     let hasJumpInCard = false;
-        let jumpInLabel = '⚡ JUMP IN!';
+    let hasJumpInCard = false;
+    let jumpInLabel = '⚡ JUMP IN!';
+    let jumpInCardIndex = -1;
+    const isStackActive = gameState.stackedDrawCount > 0;
     
-      gameState.yourHand.forEach((card, index) => {
+    gameState.yourHand.forEach((card, index) => {
         const isPlayable = canPlayCard(card);
         const isJumpIn   = canJumpIn(card);
         const displayCard = (isGlitch() && glitchScrambleActive) ? getGlitchDisplay(card, index) : card;
@@ -5726,15 +5912,30 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (isJumpIn) {
             hasJumpInCard = true;
-            if (card.value === 'Wild+4') jumpInLabel = '⚡ JUMP IN! Wild +4';
-            else if (card.value === '+2')  jumpInLabel = '⚡ JUMP IN! +2';
+            jumpInCardIndex = index;
+            
+            // ✅ Dynamic banner based on situation
+            if (isStackActive) {
+                const DRAW_VALUES = { '+2': 2, 'Wild+4': 4, 'WildReverseD4': 4, 'Wild+6': 6, 'Wild+10': 10 };
+                const addValue = DRAW_VALUES[card.value] || 0;
+                const newStack = gameState.stackedDrawCount + addValue;
+                jumpInLabel = `⚡ STACK JUMP-IN! +${addValue} → Total: ${newStack}`;
+            } else {
+                if (card.value === 'Wild+4') {
+                    jumpInLabel = '⚡ JUMP IN! Wild +4';
+                } else if (card.value === '+2') {
+                    jumpInLabel = '⚡ JUMP IN! +2';
+                } else if (card.type === 'number') {
+                    jumpInLabel = `⚡ JUMP IN! ${card.value}`;
+                }
+            }
+            
             cardDiv.classList.add('jump-in-card');
-            // FIX: Ensure click handler is set
             cardDiv.onclick = (e) => {
                 e.stopPropagation();
                 playCard(index, true);
             };
-        } else if (!isPlayable || !gameState.isYourTurn || isWaitingForServer) {
+        } else if (!isPlayable || (!gameState.isYourTurn && !isJumpIn) || isWaitingForServer) {
             cardDiv.classList.add('disabled');
             cardDiv.onclick = null;
         } else {
@@ -5744,11 +5945,14 @@ document.addEventListener('DOMContentLoaded', function() {
             };
         }
         
-     handDiv.appendChild(cardDiv);
-     });
+        handDiv.appendChild(cardDiv);
+    });
 
-     updateJumpInBanner(hasJumpInCard, jumpInLabel);
-    }
+    // Show banner if has jump-in card and not your turn
+    const shouldShowBanner = hasJumpInCard && !gameState.isYourTurn;
+    updateJumpInBanner(shouldShowBanner, jumpInLabel);
+}
+
 
     let jumpInBannerVisible = false;
     function updateJumpInBanner(show, label = '⚡ JUMP IN!') {
@@ -6198,33 +6402,95 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => burst.remove(), 1300);
     }
 
-    function canJumpIn(card) {
-        if (!gameState || !gameState.settings.allowJumpIn) return false;
-        if (gameState.isYourTurn) return false;
-        if (!card) return false;
-        if (gameState.stackedDrawCount > 0) return false; // can't jump in during a draw stack
-
-        if (card.value === 'Wild+4') {
-            // Wild+4 can always jump in
-            return true;
-        }
-        if (card.value === '+2') {
-            // +2 jump in only when same color as current
-            return card.color === gameState.currentColor;
-        }
-        if (card.type === 'number') {
-            // Number card: exact match (same color AND same value)
-            return card.color === gameState.currentColor && card.value === gameState.currentValue;
-        }
+   function canJumpIn(card) {
+    if (!gameState || !card) return false;
+    
+    // ─────────────────────────────────────────────────
+    // Rule #1: Jump-in only allowed if setting enabled
+    // ─────────────────────────────────────────────────
+    if (!gameState.settings || !gameState.settings.allowJumpIn) {
         return false;
     }
+    
+    // ─────────────────────────────────────────────────
+    // Rule #2: Can't jump-in if it's already your turn
+    // ─────────────────────────────────────────────────
+    if (gameState.isYourTurn) {
+        return false;
+    }
+    
+    // ─────────────────────────────────────────────────
+    // Rule #3: Check if player is knocked out
+    // ─────────────────────────────────────────────────
+    const myPlayer = gameState.allPlayers?.find(p => p.isYou);
+    if (myPlayer && myPlayer.knockedOut) {
+        return false;
+    }
+    
+    // ─────────────────────────────────────────────────
+    // Rule #4: STACK JUMP-IN - Jump in during stack with draw cards
+    // ─────────────────────────────────────────────────
+    if (gameState.stackedDrawCount > 0) {
+        const isMercyMode = gameState.settings.gameMode === 'mercy';
+        const DRAW_VALUES = { '+2': 2, 'Wild+4': 4, 'WildReverseD4': 4, 'Wild+6': 6, 'Wild+10': 10 };
+        
+        // Check if this card can stack
+        const cardValue = DRAW_VALUES[card.value];
+        if (!cardValue) return false;
+        
+        const topDiscard = gameState.discardPile;
+        const topValue = topDiscard ? (DRAW_VALUES[topDiscard.value] || 0) : 0;
+        
+        if (isMercyMode) {
+            // Mercy: can stack if card value >= top card value
+            return cardValue >= topValue;
+        } else {
+            // Original: must match exact card type
+            if (gameState.currentValue === '+2' && card.value === '+2') return true;
+            if (gameState.currentValue === 'Wild+4' && card.value === 'Wild+4') return true;
+            return false;
+        }
+    }
+    
+    // ─────────────────────────────────────────────────
+    // Rule #5: NORMAL JUMP-IN (no stack active)
+    // ─────────────────────────────────────────────────
+    
+    // Wild+4: ONLY jump-in on another Wild+4
+    if (card.value === 'Wild+4') {
+        return gameState.currentValue === 'Wild+4';
+    }
+    
+    // +2: Jump-in on same COLOR (when no stack)
+    if (card.value === '+2') {
+        return card.color === gameState.currentColor;
+    }
+    
+    // Number cards: EXACT match (color + value)
+    if (card.type === 'number') {
+        return card.color === gameState.currentColor && 
+               card.value === gameState.currentValue;
+    }
+    
+    // Skip/Reverse: Same COLOR
+    if (card.type === 'action' && (card.value === 'Skip' || card.value === 'Reverse')) {
+        return card.color === gameState.currentColor;
+    }
+    
+    // All other cards cannot jump-in
+    return false;
+}
+
+
 
 function canPlayCard(card) {
     if (!gameState || !card) return false;
     const isMercyMode = gameState.settings && gameState.settings.gameMode === 'mercy';
     const stacking = gameState.settings.allowStacking || isMercyMode;
 
-    // If there's a stacked draw, check if we can stack
+    // ─────────────────────────────────────────────────
+    // STACK HANDLING
+    // ─────────────────────────────────────────────────
     if (stacking && gameState.stackedDrawCount > 0) {
         if (isMercyMode) {
             const DRAW_VALUES = { '+2': 2, 'Wild+4': 4, 'WildReverseD4': 4, 'Wild+6': 6, 'Wild+10': 10 };
@@ -6234,43 +6500,67 @@ function canPlayCard(card) {
             const topVal = topDiscard ? (DRAW_VALUES[topDiscard.value] || 0) : 0;
             return cardVal >= topVal;
         }
+        // Original mode: must match exact card type
         if (gameState.currentValue === '+2'     && card.value === '+2')     return true;
         if (gameState.currentValue === 'Wild+4' && card.value === 'Wild+4') return true;
         return false;
     }
 
+    // ─────────────────────────────────────────────────
+    // Wild cards - ALWAYS playable (no restrictions!)
+    // ─────────────────────────────────────────────────
     if (card.type === 'wild') {
-        // Wild+4: Only restrict if NOT mercy mode AND player has matching color
-        if (card.value === 'Wild+4' && !isMercyMode && gameState.yourHand) {
-            const hasColor = gameState.yourHand.some(c => 
-                c !== card && c.color === gameState.currentColor && c.type !== 'wild'
-            );
-            if (hasColor) return false;
-        }
         return true;
     }
 
+    // ─────────────────────────────────────────────────
+    // Normal card validation (color or value match)
+    // ─────────────────────────────────────────────────
     return card.color === gameState.currentColor || card.value === gameState.currentValue;
 }
+
+
 
    function playCard(index, isJumpIn = false) {
     if (!gameState || !gameState.yourHand) return;
     if (isSpectator) return;
-    if (!gameState.isYourTurn && !isJumpIn) return;
     
-    // FIX: Prevent double-click while waiting for server
-    if (isWaitingForServer) {
-        console.warn('Still waiting for server, ignoring play');
+    // Check knocked out status
+    const myPlayer = gameState.allPlayers?.find(p => p.isYou);
+    if (myPlayer && myPlayer.knockedOut) {
+        showMessage('☠️ You are knocked out! Cannot play cards.');
         return;
     }
     
     const card = gameState.yourHand[index];
     if (!card) return;
     
+    // ─────────────────────────────────────────────────
+    // JUMP-IN VALIDATION
+    // ─────────────────────────────────────────────────
     if (isJumpIn) {
-        if (!canJumpIn(card)) return;
+        if (!canJumpIn(card)) {
+            showMessage("⚠️ Can't jump in with that card!");
+            console.warn('Jump-in rejected:', {
+                cardValue: card.value,
+                cardColor: card.color,
+                currentValue: gameState.currentValue,
+                currentColor: gameState.currentColor,
+                isYourTurn: gameState.isYourTurn,
+                stackedDrawCount: gameState.stackedDrawCount
+            });
+            return;
+        }
     } else {
-        if (!canPlayCard(card)) return;
+        // Regular play - must be your turn
+        if (!gameState.isYourTurn) {
+            showMessage(`⏰ It's ${gameState.currentPlayerName}'s turn, not yours!`);
+            return;
+        }
+        if (!canPlayCard(card)) {
+            showMessage("⚠️ Can't play that card!");
+            return;
+        }
     }
     
     updateJumpInBanner(false);
@@ -6278,9 +6568,18 @@ function canPlayCard(card) {
     const yourHandDiv = document.getElementById('playerHand');
     const cardElement = yourHandDiv.children[index];
     
+    // Timeout recovery
+    const serverTimeout = setTimeout(() => {
+        console.warn('Server timeout - resetting wait flag');
+        isWaitingForServer = false;
+        clearRecoveryTimeout();
+        showMessage('⚠️ Server not responding, please try again');
+    }, 5000);
+    
     if (card.type === 'wild') {
         pendingCardIndex = index;
         showColorPicker();
+        window._wildCardTimeout = serverTimeout;
     } else {
         isWaitingForServer = true;
         setRecoveryTimeout();
@@ -6289,16 +6588,21 @@ function canPlayCard(card) {
                 socket.emit('playCard', {
                     roomId: roomId,
                     cardIndex: index,
-                    chosenColor: null
+                    chosenColor: null,
+                    isJumpIn: isJumpIn
                 });
+                clearTimeout(serverTimeout);
             } else {
-                // Socket not connected, reset flag
                 isWaitingForServer = false;
                 clearRecoveryTimeout();
+                clearTimeout(serverTimeout);
+                showMessage('⚠️ Connection lost, cannot play card');
             }
         });
     }
 }
+
+
 
 
     function showColorPicker() {
@@ -6623,6 +6927,25 @@ function chooseColor(color) {
 
     const COLOR_HEX = { red: '#e74c3c', blue: '#3498db', green: '#2ecc71', yellow: '#f1c40f' };
     function getColorHex(color) { return COLOR_HEX[color] || '#ffffff'; }
+
+    // Debug command - type in browser console: debugTurn()
+function debugTurn() {
+    if (!gameState) {
+        console.log('No game state');
+        return;
+    }
+    console.log('=== TURN DEBUG ===');
+    console.log('Your Index:', gameState.yourIndex);
+    console.log('Current Player:', gameState.currentPlayer);
+    console.log('Current Player Name:', gameState.currentPlayerName);
+    console.log('Is Your Turn:', gameState.isYourTurn);
+    console.log('Has Drawn:', gameState.hasDrawnThisTurn);
+    console.log('Stack Count:', gameState.stackedDrawCount);
+    console.log('Direction:', gameState.direction);
+    console.log('Knocked Out:', gameState.knockedOut);
+    console.log('=================');
+}
+
 </script>
 
 
