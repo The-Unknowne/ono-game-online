@@ -6,6 +6,51 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <style>
+        /* =============================================
+           LANDSCAPE ENFORCEMENT (mobile)
+        ============================================= */
+        #landscape-prompt {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 999999;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 45%, #0f3460 100%);
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            color: #fff;
+            font-family: 'Nunito', sans-serif;
+            text-align: center;
+            padding: 24px;
+        }
+        #landscape-prompt .lp-icon {
+            font-size: 72px;
+            animation: lp-rotate 1.8s ease-in-out infinite alternate;
+            transform-origin: center;
+            line-height: 1;
+        }
+        @keyframes lp-rotate {
+            0%   { transform: rotate(0deg); }
+            100% { transform: rotate(90deg); }
+        }
+        #landscape-prompt h2 {
+            font-size: 1.5em;
+            font-weight: 900;
+            margin: 0;
+            letter-spacing: 0.5px;
+        }
+        #landscape-prompt p {
+            font-size: 1em;
+            opacity: 0.75;
+            margin: 0;
+            max-width: 280px;
+        }
+        /* Shown only via JS when mobile + portrait */
+        body.force-landscape #landscape-prompt { display: flex; }
+        body.force-landscape > *:not(#landscape-prompt) { display: none !important; }
+    </style>
     <title>O,No Online</title>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
     <script src="/socket.io/socket.io.js"></script>
@@ -3297,6 +3342,39 @@ observer.observe(document.documentElement, {
 
 </head>
 <body>
+
+    <!-- ===== LANDSCAPE ENFORCEMENT OVERLAY ===== -->
+    <div id="landscape-prompt">
+        <div class="lp-icon">📱</div>
+        <h2>Rotate Your Device</h2>
+        <p>This game plays best in <strong>landscape mode</strong>. Please rotate your phone sideways to continue.</p>
+    </div>
+    <!-- ========================================= -->
+    <script>
+        (function() {
+            function isMobileDevice() {
+                // True mobile: touch screen AND no fine pointer (mouse)
+                // A laptop with touchscreen has both touch + mouse pointer → not treated as mobile
+                var hasTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+                var hasCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
+                return hasTouch && hasCoarsePointer;
+            }
+            function checkOrientation() {
+                if (!isMobileDevice()) return;
+                var isPortrait = window.innerHeight > window.innerWidth;
+                document.body.classList.toggle('force-landscape', isPortrait);
+            }
+            window.addEventListener('resize', checkOrientation);
+            window.addEventListener('orientationchange', checkOrientation);
+            // Run once DOM is ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', checkOrientation);
+            } else {
+                checkOrientation();
+            }
+        })();
+    </script>
+
     <!-- Disconnect Notification -->
     <div id="disconnectNotification" class="disconnect-notification"></div>
 
