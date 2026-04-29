@@ -511,6 +511,13 @@ html[data-glitch="1"] .mouse-name-tag {
     }
 }
 
+/* Hide custom cursor & name tag on touch/mobile — they don't work with fingers
+   and cause background jitter from continuous layout recalcs on touchmove */
+@media (pointer: coarse) {
+    .custom-cursor { display: none !important; }
+    .mouse-name-tag { display: none !important; }
+}
+
 
         * {
             margin: 0;
@@ -3313,36 +3320,30 @@ function initCustomCursor() {
     });
     
     // ─────────────────────────────────────────────────
-    // TOUCH EVENTS (Mobile/Tablet)
-    // ✅ BEHAVES EXACTLY LIKE PC
+    // TOUCH EVENTS — skipped on real touch devices.
+    // The custom cursor is hidden on coarse-pointer
+    // devices via CSS, and running updateCursorPosition
+    // on every touchmove causes continuous layout
+    // recalculations that jitter the cube background.
     // ─────────────────────────────────────────────────
-    document.addEventListener('touchstart', (e) => {
-        const touch = e.touches[0];
-        const x = touch.clientX;
-        const y = touch.clientY;
-        
-        // Update cursor position (same as mousemove on PC)
-        updateCursorPosition(x, y);
-        
-        // Click animation
-        cursorOuter.classList.add('clicking');
-        cursorInner.classList.add('clicking');
-    }, { passive: true });
-    
-    // ✅ Cursor follows finger continuously (like mouse on PC)
-    document.addEventListener('touchmove', (e) => {
-        const touch = e.touches[0];
-        const x = touch.clientX;
-        const y = touch.clientY;
-        
-        // Update cursor position while dragging (same as mousemove on PC)
-        updateCursorPosition(x, y);
-    }, { passive: true });
-    
-    document.addEventListener('touchend', () => {
-        cursorOuter.classList.remove('clicking');
-        cursorInner.classList.remove('clicking');
-    });
+    if (!window.matchMedia('(pointer: coarse)').matches) {
+        document.addEventListener('touchstart', (e) => {
+            const touch = e.touches[0];
+            updateCursorPosition(touch.clientX, touch.clientY);
+            cursorOuter.classList.add('clicking');
+            cursorInner.classList.add('clicking');
+        }, { passive: true });
+
+        document.addEventListener('touchmove', (e) => {
+            const touch = e.touches[0];
+            updateCursorPosition(touch.clientX, touch.clientY);
+        }, { passive: true });
+
+        document.addEventListener('touchend', () => {
+            cursorOuter.classList.remove('clicking');
+            cursorInner.classList.remove('clicking');
+        });
+    }
     
     // ─────────────────────────────────────────────────
     // HOVER EFFECTS (Both Mouse & Touch)
