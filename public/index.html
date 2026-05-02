@@ -161,29 +161,39 @@
         ═══════════════════════════════════════════════════ */
 .cube-container {
     position: fixed;
-    inset: 0;
+    /* Expand slightly beyond viewport so rotated cubes never show bare edges */
+    inset: -5vw;
     pointer-events: none;
     z-index: -10;
     overflow: hidden;
-    perspective: 1200px;
+    /* Perspective on the same element as overflow:hidden causes Safari edge artifacts.
+       Use perspective on each cube individually instead (transform: perspective()). */
 }
 
 .floating-cube {
     position: absolute;
     transform-style: preserve-3d;
-    animation: floatHover 6s ease-in-out infinite, 
+    animation: floatHover 6s ease-in-out infinite,
                rotateCube 12s linear infinite;
     opacity: 0.9;
-    filter: drop-shadow(0 10px 25px rgba(0, 0, 0, 0.35)) drop-shadow(0 0 20px rgba(102, 126, 234, 0.2));
+    /* will-change promotes each cube to its own compositor layer,
+       preventing repaints from spreading to other elements */
+    will-change: transform;
+    /* drop-shadow + preserve-3d causes layer thrashing on mobile — removed */
 }
 
 .cube-face {
     position: absolute;
     border: 2px solid rgba(102, 126, 234, 0.6);
-    backdrop-filter: blur(3px);
+    /* backdrop-filter on 6 faces × 12 cubes = 72 blur layers — kills mobile GPU.
+       Replaced with a subtle inset gradient to fake depth without the cost. */
     width: 100%;
     height: 100%;
     box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.1);
+    /* Promote each face to its own layer to stop flicker */
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
 }
 
 /* Front face - brightest, most visible */
@@ -235,16 +245,19 @@
 }
 
 @keyframes floatHover {
-    0%, 100% { transform: translateY(0px) rotateZ(0deg); }
-    50% { transform: translateY(-50px) rotateZ(5deg); }
+    /* Only translate — rotation is handled by rotateCube.
+       Combining both in one animation avoids transform override conflicts
+       that cause jitter when two animations both write 'transform'. */
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-30px); }
 }
 
 @keyframes rotateCube {
-    0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
-    25% { transform: rotateX(45deg) rotateY(90deg) rotateZ(15deg); }
-    50% { transform: rotateX(120deg) rotateY(180deg) rotateZ(-10deg); }
-    75% { transform: rotateX(250deg) rotateY(270deg) rotateZ(20deg); }
-    100% { transform: rotateX(360deg) rotateY(360deg) rotateZ(360deg); }
+    0%   { transform: translateY(0px) rotateX(0deg)   rotateY(0deg)   rotateZ(0deg); }
+    25%  { transform: translateY(-15px) rotateX(45deg)  rotateY(90deg)  rotateZ(15deg); }
+    50%  { transform: translateY(-30px) rotateX(120deg) rotateY(180deg) rotateZ(-10deg); }
+    75%  { transform: translateY(-15px) rotateX(250deg) rotateY(270deg) rotateZ(20deg); }
+    100% { transform: translateY(0px) rotateX(360deg) rotateY(360deg) rotateZ(360deg); }
 }
 
 /* Dark mode cube colors */
@@ -3191,43 +3204,46 @@ html[data-glitch="1"] .mouse-name-tag {
 function createFloatingCubes() {
     const container = document.getElementById('cubeContainer');
     if (!container) return;
-    
-    const cubeCount = 12;
-    
+
+    // Fewer cubes on mobile to keep GPU load low
+    const isMobile = window.matchMedia('(pointer: coarse)').matches;
+    const cubeCount = isMobile ? 7 : 12;
+
     for (let i = 0; i < cubeCount; i++) {
-        const size = 20 + Math.random() * 50;
-        
-        const quadrant = i % 4;
-        let left, top;
-        
-        switch(quadrant) {
-            case 0: left = Math.random() * 40; top = Math.random() * 40; break;
-            case 1: left = 60 + Math.random() * 40; top = Math.random() * 40; break;
-            case 2: left = Math.random() * 40; top = 60 + Math.random() * 40; break;
-            case 3: left = 60 + Math.random() * 40; top = 60 + Math.random() * 40; break;
-        }
-        
+        // Smaller cubes on mobile
+        const size = isMobile
+            ? 15 + Math.random() * 30
+            : 20 + Math.random() * 50;
+
+        // Spread cubes across the full container including the -5vw bleed zone.
+        // Using 5–95% keeps cubes well within the expanded container so no
+        // bare-edge artifacts appear on iPhone.
+        const left = 5 + Math.random() * 90;
+        const top  = 5 + Math.random() * 90;
+
         const cube = document.createElement('div');
         cube.className = 'floating-cube';
-        cube.style.width = size + 'px';
+        cube.style.width  = size + 'px';
         cube.style.height = size + 'px';
-        cube.style.left = left + '%';
-        cube.style.top = top + '%';
-        cube.style.animationDelay = `${Math.random() * 5}s`;
-        cube.style.animationDuration = `${8 + Math.random() * 8}s`;
-        
-        const rotateDuration = 10 + Math.random() * 6;
-        cube.style.setProperty('--rotate-duration', rotateDuration + 's');
-        
+        cube.style.left   = left + '%';
+        cube.style.top    = top  + '%';
+
+        // Single animation on mobile (rotateCube already includes float movement)
+        // On desktop keep the dual animation for the richer hover effect
+        const delay    = Math.random() * 5;
+        const duration = 10 + Math.random() * 8;
+        cube.style.animationDelay    = delay + 's';
+        cube.style.animationDuration = duration + 's';
+
         const direction = Math.random() > 0.5 ? 'normal' : 'reverse';
         cube.style.animationDirection = direction;
-        
+
         for (let j = 0; j < 6; j++) {
             const face = document.createElement('div');
             face.className = 'cube-face';
             cube.appendChild(face);
         }
-        
+
         container.appendChild(cube);
     }
 }
