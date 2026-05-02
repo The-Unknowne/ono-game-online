@@ -560,54 +560,72 @@ html[data-glitch="1"] .mouse-name-tag {
         touch-action: none;
     }
 
-    /* Background Animation Classes */
+    /* ═══════════════════════════════════════════════════════════════
+       SMOOTH BACKGROUND ANIMATION SYSTEM
+       CSS cannot tween between background-image values — it just
+       snaps. The trick: register animatable custom properties
+       (@property) for the two hue angles, then animate ONLY those
+       numbers. The gradient is rebuilt from them every frame using
+       hsl(), giving perfectly smooth GPU-driven colour cycling.
+
+       Each game-mode × theme combo has its own hue range so the
+       background feels thematically tied to what you're playing.
+    ═══════════════════════════════════════════════════════════════ */
+
+    /* Register the two hue custom properties as animatable numbers */
+    @property --bg-h1 {
+        syntax: '<angle>';
+        initial-value: 230deg;
+        inherits: false;
+    }
+    @property --bg-h2 {
+        syntax: '<angle>';
+        initial-value: 270deg;
+        inherits: false;
+    }
+    /* Saturation & lightness for each mode (set via JS on <body>) */
+    @property --bg-s1 { syntax: '<percentage>'; initial-value: 70%; inherits: false; }
+    @property --bg-l1 { syntax: '<percentage>'; initial-value: 63%; inherits: false; }
+    @property --bg-s2 { syntax: '<percentage>'; initial-value: 45%; inherits: false; }
+    @property --bg-l2 { syntax: '<percentage>'; initial-value: 45%; inherits: false; }
+
+    /* ── Base body background (always) ── */
+    body {
+        background-image: linear-gradient(
+            135deg,
+            hsl(var(--bg-h1), var(--bg-s1), var(--bg-l1)) 0%,
+            hsl(var(--bg-h2), var(--bg-s2), var(--bg-l2)) 100%
+        );
+    }
+
+    /* ── Static: no animation, just the current hues ── */
     body.bg-static {
-        background-image: linear-gradient(135deg, var(--bg-grad-a) 0%, var(--bg-grad-b) 100%);
-        background-attachment: fixed;
+        animation: none;
     }
 
+    /* ── Color-cycle: smoothly rotates both hues ── */
     body.bg-color-cycle {
-        background-image: linear-gradient(135deg, var(--bg-grad-a) 0%, var(--bg-grad-b) 100%);
-        background-attachment: fixed;
-        animation: colorCycle 15s ease-in-out infinite;
+        animation: bgHueSpin var(--bg-cycle-dur, 18s) linear infinite;
     }
 
+    /* ── Pulsing: hues drift back and forth (ease-in-out) ── */
     body.bg-pulsing {
-        background-image: linear-gradient(-45deg, var(--bg-grad-a), var(--bg-grad-b), var(--bg-grad-a), var(--bg-grad-b));
-        background-size: 400% 400%;
-        background-attachment: fixed;
-        animation: pulsing 10s ease infinite;
+        animation: bgHuePulse var(--bg-pulse-dur, 10s) ease-in-out infinite;
     }
 
-    /* Keyframe Animations */
-    @keyframes colorCycle {
-        0% {
-            background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        25% {
-            background-image: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        }
-        50% {
-            background-image: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        }
-        75% {
-            background-image: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-        }
-        100% {
-            background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
+    /* ── Hue-spin: rotate all the way around ── */
+    @keyframes bgHueSpin {
+        0%   { --bg-h1: var(--bg-h1-start, 230deg); --bg-h2: var(--bg-h2-start, 270deg); }
+        100% { --bg-h1: calc(var(--bg-h1-start, 230deg) + 360deg);
+               --bg-h2: calc(var(--bg-h2-start, 270deg) + 360deg); }
     }
 
-    @keyframes pulsing {
-        0% {
-            background-position: 0% 50%;
-        }
-        50% {
-            background-position: 100% 50%;
-        }
-        100% {
-            background-position: 0% 50%;
-        }
+    /* ── Hue-pulse: oscillate ±40° around the base hues ── */
+    @keyframes bgHuePulse {
+        0%   { --bg-h1: var(--bg-h1-start, 230deg); --bg-h2: var(--bg-h2-start, 270deg); }
+        50%  { --bg-h1: calc(var(--bg-h1-start, 230deg) + 40deg);
+               --bg-h2: calc(var(--bg-h2-start, 270deg) - 40deg); }
+        100% { --bg-h1: var(--bg-h1-start, 230deg); --bg-h2: var(--bg-h2-start, 270deg); }
     }
 
     .screen {
@@ -3441,17 +3459,20 @@ if (document.readyState === 'loading') {
     initCustomCursor();
 }
 
-// Re-create cubes when theme changes
+// Re-create cubes and re-sync background palette when theme/mode changes
 const observer = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
-        if (mutation.attributeName === 'data-theme' || 
-            mutation.attributeName === 'data-mercy' || 
+        if (mutation.attributeName === 'data-theme' ||
+            mutation.attributeName === 'data-mercy' ||
             mutation.attributeName === 'data-glitch') {
+            // Rebuild cubes for new theme colours
             const container = document.getElementById('cubeContainer');
             if (container) {
                 container.innerHTML = '';
                 createFloatingCubes();
             }
+            // Re-sync smooth background palette
+            if (typeof syncBgPalette === 'function') syncBgPalette();
         }
     });
 });
@@ -4290,20 +4311,66 @@ observer.observe(document.documentElement, {
         applyBackgroundAnimation(animation);
     }
 
+    // ── Background palette per [mode][theme] ────────────────────────────────
+    // Each entry: [h1, s1, l1, h2, s2, l2]  (hue in deg, s/l in %)
+    // h1/h2 are the START hues; the animation rotates FROM these.
+    const BG_PALETTES = {
+        //             h1    s1   l1    h2    s2   l2
+        original: {
+            light:  [ 230,  70,  63,   270,  45,  45 ],  // indigo → purple
+            dark:   [ 240,  55,  18,   270,  60,  14 ],  // deep navy → deep violet
+        },
+        mercy: {
+            light:  [   0,  75,  45,    20,  80,  30 ],  // blood red → dark crimson
+            dark:   [   0,  80,  18,    15,  70,  10 ],  // dark red → near-black red
+        },
+        glitch: {
+            light:  [ 135,  80,  28,   160,  90,  20 ],  // terminal green → deep teal
+            dark:   [ 130,  90,  12,   150,  85,   8 ],  // very dark green → black-green
+        },
+    };
+
+    // Durations (seconds) per animation type
+    const BG_DURATIONS = { 'color-cycle': 22, 'pulsing': 11 };
+
     function applyBackgroundAnimation(animation) {
         document.body.classList.remove('bg-static', 'bg-color-cycle', 'bg-pulsing');
         document.body.classList.add({ 'color-cycle': 'bg-color-cycle', 'pulsing': 'bg-pulsing' }[animation] || 'bg-static');
-        // Force repaint so CSS variables from the current data-theme are re-resolved
-        const a = getComputedStyle(document.documentElement).getPropertyValue('--bg-grad-a').trim();
-        const b = getComputedStyle(document.documentElement).getPropertyValue('--bg-grad-b').trim();
-        if (animation === 'pulsing') {
-            document.body.style.backgroundImage = `linear-gradient(-45deg,${a},${b},${a},${b})`;
-        } else {
-            document.body.style.backgroundImage = `linear-gradient(135deg,${a} 0%,${b} 100%)`;
-        }
+        syncBgPalette();
     }
 
+    function syncBgPalette() {
+        // Determine current mode and theme
+        const html = document.documentElement;
+        const isDark   = html.getAttribute('data-theme') === 'dark';
+        const isMercy  = html.getAttribute('data-mercy')  === '1';
+        const isGlitch = html.getAttribute('data-glitch') === '1';
 
+        const modeKey = isGlitch ? 'glitch' : isMercy ? 'mercy' : 'original';
+        const themeKey = isDark ? 'dark' : 'light';
+        const [h1, s1, l1, h2, s2, l2] = BG_PALETTES[modeKey][themeKey];
+
+        const b = document.body;
+        b.style.setProperty('--bg-h1-start', h1 + 'deg');
+        b.style.setProperty('--bg-h2-start', h2 + 'deg');
+        b.style.setProperty('--bg-h1', h1 + 'deg');
+        b.style.setProperty('--bg-h2', h2 + 'deg');
+        b.style.setProperty('--bg-s1', s1 + '%');
+        b.style.setProperty('--bg-l1', l1 + '%');
+        b.style.setProperty('--bg-s2', s2 + '%');
+        b.style.setProperty('--bg-l2', l2 + '%');
+
+        // Restart animation so it starts from the new hues, not mid-cycle
+        const cls = [...b.classList].find(c => c.startsWith('bg-') && c !== 'bg-static');
+        if (cls) {
+            b.classList.remove(cls);
+            void b.offsetWidth; // force reflow
+            b.classList.add(cls);
+        }
+
+        // Background is now fully driven by CSS @property animation — no inline style needed.
+        b.style.backgroundImage = '';
+    }
 
     // Shared popup helper
     function _openPopup(title, message, buttons) {
@@ -5272,10 +5339,8 @@ observer.observe(document.documentElement, {
             }
         }
         document.documentElement.setAttribute('data-mercy', on ? '1' : '0');
-        // Force background repaint with new CSS variable values
-        const a = getComputedStyle(document.documentElement).getPropertyValue('--bg-grad-a').trim();
-        const b = getComputedStyle(document.documentElement).getPropertyValue('--bg-grad-b').trim();
-        document.body.style.backgroundImage = `linear-gradient(135deg,${a} 0%,${b} 100%)`;
+        // Smoothly re-sync the background palette for the new mode+theme
+        if (typeof syncBgPalette === 'function') syncBgPalette();
     }
 
     // ── GAME MODE PICKER ─────────────────────────────────────────────────────
@@ -5283,9 +5348,7 @@ observer.observe(document.documentElement, {
 
     function applyGlitchTheme(on) {
         document.documentElement.setAttribute('data-glitch', on ? '1' : '0');
-        const a = getComputedStyle(document.documentElement).getPropertyValue('--bg-grad-a').trim();
-        const b = getComputedStyle(document.documentElement).getPropertyValue('--bg-grad-b').trim();
-        document.body.style.backgroundImage = `linear-gradient(135deg,${a} 0%,${b} 100%)`;
+        if (typeof syncBgPalette === 'function') syncBgPalette();
     }
 
     function toggleModePicker() {
