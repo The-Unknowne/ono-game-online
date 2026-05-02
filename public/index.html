@@ -1286,15 +1286,15 @@ html[data-glitch="1"] .mouse-name-tag {
         display: flex;
         flex-direction: column;
         align-items: center;
-        width: 100%;
-        height: 100%;
-        max-width: 100%;
+        width: 100dvw;
+        height: 100dvh;
+        max-width: 100dvw;
         margin: 0 auto;
-        padding: clamp(2px, 1vmin, 10px);
-        gap: clamp(2px, 1vmin, 10px);
+        padding: clamp(4px, 1vh, 12px) clamp(4px, 1vw, 12px);
+        gap: clamp(4px, 1vh, 10px);
         box-sizing: border-box;
-        /* Distribute vertical space: arena takes most, hand takes the rest */
-        justify-content: space-between;
+        justify-content: center;
+        overflow: hidden;
     }
 
     .table-arena {
@@ -1311,32 +1311,20 @@ html[data-glitch="1"] .mouse-name-tag {
         justify-content: center;
         box-shadow: 0 0 60px rgba(0,0,0,0.3), inset 0 0 40px rgba(0,0,0,0.15);
         flex-shrink: 1;
+        flex-grow: 1;
         min-height: 0;
         min-width: 0;
 
         /*
-         * The arena must never exceed the remaining vertical space
-         * after the hand + message strip. We compute that budget as:
-         *   100dvh
-         *   - hand height   (card height + padding ≈ clamp(86px,20vmin,150px))
-         *   - message strip (clamp(24px,4vmin,40px))
-         *   - wrapper gaps  (clamp(4px,2vmin,20px))
-         *   - wrapper pad   (clamp(4px,2vmin,20px))
-         *
-         * Because aspect-ratio is 4:3, if we cap the HEIGHT the WIDTH
-         * follows automatically and never overflows sideways either.
+         * Strategy: let the arena grow to fill available space.
+         * Cap by height so it never pushes the hand off-screen.
+         * On landscape the viewport is wide, so also cap by width.
+         * aspect-ratio then sets whichever dimension wasn't capped.
          */
-        max-height: calc(
-            100dvh
-            - clamp(86px, 20vmin, 150px)
-            - clamp(24px,  4vmin,  40px)
-            - clamp(8px,   4vmin,  40px)
-        );
-
-        /* Width is then driven by the height via aspect-ratio.
-           On large desktop screens cap it so it doesn't go huge. */
+        max-height: 65dvh;
+        max-width: min(820px, 96dvw);
         width: auto;
-        max-width: min(820px, 98vw);
+        height: auto;
     }
 
     .direction-svg {
@@ -1500,9 +1488,10 @@ html[data-glitch="1"] .mouse-name-tag {
        PREMIUM CARD DESIGN (from animation-test)
     ============================================= */
     .card {
-        width: clamp(55px, 11vmin, 100px);
-        height: clamp(82px, 16.5vmin, 150px);
-        border-radius: clamp(8px, 1.5vmin, 14px);
+        /* Scale with the arena height (dvh) so draw/discard always look proportional */
+        height: clamp(70px, 12dvh, 150px);
+        width: calc(clamp(70px, 12dvh, 150px) * 0.667);
+        border-radius: clamp(8px, 1.5dvh, 14px);
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -1556,7 +1545,7 @@ html[data-glitch="1"] .mouse-name-tag {
         display: flex;
         justify-content: center;
         align-items: center;
-        font-size: clamp(1em, 3vmin, 2em);
+        font-size: clamp(1em, 3dvh, 2em);
         font-weight: 900;
         font-family: 'Orbitron', sans-serif;
         letter-spacing: -1px;
@@ -1664,16 +1653,19 @@ html[data-glitch="1"] .mouse-name-tag {
     .player-hand {
         display: flex;
         justify-content: center;
-        flex-wrap: wrap;
-        gap: clamp(3px, 1vmin, 8px);
-        min-height: clamp(80px, 18vmin, 160px);
-        padding: clamp(4px, 1.5vmin, 10px);
+        flex-wrap: nowrap;           /* single row — scroll horizontally for big hands */
+        gap: clamp(3px, 1vw, 8px);
+        /* Height locked to card size + padding — no wrapping surprises */
+        height: clamp(90px, 22dvh, 155px);
+        flex-shrink: 0;
+        padding: clamp(4px, 1vh, 10px) clamp(4px, 1vw, 10px);
         border-radius: 15px;
-        transition: all 0.3s;
-        /* allow cards to overflow into scroll if hand is huge */
+        transition: box-shadow 0.3s;
         overflow-x: auto;
         overflow-y: hidden;
-        max-width: 100%;
+        max-width: 100dvw;
+        align-items: center;
+        box-sizing: border-box;
     }
 
     .player-hand.your-turn {
@@ -1697,13 +1689,15 @@ html[data-glitch="1"] .mouse-name-tag {
     }
 
     .player-hand .card {
-        width: clamp(44px, 9vmin, 80px);
-        height: clamp(66px, 13.5vmin, 120px);
+        /* Use dvh to size cards — hand height is constrained by dvh,
+           so cards should fill that height regardless of orientation */
+        height: clamp(70px, 18dvh, 130px);
+        width: calc(clamp(70px, 18dvh, 130px) * 0.667);  /* maintain 2:3 ratio */
         flex-shrink: 0;
     }
 
     .player-hand .card-inner {
-        font-size: clamp(0.9em, 2.5vmin, 1.6em);
+        font-size: clamp(1em, 4dvh, 1.6em);
     }
 
     .card.disabled {
@@ -1789,9 +1783,10 @@ html[data-glitch="1"] .mouse-name-tag {
     .message {
         text-align: center;
         color: var(--text-on-glass);
-        font-size: clamp(0.8em, 2.5vmin, 1.3em);
-        margin: clamp(4px, 1vmin, 15px) 0;
-        min-height: clamp(20px, 4vmin, 35px);
+        font-size: clamp(0.75em, 2dvh, 1.2em);
+        margin: clamp(2px, 0.5dvh, 8px) 0;
+        min-height: clamp(18px, 3dvh, 32px);
+        flex-shrink: 0;
         font-weight: bold;
         text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
     }
