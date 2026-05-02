@@ -1299,10 +1299,6 @@ html[data-glitch="1"] .mouse-name-tag {
 
     .table-arena {
         position: relative;
-        /* Fluid: fill available width but never exceed available height */
-        width: min(820px, 98vw);
-        /* Shrink height to fit remaining screen after the hand area */
-        max-height: calc(100dvh - clamp(80px, 22vmin, 200px));
         aspect-ratio: 4/3;
         background: radial-gradient(ellipse 70% 60% at 50% 50%,
             rgba(255,255,255,0.07) 0%,
@@ -1314,9 +1310,33 @@ html[data-glitch="1"] .mouse-name-tag {
         align-items: center;
         justify-content: center;
         box-shadow: 0 0 60px rgba(0,0,0,0.3), inset 0 0 40px rgba(0,0,0,0.15);
-        /* Scale down uniformly when the container squeezes */
         flex-shrink: 1;
         min-height: 0;
+        min-width: 0;
+
+        /*
+         * The arena must never exceed the remaining vertical space
+         * after the hand + message strip. We compute that budget as:
+         *   100dvh
+         *   - hand height   (card height + padding ≈ clamp(86px,20vmin,150px))
+         *   - message strip (clamp(24px,4vmin,40px))
+         *   - wrapper gaps  (clamp(4px,2vmin,20px))
+         *   - wrapper pad   (clamp(4px,2vmin,20px))
+         *
+         * Because aspect-ratio is 4:3, if we cap the HEIGHT the WIDTH
+         * follows automatically and never overflows sideways either.
+         */
+        max-height: calc(
+            100dvh
+            - clamp(86px, 20vmin, 150px)
+            - clamp(24px,  4vmin,  40px)
+            - clamp(8px,   4vmin,  40px)
+        );
+
+        /* Width is then driven by the height via aspect-ratio.
+           On large desktop screens cap it so it doesn't go huge. */
+        width: auto;
+        max-width: min(820px, 98vw);
     }
 
     .direction-svg {
