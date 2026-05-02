@@ -545,17 +545,19 @@ html[data-glitch="1"] .mouse-name-tag {
         background-image: linear-gradient(135deg, var(--bg-grad-a) 0%, var(--bg-grad-b) 100%);
         background-attachment: fixed;
         transition: background-color 0.5s ease;
-        min-height: 100vh;
-        min-height: -webkit-fill-available;
+        /* Lock to exactly the viewport — no body scrolling ever */
+        width: 100dvw;
+        height: 100dvh;
+        max-height: 100dvh;
+        overflow: hidden;
         display: flex;
         justify-content: center;
         align-items: center;
-        padding: 10px;
-        overflow-x: hidden;
-        touch-action: pan-y;
+        padding: 0;
         margin: 0;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
+        touch-action: none;
     }
 
     /* Background Animation Classes */
@@ -611,7 +613,8 @@ html[data-glitch="1"] .mouse-name-tag {
     .screen {
         display: none;
         width: 100%;
-        max-width: 1000px;
+        height: 100dvh;
+        max-width: 100%;
     }
 
     .screen.active {
@@ -619,37 +622,45 @@ html[data-glitch="1"] .mouse-name-tag {
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        min-height: 100vh;
-        width: 100%;
+        width: 100dvw;
+        height: 100dvh;
+        overflow: hidden;
+        padding: clamp(6px, 2vmin, 20px);
+        box-sizing: border-box;
     }
 
     .menu-container {
         background: var(--surface);
-        border-radius: 30px;
-        padding: 40px;
+        border-radius: clamp(14px, 3vmin, 30px);
+        padding: clamp(10px, 3vmin, 40px) clamp(12px, 4vmin, 40px);
         box-shadow: var(--menu-shadow);
         text-align: center;
-        max-width: 600px;
-        width: 100%;
-        max-height: 90vh;
+        /* Fluid width: fills small screens, caps at 600px on desktop */
+        width: min(600px, 96vw);
+        /* Never taller than the screen — scrolls internally if needed */
+        max-height: calc(100dvh - clamp(12px, 4vmin, 40px));
         overflow-y: auto;
+        overflow-x: hidden;
         color: var(--text-primary);
         transition: background 0.4s ease, box-shadow 0.4s ease;
+        box-sizing: border-box;
+        /* Fluid scrollbar so it doesn't steal layout space */
+        scrollbar-width: thin;
     }
 
     h1 {
         font-family: 'Orbitron', sans-serif;
-        font-size: 3.5em;
+        font-size: clamp(1.4em, 5vmin, 3.5em);
         color: var(--menu-h1);
-        margin-bottom: 20px;
+        margin-bottom: clamp(8px, 2vmin, 20px);
         text-shadow: 3px 3px 12px rgba(0, 0, 0, 0.2);
-        letter-spacing: 2px;
+        letter-spacing: clamp(0px, 0.5vmin, 2px);
     }
 
     h2 {
-        font-size: 2em;
+        font-size: clamp(1.1em, 3.5vmin, 2em);
         color: var(--menu-h1);
-        margin-bottom: 15px;
+        margin-bottom: clamp(8px, 1.5vmin, 15px);
     }
 
     .menu-button {
@@ -1258,16 +1269,22 @@ html[data-glitch="1"] .mouse-name-tag {
         flex-direction: column;
         align-items: center;
         width: 100%;
-        max-width: 900px;
+        height: 100%;
+        max-width: 100%;
         margin: 0 auto;
-        padding: 10px;
-        gap: 10px;
+        padding: clamp(2px, 1vmin, 10px);
+        gap: clamp(2px, 1vmin, 10px);
+        box-sizing: border-box;
+        /* Distribute vertical space: arena takes most, hand takes the rest */
+        justify-content: space-between;
     }
 
     .table-arena {
         position: relative;
-        width: 100%;
-        max-width: 820px;
+        /* Fluid: fill available width but never exceed available height */
+        width: min(820px, 98vw);
+        /* Shrink height to fit remaining screen after the hand area */
+        max-height: calc(100dvh - clamp(80px, 22vmin, 200px));
         aspect-ratio: 4/3;
         background: radial-gradient(ellipse 70% 60% at 50% 50%,
             rgba(255,255,255,0.07) 0%,
@@ -1279,6 +1296,9 @@ html[data-glitch="1"] .mouse-name-tag {
         align-items: center;
         justify-content: center;
         box-shadow: 0 0 60px rgba(0,0,0,0.3), inset 0 0 40px rgba(0,0,0,0.15);
+        /* Scale down uniformly when the container squeezes */
+        flex-shrink: 1;
+        min-height: 0;
     }
 
     .direction-svg {
@@ -1300,7 +1320,7 @@ html[data-glitch="1"] .mouse-name-tag {
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 20px;
+        gap: clamp(6px, 2.5vmin, 20px);
     }
 
     /* Player seat positioned absolutely around the oval */
@@ -1319,13 +1339,13 @@ html[data-glitch="1"] .mouse-name-tag {
         background: var(--opp-box-bg);
         backdrop-filter: blur(8px);
         border: 2px solid rgba(255,255,255,0.15);
-        border-radius: 12px;
-        padding: 8px 12px;
+        border-radius: clamp(6px, 1.5vmin, 12px);
+        padding: clamp(3px, 1vmin, 8px) clamp(5px, 1.5vmin, 12px);
         text-align: center;
         color: var(--text-on-glass);
-        min-width: 90px;
+        min-width: clamp(56px, 12vmin, 90px);
         transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
-        font-size: 0.82em;
+        font-size: clamp(0.6em, 1.6vmin, 0.82em);
         cursor: default;
         white-space: nowrap;
     }
@@ -1442,9 +1462,9 @@ html[data-glitch="1"] .mouse-name-tag {
        PREMIUM CARD DESIGN (from animation-test)
     ============================================= */
     .card {
-        width: 100px;
-        height: 150px;
-        border-radius: 14px;
+        width: clamp(55px, 11vmin, 100px);
+        height: clamp(82px, 16.5vmin, 150px);
+        border-radius: clamp(8px, 1.5vmin, 14px);
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -1498,7 +1518,7 @@ html[data-glitch="1"] .mouse-name-tag {
         display: flex;
         justify-content: center;
         align-items: center;
-        font-size: 2em;
+        font-size: clamp(1em, 3vmin, 2em);
         font-weight: 900;
         font-family: 'Orbitron', sans-serif;
         letter-spacing: -1px;
@@ -1607,11 +1627,15 @@ html[data-glitch="1"] .mouse-name-tag {
         display: flex;
         justify-content: center;
         flex-wrap: wrap;
-        gap: 8px;
-        min-height: 160px;
-        padding: 10px;
+        gap: clamp(3px, 1vmin, 8px);
+        min-height: clamp(80px, 18vmin, 160px);
+        padding: clamp(4px, 1.5vmin, 10px);
         border-radius: 15px;
         transition: all 0.3s;
+        /* allow cards to overflow into scroll if hand is huge */
+        overflow-x: auto;
+        overflow-y: hidden;
+        max-width: 100%;
     }
 
     .player-hand.your-turn {
@@ -1635,12 +1659,13 @@ html[data-glitch="1"] .mouse-name-tag {
     }
 
     .player-hand .card {
-        width: 80px;
-        height: 120px;
+        width: clamp(44px, 9vmin, 80px);
+        height: clamp(66px, 13.5vmin, 120px);
+        flex-shrink: 0;
     }
 
     .player-hand .card-inner {
-        font-size: 1.6em;
+        font-size: clamp(0.9em, 2.5vmin, 1.6em);
     }
 
     .card.disabled {
@@ -1726,9 +1751,9 @@ html[data-glitch="1"] .mouse-name-tag {
     .message {
         text-align: center;
         color: var(--text-on-glass);
-        font-size: 1.3em;
-        margin: 15px 0;
-        min-height: 35px;
+        font-size: clamp(0.8em, 2.5vmin, 1.3em);
+        margin: clamp(4px, 1vmin, 15px) 0;
+        min-height: clamp(20px, 4vmin, 35px);
         font-weight: bold;
         text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
     }
@@ -2678,121 +2703,66 @@ html[data-glitch="1"] .mouse-name-tag {
         animation: spin 1s linear infinite;
     }
 
-    @media (max-width: 768px) {
-        h1 { font-size: 2.5em; }
-        h2 { font-size: 1.5em; }
-        .menu-container { padding: 30px 20px; }
-        .card { width: 80px; height: 120px; }
-        .card-inner { font-size: 1.6em; }
-        .player-hand .card { width: 65px; height: 100px; }
-        .player-hand .card-inner { font-size: 1.3em; }
-        .player-avatar { width: 35px; height: 35px; font-size: 1.1em; }
-        .player-name { font-size: 0.95em; }
-        .ready-badge { min-width: 70px; font-size: 0.8em; }
+    /* ═══════════════════════════════════════════════════════════
+       RESPONSIVE OVERRIDES — only for things clamp() can't reach
+       ═══════════════════════════════════════════════════════════ */
+
+    /* Touch tap targets stay comfortable on small screens */
+    @media (max-width: 480px) {
+        .menu-button, .popup-button { min-height: 44px; }
+        .player-avatar { width: 28px; height: 28px; font-size: 0.9em; }
+        .ready-badge   { min-width: 60px; font-size: 0.75em; }
     }
 
-    /* ── Mobile landscape menu layout ───────────────────────────── */
+    /* Landscape phone: compress menu-container into a two-column grid
+       so the whole menu fits without scrolling on a short screen       */
     @media (max-width: 900px) and (orientation: landscape) and (pointer: coarse) {
-        /* Screen becomes a horizontal scrollable row so content never clips */
         .screen.active {
-            min-height: 100svh;
-            justify-content: flex-start;
-            overflow-y: auto;
-            padding: 8px 12px;
+            padding: clamp(4px, 1vmin, 10px);
         }
 
-        /* Container shrinks to fit the short viewport height */
         .menu-container {
-            max-width: 100%;
-            width: 100%;
-            max-height: none;          /* let the page scroll instead */
-            padding: 12px 16px;
-            border-radius: 16px;
-            overflow-y: visible;
-        }
-
-        /* Title — much smaller in landscape */
-        h1 {
-            font-size: 1.6em;
-            margin-bottom: 6px;
-            letter-spacing: 1px;
-        }
-
-        h2 {
-            font-size: 1.15em;
-            margin-bottom: 8px;
-        }
-
-        /* Lay the main menu buttons side-by-side */
-        .screen.active .menu-container > .menu-button,
-        .screen.active .menu-container > #modePickerBtn {
-            width: 100%;
-            padding: 10px 14px;
-            font-size: 1em;
-            margin-bottom: 8px;
-        }
-
-        /* Make all menu buttons compact */
-        .menu-button {
-            padding: 10px 14px;
-            font-size: 1em;
-            margin-bottom: 8px;
-            border-radius: 10px;
-        }
-
-        /* Arrange the top-level action buttons in a 2-column grid */
-        .screen.active .menu-container {
+            /* Wider in landscape — use both columns of the phone */
+            width: min(700px, 96vw);
+            max-height: calc(100dvh - clamp(8px, 2vmin, 16px));
+            padding: clamp(8px, 1.5vmin, 18px) clamp(10px, 2vmin, 24px);
             display: grid;
             grid-template-columns: 1fr 1fr;
             grid-auto-rows: auto;
-            gap: 8px;
+            gap: clamp(4px, 1vmin, 10px);
             align-items: start;
+            overflow-y: auto;
         }
 
-        /* Title + subtitle span full width */
-        .screen.active .menu-container > h1,
-        .screen.active .menu-container > h2,
-        .screen.active .menu-container > p,
-        .screen.active .menu-container > .mode-picker-wrapper,
-        .screen.active .menu-container > #modePickerBtn {
+        /* Full-width items inside the grid */
+        .menu-container > h1,
+        .menu-container > h2,
+        .menu-container > p,
+        .menu-container > hr,
+        .menu-container > .mode-picker-wrapper,
+        .menu-container > #modePickerBtn,
+        .menu-container > input,
+        .menu-container > select,
+        .menu-container > .lobby-list,
+        .menu-container > #lobbyListContainer,
+        .menu-container > #playerListContainer,
+        .menu-container > .loading {
             grid-column: 1 / -1;
         }
 
-        /* Mode picker cards go horizontal */
+        /* Mode cards scroll horizontally */
         .mode-cards {
             display: flex;
             flex-direction: row;
-            gap: 8px;
             overflow-x: auto;
-            padding-bottom: 4px;
+            gap: 8px;
+            padding-bottom: 2px;
         }
+        .mode-card { min-width: 180px; flex-shrink: 0; }
+        .mode-card-desc { font-size: 0.76em; }
 
-        .mode-card {
-            min-width: 200px;
-            flex-shrink: 0;
-        }
-
-        .mode-card-desc {
-            font-size: 0.78em;
-        }
-
-        /* Inputs & selects */
-        input[type="text"], input[type="password"], select {
-            padding: 10px;
-            font-size: 1em;
-            margin-bottom: 10px;
-        }
-
-        /* Lobby list cards compact */
-        .lobby-card {
-            padding: 10px 14px;
-        }
-
-        /* Subtitle paragraph */
-        .screen.active .menu-container > p {
-            margin-bottom: 8px;
-            font-size: 0.9em;
-        }
+        /* Lobby cards compact */
+        .lobby-card { padding: 8px 12px; }
     }
 
     /* ============================================
