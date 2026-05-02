@@ -3219,6 +3219,68 @@ html[data-glitch="1"] .mouse-name-tag {
 
 <script>
    // ═══════════════════════════════════════════════════
+// GLOBALS — declared here so every script block & inline onclick can reach them
+// ═══════════════════════════════════════════════════
+var currentUser = null;          // set by the auth block once login resolves
+var _sfpOpen    = false;         // settings panel open state (needs global scope for onclick)
+
+// Background palette — must be global so MutationObserver (early script) can call syncBgPalette
+var BG_PALETTES = {
+    //             h1    s1   l1    h2    s2   l2
+    original: {
+        light:  [ 230,  70,  63,   270,  45,  45 ],
+        dark:   [ 240,  55,  18,   270,  60,  14 ],
+    },
+    mercy: {
+        light:  [   0,  75,  45,    20,  80,  30 ],
+        dark:   [   0,  80,  18,    15,  70,  10 ],
+    },
+    glitch: {
+        light:  [ 135,  80,  28,   160,  90,  20 ],
+        dark:   [ 130,  90,  12,   150,  85,   8 ],
+    },
+};
+var BG_DURATIONS = { 'color-cycle': 22, 'pulsing': 11 };
+
+function syncBgPalette() {
+    var html    = document.documentElement;
+    var isDark   = html.getAttribute('data-theme')  === 'dark';
+    var isMercy  = html.getAttribute('data-mercy')  === '1';
+    var isGlitch = html.getAttribute('data-glitch') === '1';
+    var modeKey  = isGlitch ? 'glitch' : isMercy ? 'mercy' : 'original';
+    var themeKey = isDark ? 'dark' : 'light';
+    var pal = BG_PALETTES[modeKey][themeKey];
+    var h1=pal[0], s1=pal[1], l1=pal[2], h2=pal[3], s2=pal[4], l2=pal[5];
+    var b = document.body;
+    b.style.setProperty('--bg-h1-start', h1 + 'deg');
+    b.style.setProperty('--bg-h2-start', h2 + 'deg');
+    b.style.setProperty('--bg-h1', h1 + 'deg');
+    b.style.setProperty('--bg-h2', h2 + 'deg');
+    b.style.setProperty('--bg-s1', s1 + '%');
+    b.style.setProperty('--bg-l1', l1 + '%');
+    b.style.setProperty('--bg-s2', s2 + '%');
+    b.style.setProperty('--bg-l2', l2 + '%');
+    var cls = Array.from(b.classList).find(function(c){ return c.startsWith('bg-') && c !== 'bg-static'; });
+    if (cls) { b.classList.remove(cls); void b.offsetWidth; b.classList.add(cls); }
+    b.style.backgroundImage = '';
+}
+
+function applyBackgroundAnimation(animation) {
+    document.body.classList.remove('bg-static', 'bg-color-cycle', 'bg-pulsing');
+    var map = { 'color-cycle': 'bg-color-cycle', 'pulsing': 'bg-pulsing' };
+    document.body.classList.add(map[animation] || 'bg-static');
+    syncBgPalette();
+}
+
+function toggleSettingsPanel() {
+    _sfpOpen = !_sfpOpen;
+    const panel = document.getElementById('settingsFloatPanel');
+    if (!panel) return;
+    panel.classList.toggle('open', _sfpOpen);
+    if (_sfpOpen && typeof _sfpSync === 'function') _sfpSync();
+}
+
+   // ═══════════════════════════════════════════════════
 // FLOATING CUBES & CUSTOM CURSOR (ALWAYS VISIBLE WHEN LOGGED IN)
 // ═══════════════════════════════════════════════════
 
@@ -4314,63 +4376,9 @@ observer.observe(document.documentElement, {
     // ── Background palette per [mode][theme] ────────────────────────────────
     // Each entry: [h1, s1, l1, h2, s2, l2]  (hue in deg, s/l in %)
     // h1/h2 are the START hues; the animation rotates FROM these.
-    const BG_PALETTES = {
-        //             h1    s1   l1    h2    s2   l2
-        original: {
-            light:  [ 230,  70,  63,   270,  45,  45 ],  // indigo → purple
-            dark:   [ 240,  55,  18,   270,  60,  14 ],  // deep navy → deep violet
-        },
-        mercy: {
-            light:  [   0,  75,  45,    20,  80,  30 ],  // blood red → dark crimson
-            dark:   [   0,  80,  18,    15,  70,  10 ],  // dark red → near-black red
-        },
-        glitch: {
-            light:  [ 135,  80,  28,   160,  90,  20 ],  // terminal green → deep teal
-            dark:   [ 130,  90,  12,   150,  85,   8 ],  // very dark green → black-green
-        },
-    };
-
-    // Durations (seconds) per animation type
-    const BG_DURATIONS = { 'color-cycle': 22, 'pulsing': 11 };
-
-    function applyBackgroundAnimation(animation) {
-        document.body.classList.remove('bg-static', 'bg-color-cycle', 'bg-pulsing');
-        document.body.classList.add({ 'color-cycle': 'bg-color-cycle', 'pulsing': 'bg-pulsing' }[animation] || 'bg-static');
-        syncBgPalette();
-    }
-
-    function syncBgPalette() {
-        // Determine current mode and theme
-        const html = document.documentElement;
-        const isDark   = html.getAttribute('data-theme') === 'dark';
-        const isMercy  = html.getAttribute('data-mercy')  === '1';
-        const isGlitch = html.getAttribute('data-glitch') === '1';
-
-        const modeKey = isGlitch ? 'glitch' : isMercy ? 'mercy' : 'original';
-        const themeKey = isDark ? 'dark' : 'light';
-        const [h1, s1, l1, h2, s2, l2] = BG_PALETTES[modeKey][themeKey];
-
-        const b = document.body;
-        b.style.setProperty('--bg-h1-start', h1 + 'deg');
-        b.style.setProperty('--bg-h2-start', h2 + 'deg');
-        b.style.setProperty('--bg-h1', h1 + 'deg');
-        b.style.setProperty('--bg-h2', h2 + 'deg');
-        b.style.setProperty('--bg-s1', s1 + '%');
-        b.style.setProperty('--bg-l1', l1 + '%');
-        b.style.setProperty('--bg-s2', s2 + '%');
-        b.style.setProperty('--bg-l2', l2 + '%');
-
-        // Restart animation so it starts from the new hues, not mid-cycle
-        const cls = [...b.classList].find(c => c.startsWith('bg-') && c !== 'bg-static');
-        if (cls) {
-            b.classList.remove(cls);
-            void b.offsetWidth; // force reflow
-            b.classList.add(cls);
-        }
-
-        // Background is now fully driven by CSS @property animation — no inline style needed.
-        b.style.backgroundImage = '';
-    }
+    // BG_PALETTES, BG_DURATIONS, syncBgPalette, applyBackgroundAnimation
+    // are declared as globals in the early script block so the MutationObserver
+    // and any other early code can reach them without reference errors.
 
     // Shared popup helper
     function _openPopup(title, message, buttons) {
@@ -4422,7 +4430,7 @@ observer.observe(document.documentElement, {
     // ── USER ACCOUNT MANAGEMENT SYSTEM ──────────────────────────────────
     // Handles user registration, login, and stats tracking
 
-    let currentUser = null;
+    // currentUser is declared as a global var in the early script block above.
 
     // Initialize user system - check if user is already logged in
     async function initializeUserSystem() {
@@ -5191,14 +5199,8 @@ observer.observe(document.documentElement, {
 
 
     // ── FLOATING SETTINGS PANEL ──────────────────────────────────────────
-    let _sfpOpen = false;
-
-    function toggleSettingsPanel() {
-        _sfpOpen = !_sfpOpen;
-        const panel = document.getElementById('settingsFloatPanel');
-        panel.classList.toggle('open', _sfpOpen);
-        if (_sfpOpen) _sfpSync();
-    }
+    // _sfpOpen and toggleSettingsPanel() are declared as globals in the early
+    // script block so the onclick attribute on the gear button can reach them.
     function _sfpSync() {
         const t = document.documentElement.getAttribute('data-theme') || 'light';
         const cb = document.getElementById('sfpDarkToggle');
