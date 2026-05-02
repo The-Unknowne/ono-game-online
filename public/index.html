@@ -6097,40 +6097,39 @@ console.log('[UI Debug]', {
 
     let hasJumpInCard = false;
     let jumpInLabel = '⚡ JUMP IN!';
-    let jumpInCardIndex = -1;
     const isStackActive = gameState.stackedDrawCount > 0;
-    
+    const DRAW_VALUES = { '+2': 2, 'Wild+4': 4, 'WildReverseD4': 4, 'Wild+6': 6, 'Wild+10': 10 };
+
     gameState.yourHand.forEach((card, index) => {
         const isPlayable = canPlayCard(card);
         const isJumpIn   = canJumpIn(card);
         const displayCard = (isGlitch() && glitchScrambleActive) ? getGlitchDisplay(card, index) : card;
         const cardDiv    = createCardElement(displayCard);
-        
+
         if (isGlitch() && glitchScrambleActive && !card.glitch) {
             cardDiv.classList.add('glitched');
             cardDiv.style.setProperty('--glitch-hue', (index * 37) % 360 + 'deg');
         }
-        
+
         if (isJumpIn) {
             hasJumpInCard = true;
-            jumpInCardIndex = index;
-            
-            // ✅ Dynamic banner based on situation
+
+            // Build banner label — use the last eligible card's label
             if (isStackActive) {
-                const DRAW_VALUES = { '+2': 2, 'Wild+4': 4, 'WildReverseD4': 4, 'Wild+6': 6, 'Wild+10': 10 };
                 const addValue = DRAW_VALUES[card.value] || 0;
                 const newStack = gameState.stackedDrawCount + addValue;
                 jumpInLabel = `⚡ STACK JUMP-IN! +${addValue} → Total: ${newStack}`;
             } else {
-                if (card.value === 'Wild+4') {
-                    jumpInLabel = '⚡ JUMP IN! Wild +4';
-                } else if (card.value === '+2') {
-                    jumpInLabel = '⚡ JUMP IN! +2';
-                } else if (card.type === 'number') {
-                    jumpInLabel = `⚡ JUMP IN! ${card.value}`;
-                }
+                const isSelf = gameState.isYourTurn; // jumping in on yourself
+                const prefix = isSelf ? '⚡ JUMP AGAIN!' : '⚡ JUMP IN!';
+                if (card.value === 'Wild+4')      jumpInLabel = `${prefix} Wild +4`;
+                else if (card.value === 'Wild')   jumpInLabel = `${prefix} Wild`;
+                else if (card.value === '+2')     jumpInLabel = `${prefix} +2 (cancels!)`;
+                else if (card.value === 'Skip')   jumpInLabel = `${prefix} Skip (cancels!)`;
+                else if (card.value === 'Reverse')jumpInLabel = `${prefix} Reverse (cancels!)`;
+                else                              jumpInLabel = `${prefix} ${card.value}`;
             }
-            
+
             cardDiv.classList.add('jump-in-card');
             cardDiv.onclick = (e) => {
                 e.stopPropagation();
@@ -6607,80 +6606,64 @@ console.log('[UI Debug]', {
     if (!gameState || !card) return false;
     
     // ─────────────────────────────────────────────────
-    // Rule #1: Jump-in only allowed if setting enabled
-    // ─────────────────────────────────────────────────
-    if (!gameState.settings || !gameState.settings.allowJumpIn) {
-        return false;
-    }
-    
-    // ─────────────────────────────────────────────────
-    // Rule #2: Can't jump-in if it's already your turn
-    // ─────────────────────────────────────────────────
-    if (gameState.isYourTurn) {
-        return false;
-    }
-    
-    // ─────────────────────────────────────────────────
-    // Rule #3: Check if player is knocked out
-    // ─────────────────────────────────────────────────
+    // ── Rule 1: Feature must be enabled ───────────────────────────
+    if (!gameState.settings || !gameState.settings.allowJumpIn) return false;
+
+    // ── Rule 2: Knocked-out players can never jump in ───────────
     const myPlayer = gameState.allPlayers?.find(p => p.isYou);
-    if (myPlayer && myPlayer.knockedOut) {
-        return false;
-    }
-    
-    // ─────────────────────────────────────────────────
-    // Rule #4: STACK JUMP-IN - Jump in during stack with draw cards
-    // ─────────────────────────────────────────────────
+    if (myPlayer && myPlayer.knockedOut) return false;
+
+    const top = gameState.discardPile;
+    if (!top) return false;
+
+    // ── Rule 3: STACK JUMP-IN (draw cards stacked) ──────────────
+    // During an active stack you can jump in even on your turn,
+    // because you're countering the penalty, not stealing a turn.
     if (gameState.stackedDrawCount > 0) {
         const isMercyMode = gameState.settings.gameMode === 'mercy';
         const DRAW_VALUES = { '+2': 2, 'Wild+4': 4, 'WildReverseD4': 4, 'Wild+6': 6, 'Wild+10': 10 };
-        
-        // Check if this card can stack
-        const cardValue = DRAW_VALUES[card.value];
-        if (!cardValue) return false;
-        
-        const topDiscard = gameState.discardPile;
-        const topValue = topDiscard ? (DRAW_VALUES[topDiscard.value] || 0) : 0;
-        
-        if (isMercyMode) {
-            // Mercy: can stack if card value >= top card value
-            return cardValue >= topValue;
-        } else {
-            // Original: must match exact card type
-            // ⚠️ CRITICAL: Wild+4 can ONLY stack on Wild+4 (not on +2)
-            if (gameState.currentValue === 'Wild+4' && card.value === 'Wild+4') return true;
-            if (gameState.currentValue === '+2' && card.value === '+2') return true;
-            return false;
-        }
+        const cardVal = DRAW_VALUES[card.value];
+        if (!cardVal) return false;
+        const topVal = DRAW_VALUES[top.value] || 0;
+        if (isMercyMode) return cardVal >= topVal;
+        // Original: exact type match only
+        return card.value === top.value;
     }
-    
-    // ─────────────────────────────────────────────────
-    // Rule #5: NORMAL JUMP-IN (no stack active)
-    // ⚠️ CRITICAL: Wild+4 can ONLY jump-in on another Wild+4
-    // ─────────────────────────────────────────────────
-    
-    if (card.value === 'Wild+4') {
-        // ✅ Wild+4 can ONLY jump-in if current card is ALSO Wild+4
-        return gameState.currentValue === 'Wild+4';
+
+    // ── Rule 4: Can't steal a turn that's already yours ─────────
+    // Exception: "jumping in on yourself" — you hold two IDENTICAL
+    // cards and want to play the second one immediately after the
+    // first. We allow this only when the top card was literally
+    // just played by you (currentPlayerId === yourId). The server
+    // enforces the one-at-a-time rule so others have a window to
+    // intercept. If we can't determine who played last, fall back
+    // to blocking same-turn jump-ins to avoid abuse.
+    if (gameState.isYourTurn) {
+        // Allow "jump in on yourself" only when last discard is yours
+        const myId = gameState.allPlayers?.find(p => p.isYou)?.id;
+        const lastPlayerId = gameState.lastPlayerId;
+        if (!myId || !lastPlayerId || lastPlayerId !== myId) return false;
     }
-    
-    // +2: Jump-in on same COLOR (when no stack)
-    if (card.value === '+2') {
-        return card.color === gameState.currentColor;
+
+    // ── Rule 5: NORMAL JUMP-IN — EXACT match required ───────────
+    // Per official rules: the card must be the IDENTICAL color+symbol
+    // as the top of the discard pile.
+
+    // Wild cards: same type (Wild on Wild, Wild+4 on Wild+4)
+    if (card.type === 'wild') {
+        return card.value === top.value;
     }
-    
-    // Number cards: EXACT match (color + value)
+
+    // Number cards: exact color AND exact number
     if (card.type === 'number') {
-        return card.color === gameState.currentColor && 
-               card.value === gameState.currentValue;
+        return card.color === top.color && card.value === top.value;
     }
-    
-    // Skip/Reverse: Same COLOR
-    if (card.type === 'action' && (card.value === 'Skip' || card.value === 'Reverse')) {
-        return card.color === gameState.currentColor;
+
+    // Action cards (Skip, Reverse, +2): exact color AND exact symbol
+    if (card.type === 'action') {
+        return card.color === top.color && card.value === top.value;
     }
-    
-    // All other cards cannot jump-in
+
     return false;
 }
 
