@@ -479,12 +479,22 @@ cursor: default;
 box-shadow: none;
 }
 
-/* Main menu + login panels: keep background but no shadow */
+/* Main menu + login panels: solid white, no shadow */
 #mainMenu .menu-container,
 #onlineMenu .menu-container,
 .login-container,
 .login-screen-wrapper > .menu-container {
 box-shadow: none;
+background: #ffffff;
+backdrop-filter: none;
+-webkit-backdrop-filter: none;
+border: none;
+}
+html[data-theme=“dark”] #mainMenu .menu-container,
+html[data-theme=“dark”] #onlineMenu .menu-container,
+html[data-theme=“dark”] .login-container,
+html[data-theme=“dark”] .login-screen-wrapper > .menu-container {
+background: #1e1e2e;
 }
 
 /* ═══════════════════════════════════════════════════
@@ -668,6 +678,9 @@ body.bg-pulsing {
     overflow: hidden;
     padding: clamp(6px, 2vmin, 20px);
     box-sizing: border-box;
+    /* Sit clearly above the cube background (z-index: -10) */
+    position: relative;
+    z-index: 1;
 }
 
 .menu-container {
@@ -2401,6 +2414,21 @@ display: block;
     font-size: 0.72em; font-weight: 900; letter-spacing: 2.5px;
     text-transform: uppercase; color: var(--text-muted);
     margin: 14px 0 10px; text-align: center;
+}
+
+/* Mode picker: glass backdrop so cards/tags are readable over animated bg */
+.mode-picker-wrapper {
+    background: rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 18px;
+    padding: 12px;
+    margin-bottom: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+html[data-theme="light"] .mode-picker-wrapper {
+    background: rgba(255,255,255,0.4);
+    border-color: rgba(0,0,0,0.08);
 }
 
 .mode-cards {
