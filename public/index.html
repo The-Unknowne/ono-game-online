@@ -2826,6 +2826,28 @@ html[data-theme="dark"] .mode-card:not(.selected) { border-color: rgba(255,255,2
     .ready-badge   { min-width: 60px; font-size: 0.75em; }
 }
 
+/* Mobile: switch login inputs to underline style to reduce visual clutter */
+@media (pointer: coarse) {
+    .login-input-group input {
+        border: none;
+        border-bottom: 2px solid var(--input-border);
+        border-radius: 0;
+        background: transparent;
+        padding-left: 2px;
+        padding-right: 2px;
+    }
+    .login-input-group input:focus {
+        border-bottom-color: var(--menu-h1);
+        box-shadow: none;
+    }
+    .login-tabs {
+        border-bottom: 1px solid var(--input-border);
+    }
+    .login-container {
+        border-radius: clamp(14px, 2.5vmin, 24px);
+    }
+}
+
 /* Landscape phone: compress menu-container into a two-column grid
    so the whole menu fits without scrolling on a short screen       */
 @media (max-width: 900px) and (orientation: landscape) and (pointer: coarse) {
