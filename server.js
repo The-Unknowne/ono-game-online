@@ -353,10 +353,14 @@ class GameRoom {
         this.glitchSpectators  = [];
         this.glitchScrambled   = [];
         this.glitchTotalDraws  = 0;
+        // ── PAY BACK: Bank Card system ──────────────────────
+        this.bankPoints        = {};   // { playerId: number }
+        this.pendingBankAction = null; // { playerId, action, cost }
     }
 
-    isMercy() { return this.settings.gameMode === 'mercy'; }
-    isGlitch() { return this.settings.gameMode === 'glitch'; }
+    isMercy()   { return this.settings.gameMode === 'mercy'; }
+    isGlitch()  { return this.settings.gameMode === 'glitch'; }
+    isPayBack() { return this.settings.gameMode === 'payback'; }
 
     createDeck() {
         const COLORS  = ['red', 'blue', 'green', 'yellow'];
@@ -404,6 +408,19 @@ class GameRoom {
                 this.deck.push({ color: 'wild', value: 'Roulette',      type: 'wild' });
             }
         }
+        // ── PAY BACK special bank cards ─────────────────────
+        if (this.isPayBack()) {
+            for (let i = 0; i < 3; i++) {
+                this.deck.push({ color: 'wild', value: 'BankSkip',    type: 'wild', bank: true, cost: 2 });
+                this.deck.push({ color: 'wild', value: 'BankDraw2',   type: 'wild', bank: true, cost: 3 });
+                this.deck.push({ color: 'wild', value: 'BankDraw4',   type: 'wild', bank: true, cost: 5 });
+                this.deck.push({ color: 'wild', value: 'BankReverse', type: 'wild', bank: true, cost: 2 });
+            }
+            for (let i = 0; i < 2; i++) {
+                this.deck.push({ color: 'wild', value: 'BankShield',  type: 'wild', bank: true, cost: 4 });
+                this.deck.push({ color: 'wild', value: 'BankStrike',  type: 'wild', bank: true, cost: 6 });
+            }
+        }
         this.shuffleDeck();
     }
 
@@ -418,6 +435,8 @@ class GameRoom {
         for (const p of this.players) {
             p.hand = [];
             for (let i = 0; i < count; i++) p.hand.push(this.deck.pop());
+            // Initialize every player's bank balance at 0 in Pay Back mode
+            if (this.isPayBack()) this.bankPoints[p.id] = 0;
         }
         let start;
         do { start = this.deck.pop(); } while (start.type !== 'number');
@@ -456,7 +475,11 @@ class GameRoom {
             glitchSpectators:  this.glitchSpectators || [],
             isSpectator:       (this.glitchSpectators || []).includes(this.players[index]?.id),
             glitchScrambled:   this.isGlitchScrambledFor(this.players[index]?.id),
-            isEliminated:      (this.glitchSpectators||[]).includes(this.players[index]?.id)
+            isEliminated:      (this.glitchSpectators||[]).includes(this.players[index]?.id),
+            // ── PAY BACK ──
+            bankPoints:        this.isPayBack() ? { ...this.bankPoints } : null,
+            myBankPoints:      this.isPayBack() ? (this.bankPoints[this.players[index]?.id] || 0) : null,
+            bankShields:       this.isPayBack() ? { ...(this.bankShields || {}) } : null,
         };
     }
 
@@ -651,6 +674,12 @@ class GameRoom {
     } else {
         this.currentColor = card.color;
         this.currentValue = card.value;
+    }
+
+    // ── PAY BACK: award +1 bank point for every card played ──
+    if (this.isPayBack()) {
+        if (this.bankPoints[player.id] === undefined) this.bankPoints[player.id] = 0;
+        this.bankPoints[player.id] += 1;
     }
 
     const effectResult = this.handleCardEffect(card, playerIndex);
@@ -889,6 +918,106 @@ case 'Wild+10':
                 }
                 if (nextSpectIdx !== -1) this.players[nextSpectIdx].hand = [];
                 this.advanceTurn();
+                break;
+            }
+
+            // ── PAY BACK: Bank card effects ──────────────────────────────
+            case 'BankSkip': {
+                const bsCost = 2;
+                const bsPoints = this.bankPoints[player.id] || 0;
+                if (bsPoints < bsCost) {
+                    // Not enough points — card bounces back (treat as unplayable effect)
+                    this._bankActionFailed = { reason: 'insufficient_points', cost: bsCost, have: bsPoints };
+                    this.advanceTurn();
+                    break;
+                }
+                this.bankPoints[player.id] -= bsCost;
+                this.skipNextPlayer();
+                this._bankActionUsed = { action: 'BankSkip', cost: bsCost };
+                break;
+            }
+
+            case 'BankDraw2': {
+                const bd2Cost = 3;
+                const bd2Points = this.bankPoints[player.id] || 0;
+                if (bd2Points < bd2Cost) {
+                    this._bankActionFailed = { reason: 'insufficient_points', cost: bd2Cost, have: bd2Points };
+                    this.advanceTurn();
+                    break;
+                }
+                this.bankPoints[player.id] -= bd2Cost;
+                const bd2Next = this.getNextPlayerIndex(playerIndex);
+                this.drawCards(bd2Next, 2);
+                this.skipNextPlayer();
+                this._bankActionUsed = { action: 'BankDraw2', cost: bd2Cost };
+                break;
+            }
+
+            case 'BankDraw4': {
+                const bd4Cost = 5;
+                const bd4Points = this.bankPoints[player.id] || 0;
+                if (bd4Points < bd4Cost) {
+                    this._bankActionFailed = { reason: 'insufficient_points', cost: bd4Cost, have: bd4Points };
+                    this.advanceTurn();
+                    break;
+                }
+                this.bankPoints[player.id] -= bd4Cost;
+                const bd4Next = this.getNextPlayerIndex(playerIndex);
+                this.drawCards(bd4Next, 4);
+                this.skipNextPlayer();
+                this._bankActionUsed = { action: 'BankDraw4', cost: bd4Cost };
+                break;
+            }
+
+            case 'BankReverse': {
+                const brCost = 2;
+                const brPoints = this.bankPoints[player.id] || 0;
+                if (brPoints < brCost) {
+                    this._bankActionFailed = { reason: 'insufficient_points', cost: brCost, have: brPoints };
+                    this.advanceTurn();
+                    break;
+                }
+                this.bankPoints[player.id] -= brCost;
+                this.direction *= -1;
+                this.advanceTurn();
+                this._bankActionUsed = { action: 'BankReverse', cost: brCost };
+                break;
+            }
+
+            case 'BankShield': {
+                // Shield: next draw penalty aimed at you is nullified (stored as flag)
+                const bshCost = 4;
+                const bshPoints = this.bankPoints[player.id] || 0;
+                if (bshPoints < bshCost) {
+                    this._bankActionFailed = { reason: 'insufficient_points', cost: bshCost, have: bshPoints };
+                    this.advanceTurn();
+                    break;
+                }
+                this.bankPoints[player.id] -= bshCost;
+                if (!this.bankShields) this.bankShields = {};
+                this.bankShields[player.id] = true;
+                this.advanceTurn();
+                this._bankActionUsed = { action: 'BankShield', cost: bshCost };
+                break;
+            }
+
+            case 'BankStrike': {
+                // Strike: drain 3 points from every other player
+                const bstCost = 6;
+                const bstPoints = this.bankPoints[player.id] || 0;
+                if (bstPoints < bstCost) {
+                    this._bankActionFailed = { reason: 'insufficient_points', cost: bstCost, have: bstPoints };
+                    this.advanceTurn();
+                    break;
+                }
+                this.bankPoints[player.id] -= bstCost;
+                for (const p of this.players) {
+                    if (p.id !== player.id) {
+                        this.bankPoints[p.id] = Math.max(0, (this.bankPoints[p.id] || 0) - 3);
+                    }
+                }
+                this.advanceTurn();
+                this._bankActionUsed = { action: 'BankStrike', cost: bstCost };
                 break;
             }
 
@@ -1326,6 +1455,23 @@ io.on('connection', socket => {
             rooms.delete(roomId);
             return;
         }
+    }
+
+    // ── PAY BACK: broadcast bank action result ────────────────────
+    if (room._bankActionUsed) {
+        io.to(roomId).emit('bankActionUsed', {
+            playerName: player?.name,
+            playerId:   socket.id,
+            action:     room._bankActionUsed.action,
+            cost:       room._bankActionUsed.cost,
+            bankPoints: room.bankPoints,
+            bankShields: room.bankShields || {}
+        });
+        room._bankActionUsed = null;
+    }
+    if (room._bankActionFailed) {
+        socket.emit('bankActionFailed', room._bankActionFailed);
+        room._bankActionFailed = null;
     }
     if (result.newlyKnocked && result.newlyKnocked.length > 0) {
         result.newlyKnocked.forEach(p => io.to(roomId).emit('playerKnockedOut', { playerId: p.id, playerName: p.name }));
