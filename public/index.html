@@ -111,7 +111,6 @@
             --rules-bg: rgba(255,255,255,0.12);
         }
 
-```
     html[data-theme="dark"] {
         --bg-grad-a: #0d0d1a;
         --bg-grad-b: #1a0a2e;
@@ -160,7 +159,6 @@
     /* ═══════════════════════════════════════════════════
         FLOATING CUBES BACKGROUND
     ═══════════════════════════════════════════════════ */
-```
 
 .cube-container {
 position: fixed;
@@ -514,7 +512,6 @@ min-width: 70px;
 min-height: 105px;
 }
 
-```
 .menu-button,
 .popup-button,
 .controls button {
@@ -539,7 +536,6 @@ min-height: 105px;
     font-size: 1em;
     padding: 8px 16px;
 }
-```
 
 }
 
@@ -549,11 +545,11 @@ min-height: 105px;
 opacity: 1 !important;
 }
 
-```
+
 .mouse-name-tag.visible {
     opacity: 1 !important;
 }
-```
+
 
 }
 
@@ -564,7 +560,6 @@ and cause background jitter from continuous layout recalcs on touchmove */
 .mouse-name-tag { display: none !important; }
 }
 
-```
     * {
         margin: 0;
         padding: 0;
@@ -2002,7 +1997,6 @@ html[data-theme="dark"] .card.plus12 .card-inner {
     transition: background 0.3s, color 0.3s;
 }
 /* Player Name Modal Styles */
-```
 
 #namePopup {
 max-width: 450px;
@@ -2053,7 +2047,6 @@ z-index: 999;
 display: block;
 }
 
-```
 .custom-popup.active {
     display: block;
 }
@@ -3298,7 +3291,6 @@ html[data-glitch="1"] #modePickerBtn { background:linear-gradient(135deg,#001a00
 .mode-card.glitch .mode-card-badge { background: rgba(0,255,65,0.12); color: #00ff41; }
 .mode-card.glitch .mode-card-desc  { color: #aaffaa; }
 .mode-card.glitch .mode-rule-tag   { background: rgba(0,255,65,0.1); color: #00dd33; border-color: rgba(0,255,65,0.2); }
-```
 
 </style>
 
@@ -3635,7 +3627,6 @@ observer.observe(document.documentElement, {
 </head>
 <body>
 
-```
 <!-- ===== LANDSCAPE ENFORCEMENT OVERLAY ===== -->
 <div id="landscape-prompt">
     <div class="lp-icon">📱</div>
@@ -3776,7 +3767,6 @@ observer.observe(document.documentElement, {
 
             <!-- Login Form -->
             <!-- Login Form -->
-```
 
 <!-- Login Form -->
 
@@ -3790,18 +3780,15 @@ observer.observe(document.documentElement, {
         <input type="password" id="loginPassword" placeholder="Enter your password" maxlength="50">
     </div>
 
-```
+
 <!-- Button wrapper to push to bottom -->
 <div class="login-button-wrapper">
     <button class="login-button" onclick="handleLogin()">🔓 Login</button>
 </div>
-```
 
 </div>
 
-```
             <!-- Sign Up Form -->
-```
 
 <div id="signupForm" class="login-form-section">
     <div class="login-input-group">
@@ -3817,16 +3804,13 @@ observer.observe(document.documentElement, {
         <input type="password" id="signupPasswordConfirm" placeholder="Confirm password" maxlength="50">
     </div>
 
-```
 <!-- Button wrapper to push to bottom -->
 <div class="login-button-wrapper">
     <button class="login-button" onclick="handleSignup()">✍️ Create Account</button>
 </div>
-```
 
 </div>
 
-```
         </div>
     </div>
 </div>
@@ -3973,7 +3957,6 @@ observer.observe(document.documentElement, {
 </div>
 
 <!-- Passcode Modal -->
-```
 
 <div class="custom-popup" id="passcodePopup">
     <h2>🔒 Private Lobby</h2>
@@ -4007,7 +3990,6 @@ observer.observe(document.documentElement, {
         <h2>🎮 Available Lobbies</h2>
         <p style="margin-bottom: 20px; color: var(--text-muted);">Select a lobby to join</p>
 
-```
     <div class="lobby-list" id="lobbyListContainer">
         <!-- Lobbies will be dynamically added here -->
     </div>
@@ -4015,7 +3997,6 @@ observer.observe(document.documentElement, {
     <button class="menu-button" onclick="refreshLobbies()" style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);">🔄 Refresh</button>
     <button class="menu-button offline" onclick="showOnlineMenu()">Back</button>
 </div>
-```
 
 </div>
 
@@ -4025,7 +4006,6 @@ observer.observe(document.documentElement, {
     <div class="menu-container">
         <h2>Create Lobby</h2>
 
-```
     <div class="setting-item">
         <label>Your Name</label>
         <input type="text" id="playerName" placeholder="Enter your name" maxlength="20" style="display: none;">
@@ -4117,7 +4097,6 @@ observer.observe(document.documentElement, {
     <button class="menu-button online" onclick="createLobby()">Create Lobby</button>
     <button class="menu-button offline" onclick="showOnlineMenu()">Back</button>
 </div>
-```
 
 </div>
 
@@ -4136,7 +4115,6 @@ observer.observe(document.documentElement, {
                 </p>
             </div>
 
-```
         <!-- Ready Status Bar -->
         <div id="readyStatusBar" class="ready-status-bar waiting" style="display: none;">
             <!-- Dynamic ready status message -->
@@ -4161,7 +4139,6 @@ observer.observe(document.documentElement, {
     <button class="menu-button online" id="readyButton" onclick="toggleReady()" style="display: none;">✓ Ready Up!</button>
     <button class="menu-button offline" onclick="leaveLobby()">Leave Lobby</button>
 </div>
-```
 
 </div>
 
@@ -4170,7 +4147,6 @@ observer.observe(document.documentElement, {
 <div id="gameScreen" class="screen">
     <div class="game-table-wrapper">
 
-```
     <div id="stackIndicator" class="stack-indicator" style="margin:6px auto 0;display:none;"></div>
 
     <!-- Oval table arena -->
@@ -4227,7 +4203,7 @@ observer.observe(document.documentElement, {
 
 
 </div>
-```
+
 
 </div>
 
@@ -4327,7 +4303,6 @@ title="Open Settings" aria-label="Open Settings">
     <div class="sfp-header"><h2>⚙️ Settings</h2></div>
     <div class="sfp-body">
 
-```
     <!-- Game Controls -->
     <div>
         <div class="sfp-sec">Game Controls</div>
@@ -4380,7 +4355,6 @@ title="Open Settings" aria-label="Open Settings">
 
     <button class="sfp-close-btn" onclick="toggleSettingsPanel()">✕ Close</button>
 </div>
-```
 
 </div>
 
