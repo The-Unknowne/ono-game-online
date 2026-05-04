@@ -477,21 +477,18 @@ cursor: default;
 box-shadow: none;
 }
 
-/* Main menu + login panels: solid white, no shadow */
-#mainMenu .menu-container,
-#onlineMenu .menu-container,
-.login-container,
-.login-screen-wrapper > .menu-container {
+/* All menu panels: solid white in light mode */
+.menu-container,
+.login-container {
 box-shadow: none;
 background: #ffffff;
 backdrop-filter: none;
 -webkit-backdrop-filter: none;
 border: none;
 }
-html[data-theme=“dark”] #mainMenu .menu-container,
-html[data-theme=“dark”] #onlineMenu .menu-container,
-html[data-theme=“dark”] .login-container,
-html[data-theme=“dark”] .login-screen-wrapper > .menu-container {
+/* Dark mode: every .menu-container and .login-container goes dark */
+html[data-theme="dark"] .menu-container,
+html[data-theme="dark"] .login-container {
 background: #1e1e2e;
 }
 
@@ -2396,14 +2393,16 @@ display: block;
 .mode-picker-wrapper {
     margin-top: 8px;
     margin-bottom: 0;
-    overflow: hidden;
-    transition: max-height 0.45s cubic-bezier(0.4,0,0.2,1),
-                opacity 0.35s ease,
-                padding 0.35s ease,
-                border-color 0.35s ease;
-    max-height: 0;
+    /* clip-height trick: use grid rows instead of max-height so content
+       is never cropped mid-card during the open animation */
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.42s cubic-bezier(0.4,0,0.2,1),
+                opacity 0.32s ease,
+                padding 0.32s ease,
+                margin-bottom 0.32s ease,
+                border-color 0.32s ease;
     opacity: 0;
-    /* Hide border and padding when closed so no outline shows */
     padding: 0;
     border-radius: 18px;
     border: 1px solid transparent;
@@ -2411,8 +2410,13 @@ display: block;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
 }
+/* Inner wrapper needed for grid-row animation — must have overflow:hidden */
+.mode-picker-inner {
+    overflow: hidden;
+    min-height: 0;
+}
 .mode-picker-wrapper.open {
-    max-height: 700px;
+    grid-template-rows: 1fr;
     opacity: 1;
     padding: 12px;
     margin-bottom: 8px;
@@ -2459,6 +2463,10 @@ html[data-theme="light"] .mode-picker-wrapper.open {
 }
 .mode-card.selected::before { opacity: 1; }
 .mode-card.selected .mode-card-inner * { color: #fff !important; }
+.mode-card.selected .mode-card-title,
+.mode-card.selected .mode-card-desc { color: #fff !important; }
+.mode-card.selected .mode-card-badge { background: rgba(255,255,255,0.25) !important; color: #fff !important; }
+.mode-card.selected .mode-rule-tag  { background: rgba(255,255,255,0.18) !important; color: #fff !important; border-color: rgba(255,255,255,0.3) !important; }
 
 /* mercy card accent */
 .mode-card.mercy { --mode-accent: linear-gradient(135deg,#e74c3c,#c0392b); }
@@ -3292,6 +3300,254 @@ html[data-glitch="1"] #modePickerBtn { background:linear-gradient(135deg,#001a00
 .mode-card.glitch .mode-card-desc  { color: #aaffaa; }
 .mode-card.glitch .mode-rule-tag   { background: rgba(0,255,65,0.1); color: #00dd33; border-color: rgba(0,255,65,0.2); }
 
+/* ══════════════════════════════════════════════
+   PAY BACK THEME  — deep purple
+══════════════════════════════════════════════ */
+html[data-payback="1"] {
+    --bg-grad-a: #2d0057;
+    --bg-grad-b: #13002b;
+    --menu-h1: #c084fc;
+    --menu-shadow: 0 20px 60px rgba(120,0,200,0.6), 0 0 0 1px rgba(180,100,255,0.1);
+}
+html[data-theme="dark"][data-payback="1"] {
+    --bg-grad-a: #160030;
+    --bg-grad-b: #08001a;
+    --menu-h1: #d8b4fe;
+    --menu-shadow: 0 20px 80px rgba(120,0,200,0.8), 0 0 0 1px rgba(180,100,255,0.12);
+}
+html[data-payback="1"] .menu-button {
+    background: linear-gradient(135deg, #7c3aed, #5b21b6);
+    box-shadow: 0 6px 15px rgba(124,58,237,0.4);
+}
+html[data-payback="1"] .menu-button.online {
+    background: linear-gradient(135deg, #9333ea, #7c3aed);
+    box-shadow: 0 6px 18px rgba(147,51,234,0.45);
+}
+html[data-payback="1"] .menu-button.create {
+    background: linear-gradient(135deg, #7c3aed, #5b21b6);
+    box-shadow: 0 6px 15px rgba(124,58,237,0.4);
+}
+html[data-payback="1"] #settingsGearBtn {
+    background: linear-gradient(135deg, #7c3aed, #5b21b6) !important;
+    box-shadow: 0 4px 18px rgba(124,58,237,0.55) !important;
+}
+html[data-payback="1"] .sfp-close-btn {
+    background: linear-gradient(135deg, #7c3aed, #5b21b6) !important;
+}
+html[data-payback="1"] .sfp-vol-pct { color: #c084fc; }
+html[data-payback="1"] input[type=range]#sfpVolume {
+    background: linear-gradient(to right, #7c3aed var(--vol,70%), rgba(124,58,237,0.2) var(--vol,70%));
+}
+html[data-payback="1"] input[type=range]#sfpVolume::-webkit-slider-thumb,
+html[data-payback="1"] input[type=range]#sfpVolume::-moz-range-thumb {
+    background: linear-gradient(135deg, #9333ea, #7c3aed);
+}
+html[data-payback="1"] #modePickerBtn {
+    background: linear-gradient(135deg, #9333ea, #7c3aed) !important;
+    box-shadow: 0 6px 18px rgba(147,51,234,0.45) !important;
+}
+html[data-payback="1"] .cube-face {
+    border-color: rgba(180, 100, 255, 0.7);
+}
+html[data-payback="1"] .cube-face:nth-child(1) {
+    background: linear-gradient(135deg, rgba(180,100,255,0.3) 0%, rgba(140,60,240,0.15) 100%);
+}
+html[data-payback="1"] .cube-face:nth-child(5) {
+    background: linear-gradient(135deg, rgba(200,140,255,0.32) 0%, rgba(160,80,255,0.18) 100%);
+}
+
+/* Pay Back mode card styling */
+.mode-card.payback { --mode-accent: linear-gradient(135deg,#2d0057,#7c3aed); }
+.mode-card.payback.selected { box-shadow: 0 6px 24px rgba(124,58,237,0.55); }
+.mode-card.payback .mode-card-title { color: #c084fc; }
+.mode-card.payback .mode-card-badge { background: rgba(124,58,237,0.18); color: #d8b4fe; }
+.mode-card.payback .mode-card-desc  { color: #dbb6ff; }
+.mode-card.payback .mode-rule-tag   { background: rgba(124,58,237,0.12); color: #a855f7; border-color: rgba(124,58,237,0.25); }
+
+/* ══════════════════════════════════════════════
+   BANK CARD PANEL
+══════════════════════════════════════════════ */
+.bank-card-panel {
+    position: fixed;
+    right: 14px;
+    bottom: 140px;
+    z-index: 500;
+    width: 148px;
+    background: linear-gradient(160deg, #1a003a 0%, #2d0057 50%, #160030 100%);
+    border: 2px solid rgba(180,100,255,0.55);
+    border-radius: 18px;
+    padding: 14px 12px 12px;
+    box-shadow:
+        0 0 0 1px rgba(180,100,255,0.18),
+        0 8px 32px rgba(100,0,200,0.45),
+        0 0 40px rgba(140,60,255,0.15);
+    color: #e9d5ff;
+    font-family: 'Nunito', sans-serif;
+    user-select: none;
+    animation: bankPanelIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+@keyframes bankPanelIn {
+    from { opacity: 0; transform: translateX(30px) scale(0.9); }
+    to   { opacity: 1; transform: translateX(0)    scale(1); }
+}
+
+.bank-card-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid rgba(180,100,255,0.3);
+    padding-bottom: 8px;
+}
+
+.bank-card-icon { font-size: 1.1em; }
+
+.bank-card-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.62em;
+    font-weight: 900;
+    letter-spacing: 1.5px;
+    color: #c084fc;
+    text-shadow: 0 0 10px rgba(192,132,252,0.6);
+}
+
+.bank-card-balance-row {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    justify-content: center;
+    margin-bottom: 4px;
+}
+
+.bank-card-pts {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2em;
+    font-weight: 900;
+    color: #d8b4fe;
+    text-shadow: 0 0 16px rgba(192,132,252,0.8), 0 0 32px rgba(140,60,255,0.4);
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+.bank-card-pts-label {
+    font-size: 0.78em;
+    color: #a78bfa;
+    font-weight: 700;
+}
+
+@keyframes bankPtsBump {
+    0%   { transform: scale(1);    color: #d8b4fe; }
+    40%  { transform: scale(1.35); color: #f5d0fe; text-shadow: 0 0 24px rgba(240,171,252,1); }
+    100% { transform: scale(1);    color: #d8b4fe; }
+}
+
+.bank-card-pts.bank-pts-bump {
+    animation: bankPtsBump 0.55s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+.bank-card-shield-row {
+    background: rgba(167,139,250,0.18);
+    border: 1px solid rgba(167,139,250,0.4);
+    border-radius: 8px;
+    padding: 4px 8px;
+    font-size: 0.72em;
+    font-weight: 700;
+    color: #c4b5fd;
+    text-align: center;
+    margin-bottom: 6px;
+    animation: shieldPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes shieldPulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(167,139,250,0.4); }
+    50%      { box-shadow: 0 0 0 4px rgba(167,139,250,0); }
+}
+
+.bank-card-legend {
+    margin-top: 6px;
+    border-top: 1px solid rgba(180,100,255,0.2);
+    padding-top: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.bcl-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.62em;
+    color: #c4b5fd;
+}
+
+.bcl-cost {
+    color: #a78bfa;
+    font-weight: 800;
+    font-family: 'Orbitron', sans-serif;
+}
+
+.bank-opponents-title {
+    font-size: 0.62em;
+    font-weight: 900;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #9333ea;
+    margin: 8px 0 4px;
+    border-top: 1px solid rgba(147,51,234,0.3);
+    padding-top: 6px;
+}
+
+.bank-opponents-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.bank-opp-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.68em;
+    color: #ddd6fe;
+}
+
+.bank-opp-name {
+    max-width: 82px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.bank-opp-pts {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.9em;
+    font-weight: 700;
+    color: #c084fc;
+}
+
+/* Pay Back bank cards in hand */
+.card.bank-skip    { background: linear-gradient(145deg,#2d0057,#7c3aed,#4c1d95) !important; border-color: #a855f7 !important; box-shadow: 0 0 18px rgba(168,85,247,0.6) !important; }
+.card.bank-skip    .card-inner { color: #d8b4fe !important; background: rgba(0,0,0,0.65) !important; font-size: 0.55em !important; }
+.card.bank-draw2   { background: linear-gradient(145deg,#1e0040,#6d28d9,#3b0764) !important; border-color: #8b5cf6 !important; box-shadow: 0 0 18px rgba(139,92,246,0.6) !important; }
+.card.bank-draw2   .card-inner { color: #c4b5fd !important; background: rgba(0,0,0,0.65) !important; font-size: 0.55em !important; }
+.card.bank-draw4   { background: linear-gradient(145deg,#140029,#5b21b6,#2e1065) !important; border-color: #7c3aed !important; box-shadow: 0 0 22px rgba(124,58,237,0.7) !important; }
+.card.bank-draw4   .card-inner { color: #ddd6fe !important; background: rgba(0,0,0,0.7) !important; font-size: 0.55em !important; }
+.card.bank-reverse { background: linear-gradient(145deg,#240048,#9333ea,#4a0f9c) !important; border-color: #a855f7 !important; box-shadow: 0 0 18px rgba(168,85,247,0.6) !important; }
+.card.bank-reverse .card-inner { color: #f0abfc !important; background: rgba(0,0,0,0.65) !important; font-size: 0.55em !important; }
+.card.bank-shield  { background: linear-gradient(145deg,#1e0050,#7c3aed,#4c0f98) !important; border-color: #c084fc !important; box-shadow: 0 0 22px rgba(192,132,252,0.75) !important; animation: bankShieldCardGlow 1.5s ease-in-out infinite !important; }
+.card.bank-shield  .card-inner { color: #f5d0fe !important; background: rgba(0,0,0,0.7) !important; font-size: 0.55em !important; }
+.card.bank-strike  { background: linear-gradient(145deg,#0d0020,#4c1d95,#2d0057) !important; border-color: #e879f9 !important; box-shadow: 0 0 28px rgba(232,121,249,0.8) !important; animation: bankStrikeGlow 0.9s ease-in-out infinite !important; }
+.card.bank-strike  .card-inner { color: #fae8ff !important; background: rgba(0,0,0,0.8) !important; font-size: 0.55em !important; }
+
+@keyframes bankShieldCardGlow {
+    0%,100% { box-shadow: 0 0 20px rgba(192,132,252,0.7); }
+    50%      { box-shadow: 0 0 40px rgba(192,132,252,1), 0 0 60px rgba(140,60,255,0.4); }
+}
+@keyframes bankStrikeGlow {
+    0%,100% { box-shadow: 0 0 24px rgba(232,121,249,0.8); }
+    50%      { box-shadow: 0 0 48px rgba(232,121,249,1), 0 0 70px rgba(180,0,255,0.5); }
+}
+
 </style>
 
 <script>
@@ -3316,6 +3572,10 @@ var BG_PALETTES = {
         light:  [ 135,  80,  28,   160,  90,  20 ],
         dark:   [ 130,  90,  12,   150,  85,   8 ],
     },
+    payback: {
+        light:  [ 270,  75,  45,   290,  60,  30 ],
+        dark:   [ 270,  85,  14,   285,  70,   9 ],
+    },
 };
 var BG_DURATIONS = { 'color-cycle': 22, 'pulsing': 11 };
 
@@ -3324,7 +3584,8 @@ function syncBgPalette() {
     var isDark   = html.getAttribute('data-theme')  === 'dark';
     var isMercy  = html.getAttribute('data-mercy')  === '1';
     var isGlitch = html.getAttribute('data-glitch') === '1';
-    var modeKey  = isGlitch ? 'glitch' : isMercy ? 'mercy' : 'original';
+    var isPayBack = html.getAttribute('data-payback') === '1';
+    var modeKey  = isGlitch ? 'glitch' : isMercy ? 'mercy' : isPayBack ? 'payback' : 'original';
     var themeKey = isDark ? 'dark' : 'light';
     var pal = BG_PALETTES[modeKey][themeKey];
     var h1=pal[0], s1=pal[1], l1=pal[2], h2=pal[3], s2=pal[4], l2=pal[5];
@@ -3680,6 +3941,7 @@ observer.observe(document.documentElement, {
 
             <!-- Expanding mode picker -->
             <div class="mode-picker-wrapper" id="modePickerPanel">
+                <div class="mode-picker-inner">
                 <div class="mode-picker-label">Select a game mode</div>
                 <div class="mode-cards">
 
@@ -3743,7 +4005,30 @@ observer.observe(document.documentElement, {
                         </div>
                     </div>
 
+                    <div class="mode-card payback" id="modeCard-payback"
+                         onclick="selectMode('payback')">
+                        <div class="mode-card-inner">
+                            <div class="mode-card-title">
+                                💳 Pay Back
+                                <span class="mode-card-badge">Strategic</span>
+                            </div>
+                            <div class="mode-card-desc">
+                                Every card you play earns Bank Points. Spend them on powerful
+                                Bank Cards to devastate opponents — or shield yourself.
+                            </div>
+                            <div class="mode-card-rules">
+                                <span class="mode-rule-tag">💳 Bank Card System</span>
+                                <span class="mode-rule-tag">💸 +1pt per card played</span>
+                                <span class="mode-rule-tag">⏭️ BankSkip (2pt)</span>
+                                <span class="mode-rule-tag">💸 BankDraw +2/+4</span>
+                                <span class="mode-rule-tag">🛡️ BankShield (4pt)</span>
+                                <span class="mode-rule-tag">⚡ BankStrike (6pt)</span>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
+                </div><!-- /.mode-picker-inner -->
             </div>
 
             <button class="menu-button online" onclick="showOnlineMenu()">🌐 Play Online</button>
@@ -3875,6 +4160,7 @@ observer.observe(document.documentElement, {
 
         <!-- Expanding mode picker -->
         <div class="mode-picker-wrapper" id="modePickerPanel">
+            <div class="mode-picker-inner">
             <div class="mode-picker-label">Select a game mode</div>
             <div class="mode-cards">
 
@@ -3938,7 +4224,30 @@ observer.observe(document.documentElement, {
                     </div>
                 </div>
 
+                <div class="mode-card payback" id="modeCard-payback"
+                     onclick="selectMode('payback')">
+                    <div class="mode-card-inner">
+                        <div class="mode-card-title">
+                            💳 Pay Back
+                            <span class="mode-card-badge">Strategic</span>
+                        </div>
+                        <div class="mode-card-desc">
+                            Every card you play earns Bank Points. Spend them on powerful
+                            Bank Cards to devastate opponents — or shield yourself.
+                        </div>
+                        <div class="mode-card-rules">
+                            <span class="mode-rule-tag">💳 Bank Card System</span>
+                            <span class="mode-rule-tag">💸 +1pt per card played</span>
+                            <span class="mode-rule-tag">⏭️ BankSkip (2pt)</span>
+                            <span class="mode-rule-tag">💸 BankDraw +2/+4</span>
+                            <span class="mode-rule-tag">🛡️ BankShield (4pt)</span>
+                            <span class="mode-rule-tag">⚡ BankStrike (6pt)</span>
+                        </div>
+                    </div>
+                </div>
+
             </div>
+            </div><!-- /.mode-picker-inner -->
         </div>
 
         <button class="menu-button online" onclick="showOnlineMenu()">🌐 Play Online</button>
@@ -4965,6 +5274,7 @@ title="Open Settings" aria-label="Open Settings">
             startHeartbeat();
             applyMercyTheme(data.settings && data.settings.gameMode === 'mercy');
             applyGlitchTheme(data.settings && data.settings.gameMode === 'glitch');
+            applyPayBackTheme(data.settings && data.settings.gameMode === 'payback');
             showWaitingLobby(data.lobbyName, data.settings, data.players, data.minPlayers || 2);
         });
 
@@ -4975,6 +5285,7 @@ title="Open Settings" aria-label="Open Settings">
             startHeartbeat();
             applyMercyTheme(data.settings && data.settings.gameMode === 'mercy');
             applyGlitchTheme(data.settings && data.settings.gameMode === 'glitch');
+            applyPayBackTheme(data.settings && data.settings.gameMode === 'payback');
             showWaitingLobby(data.lobbyName, data.settings, data.players, data.minPlayers || 2);
         });
 
@@ -4990,6 +5301,7 @@ title="Open Settings" aria-label="Open Settings">
             isWaitingForServer = false;
             applyMercyTheme(state.settings && state.settings.gameMode === 'mercy');
             applyGlitchTheme(state.settings && state.settings.gameMode === 'glitch');
+            applyPayBackTheme(state.settings && state.settings.gameMode === 'payback');
             showScreen('gameScreen');
             // Start heartbeat monitoring for in-game presence
             startHeartbeat();
@@ -5008,6 +5320,7 @@ title="Open Settings" aria-label="Open Settings">
             isWaitingForServer = false;
             applyMercyTheme(state.settings && state.settings.gameMode === 'mercy');
             applyGlitchTheme(state.settings && state.settings.gameMode === 'glitch');
+            applyPayBackTheme(state.settings && state.settings.gameMode === 'payback');
             showScreen('gameScreen');
             startHeartbeat();
             updateGameUI();
@@ -5271,6 +5584,33 @@ title="Open Settings" aria-label="Open Settings">
             updateGameUI(); // FIX: Re-render UI
         });
 
+        // ── PAY BACK: Bank card events ─────────────────────────────
+        socket.on('bankActionUsed', (data) => {
+            if (gameState) {
+                gameState.bankPoints  = data.bankPoints;
+                gameState.myBankPoints = data.bankPoints[socket.id] || 0;
+                gameState.bankShields  = data.bankShields;
+            }
+            const actionLabels = {
+                BankSkip:    '⏭️ Bank Skip',
+                BankDraw2:   '💸 Bank Draw +2',
+                BankDraw4:   '💸 Bank Draw +4',
+                BankReverse: '🔄 Bank Reverse',
+                BankShield:  '🛡️ Bank Shield',
+                BankStrike:  '⚡ Bank Strike'
+            };
+            const label = actionLabels[data.action] || data.action;
+            showToast(`💜 ${data.playerName} used ${label} (−${data.cost} pts)`, '#9b59b6');
+            updateBankCardUI();
+            updateGameUI();
+        });
+
+        socket.on('bankActionFailed', (data) => {
+            showToast(`❌ Not enough bank points! Need ${data.cost}, have ${data.have}.`, '#e74c3c');
+            isWaitingForServer = false;
+            updateGameUI();
+        });
+
         // Player presence events
         socket.on('playerDisconnected', (data) => {
             showDisconnectNotification(
@@ -5450,20 +5790,39 @@ title="Open Settings" aria-label="Open Settings">
         if (typeof syncBgPalette === 'function') syncBgPalette();
     }
 
+    function applyPayBackTheme(on) {
+        document.documentElement.setAttribute('data-payback', on ? '1' : '0');
+        if (typeof syncBgPalette === 'function') syncBgPalette();
+    }
+
     function toggleModePicker() {
         const activeScreen = document.querySelector('.screen.active');
-     if (!activeScreen) return;
-    
-        const panel = activeScreen.querySelector('.mode-picker-wrapper');
+        if (!activeScreen) return;
+
+        const panel   = activeScreen.querySelector('.mode-picker-wrapper');
         const chevron = activeScreen.querySelector('.mode-chevron');
-    
-      if (panel && chevron) {
-            const isOpen = panel.classList.toggle('open');
-          chevron.classList.toggle('open', isOpen);
+        if (!panel || !chevron) return;
+
+        const isOpen = panel.classList.toggle('open');
+        chevron.classList.toggle('open', isOpen);
+
+        if (isOpen) {
+            // After the grid-row transition starts, scroll the panel into view
+            // inside the menu-container so all cards are visible
+            setTimeout(() => {
+                panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                // Also scroll the menu-container itself down to the panel
+                const container = panel.closest('.menu-container, .login-container');
+                if (container) {
+                    const panelBottom = panel.offsetTop + panel.scrollHeight + 20;
+                    container.scrollTo({ top: panelBottom - container.clientHeight + 20, behavior: 'smooth' });
+                }
+            }, 60);
         }
     }
 
-    function isGlitch() { return selectedGameMode === 'glitch'; }
+    function isGlitch()   { return selectedGameMode === 'glitch'; }
+    function isPayBack()  { return selectedGameMode === 'payback'; }
 
     
     function selectMode(mode) {
@@ -5487,7 +5846,7 @@ title="Open Settings" aria-label="Open Settings">
         if (modeBtn) {
         const label = modeBtn.querySelector('span');
         if (label) {
-            const labels = { original: 'Original', mercy: 'Please Have Mercy', glitch: "Glitched N'NO" };
+            const labels = { original: 'Original', mercy: 'Please Have Mercy', glitch: "Glitched N'NO", payback: 'Pay Back' };
             label.textContent = labels[mode] || mode;
         }
     }
@@ -5501,9 +5860,14 @@ title="Open Settings" aria-label="Open Settings">
         // Apply theme
         applyMercyTheme(mode === 'mercy');
         applyGlitchTheme(mode === 'glitch');
-    
+        applyPayBackTheme(mode === 'payback');
+
         selectedGameMode = mode;
-     console.log(`[Menu] Selected game mode: ${mode}`);
+        console.log(`[Menu] Selected game mode: ${mode}`);
+
+        // Scroll the container back to the top so the mode button is in view
+        const container = activeScreen.querySelector('.menu-container, .login-container');
+        if (container) container.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
 
@@ -5776,6 +6140,7 @@ document.addEventListener('DOMContentLoaded', function() {
             settings.allowJumpIn                && '✅ Jump-In Enabled',
             settings.drawUntilMatch !== false   && '✅ Draw Until Match Enabled',
             settings.gameMode === 'mercy'          && '💀 Please Have Mercy Mode',
+            settings.gameMode === 'payback'        && '💳 Pay Back Mode — Bank Card System',
         ].filter(Boolean);
 
         const rulesRows = activeRules.length
@@ -6102,6 +6467,9 @@ if (gameState.isYourTurn && gameState.stackedDrawCount > 0 && !isWaitingForServe
             console.error('Error updating UI:', error);
         }
 
+        // Update Bank Card UI if in Pay Back mode
+        if (isPayBack()) updateBankCardUI();
+
         // Add this at the end of updateGameUI()
 console.log('[UI Debug]', {
     stackedDrawCount: gameState.stackedDrawCount,
@@ -6353,10 +6721,12 @@ console.log('[UI Debug]', {
     function createCardElement(card) {
         const cardDiv = document.createElement('div');
         const MERCY_CLASS = { 'Wild+6': 'wild mercy-draw', 'Wild+10': 'wild mercy-draw-big', 'DiscardAll': 'wild mercy-skipall', 'WildReverseD4': 'wild mercy-draw', 'SkipAll': 'wild mercy-skipall', 'Roulette': 'wild mercy-roulette' };
-        const colorClass = card.value === '+12' ? 'plus12' : (MERCY_CLASS[card.value] ? '' : card.color);
-        cardDiv.className = `card ${MERCY_CLASS[card.value] || colorClass}`;
+        const BANK_CLASS  = { 'BankSkip': 'wild bank-skip', 'BankDraw2': 'wild bank-draw2', 'BankDraw4': 'wild bank-draw4', 'BankReverse': 'wild bank-reverse', 'BankShield': 'wild bank-shield', 'BankStrike': 'wild bank-strike' };
+        const colorClass = card.value === '+12' ? 'plus12' : (MERCY_CLASS[card.value] || BANK_CLASS[card.value] ? '' : card.color);
+        cardDiv.className = `card ${MERCY_CLASS[card.value] || BANK_CLASS[card.value] || colorClass}`;
 
-        const LABELS = { 'Wild+4': '+4', 'Wild+6': '+6', 'Wild+10': '+10', 'DiscardAll': 'DISCARD ALL', 'WildReverseD4': 'REV +4', '+12': '+12', 'SkipAll': 'SKIP ALL', 'Roulette': 'ROULETTE', 'Wild': 'WILD' };
+        const LABELS = { 'Wild+4': '+4', 'Wild+6': '+6', 'Wild+10': '+10', 'DiscardAll': 'DISCARD ALL', 'WildReverseD4': 'REV +4', '+12': '+12', 'SkipAll': 'SKIP ALL', 'Roulette': 'ROULETTE', 'Wild': 'WILD',
+                         'BankSkip': '⏭ SKIP', 'BankDraw2': '💸 +2', 'BankDraw4': '💸 +4', 'BankReverse': '🔄 REV', 'BankShield': '🛡 SHIELD', 'BankStrike': '⚡ STRIKE' };
         const cardInner = document.createElement('div');
         cardInner.className = 'card-inner';
         const _ISTOP = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" style="width:100%;height:100%;display:block"><path fill="currentColor" d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372 0-89 31.3-170.8 83.5-234.8l523.3 523.3C682.8 852.7 601 884 512 884zm288.5-137.2L277.2 223.5C341.2 171.3 423 140 512 140c205.4 0 372 166.6 372 372 0 89-31.3 170.8-83.5 234.8z"/></svg>';
@@ -6762,6 +7132,86 @@ console.log('[UI Debug]', {
         `;
         document.body.appendChild(burst);
         setTimeout(() => burst.remove(), 1300);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // PAY BACK — BANK CARD UI
+    // ═══════════════════════════════════════════════════════
+    function updateBankCardUI() {
+        if (!gameState || !isPayBack()) {
+            const existing = document.getElementById('bankCardPanel');
+            if (existing) existing.style.display = 'none';
+            return;
+        }
+
+        let panel = document.getElementById('bankCardPanel');
+        if (!panel) {
+            panel = document.createElement('div');
+            panel.id = 'bankCardPanel';
+            panel.className = 'bank-card-panel';
+            panel.innerHTML = `
+                <div class="bank-card-header">
+                    <span class="bank-card-icon">💳</span>
+                    <span class="bank-card-title">BANK CARD</span>
+                </div>
+                <div class="bank-card-balance-row">
+                    <div class="bank-card-pts" id="bankPtsDisplay">0</div>
+                    <div class="bank-card-pts-label">pts</div>
+                </div>
+                <div class="bank-card-shield-row" id="bankShieldRow" style="display:none;">
+                    🛡️ <span>Shield Active</span>
+                </div>
+                <div class="bank-card-legend">
+                    <div class="bcl-row"><span>BankSkip</span><span class="bcl-cost">2pt</span></div>
+                    <div class="bcl-row"><span>BankDraw+2</span><span class="bcl-cost">3pt</span></div>
+                    <div class="bcl-row"><span>BankDraw+4</span><span class="bcl-cost">5pt</span></div>
+                    <div class="bcl-row"><span>BankReverse</span><span class="bcl-cost">2pt</span></div>
+                    <div class="bcl-row"><span>BankShield</span><span class="bcl-cost">4pt</span></div>
+                    <div class="bcl-row"><span>BankStrike</span><span class="bcl-cost">6pt</span></div>
+                </div>
+                <div class="bank-opponents-title">Opponents</div>
+                <div id="bankOpponentsList" class="bank-opponents-list"></div>
+            `;
+            // Insert right-side of game table wrapper
+            const wrapper = document.querySelector('.game-table-wrapper') || document.getElementById('gameScreen');
+            if (wrapper) wrapper.appendChild(panel);
+        }
+
+        panel.style.display = '';
+
+        // Update own balance
+        const myPts = gameState.myBankPoints || 0;
+        const ptsEl = document.getElementById('bankPtsDisplay');
+        if (ptsEl) {
+            const prev = parseInt(ptsEl.dataset.prev || '0');
+            if (prev !== myPts) {
+                ptsEl.classList.remove('bank-pts-bump');
+                void ptsEl.offsetWidth;
+                ptsEl.classList.add('bank-pts-bump');
+            }
+            ptsEl.textContent = myPts;
+            ptsEl.dataset.prev = myPts;
+        }
+
+        // Shield indicator
+        const shieldRow = document.getElementById('bankShieldRow');
+        const myId = gameState.allPlayers && gameState.allPlayers.find(p => p.isYou)?.id;
+        const hasShield = gameState.bankShields && myId && gameState.bankShields[myId];
+        if (shieldRow) shieldRow.style.display = hasShield ? '' : 'none';
+
+        // Opponents list
+        const oppList = document.getElementById('bankOpponentsList');
+        if (oppList && gameState.allPlayers && gameState.bankPoints) {
+            const opps = gameState.allPlayers.filter(p => !p.isYou);
+            oppList.innerHTML = opps.map(p => {
+                const pts = gameState.bankPoints[p.id] || 0;
+                const shield = gameState.bankShields && gameState.bankShields[p.id];
+                return `<div class="bank-opp-row">
+                    <span class="bank-opp-name">${p.name}${shield ? ' 🛡️' : ''}</span>
+                    <span class="bank-opp-pts">${pts}pt</span>
+                </div>`;
+            }).join('');
+        }
     }
 
    function canJumpIn(card) {
