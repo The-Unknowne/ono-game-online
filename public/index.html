@@ -2402,33 +2402,40 @@ display: block;
    ═══════════════════════════════════════════ */
 .mode-picker-wrapper {
     margin-top: 8px;
+    margin-bottom: 0;
     overflow: hidden;
-    transition: max-height 0.45s cubic-bezier(0.4,0,0.2,1), opacity 0.35s ease;
-    max-height: 0; opacity: 0;
+    transition: max-height 0.45s cubic-bezier(0.4,0,0.2,1),
+                opacity 0.35s ease,
+                padding 0.35s ease,
+                border-color 0.35s ease;
+    max-height: 0;
+    opacity: 0;
+    /* Hide border and padding when closed so no outline shows */
+    padding: 0;
+    border-radius: 18px;
+    border: 1px solid transparent;
+    background: rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
 }
 .mode-picker-wrapper.open {
-    max-height: 600px; opacity: 1;
+    max-height: 700px;
+    opacity: 1;
+    padding: 12px;
+    margin-bottom: 8px;
+    border-color: rgba(255,255,255,0.1);
+}
+html[data-theme="light"] .mode-picker-wrapper {
+    background: rgba(255,255,255,0.4);
+}
+html[data-theme="light"] .mode-picker-wrapper.open {
+    border-color: rgba(0,0,0,0.08);
 }
 
 .mode-picker-label {
     font-size: 0.72em; font-weight: 900; letter-spacing: 2.5px;
     text-transform: uppercase; color: var(--text-muted);
     margin: 14px 0 10px; text-align: center;
-}
-
-/* Mode picker: glass backdrop so cards/tags are readable over animated bg */
-.mode-picker-wrapper {
-    background: rgba(0, 0, 0, 0.25);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-radius: 18px;
-    padding: 12px;
-    margin-bottom: 8px;
-    border: 1px solid rgba(255,255,255,0.1);
-}
-html[data-theme="light"] .mode-picker-wrapper {
-    background: rgba(255,255,255,0.4);
-    border-color: rgba(0,0,0,0.08);
 }
 
 .mode-cards {
