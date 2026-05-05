@@ -479,19 +479,35 @@ cursor: default;
 box-shadow: none;
 }
 
-/* All menu panels: solid white in light mode */
+/* All menu panels — light mode */
 .menu-container,
 .login-container {
-box-shadow: none;
-background: #ffffff;
-backdrop-filter: none;
--webkit-backdrop-filter: none;
-border: none;
+background: rgba(255,255,255,0.92);
+border: 1px solid rgba(255,255,255,0.6);
+box-shadow: 0 8px 32px rgba(0,0,0,0.12);
 }
-/* Dark mode: every .menu-container and .login-container goes dark */
+/* Dark mode */
 html[data-theme=“dark”] .menu-container,
 html[data-theme=“dark”] .login-container {
-background: #1e1e2e;
+background: rgba(30,30,46,0.92);
+border-color: rgba(255,255,255,0.06);
+box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+/* Mobile portrait: fully transparent so gradient shows through */
+@media (orientation: portrait) and (max-width: 600px) {
+.menu-container,
+.login-container {
+background: rgba(255,255,255,0.88);
+backdrop-filter: blur(16px);
+-webkit-backdrop-filter: blur(16px);
+border-radius: 20px;
+border: 1px solid rgba(255,255,255,0.45);
+}
+html[data-theme=“dark”] .menu-container,
+html[data-theme=“dark”] .login-container {
+background: rgba(20,10,35,0.88);
+border-color: rgba(255,255,255,0.08);
+}
 }
 
 /* ═══════════════════════════════════════════════════
@@ -2199,6 +2215,13 @@ animation: unoBtnPulse 0.8s ease-in-out infinite;
     transition: transform 0.45s cubic-bezier(0.34,1.56,0.64,1);
 }
 #settingsGearBtn:hover .sg-icon { transform: rotate(90deg); }
+
+/* Mobile: icon-only pill so it never overflows off-screen */
+@media (max-width: 600px) {
+    #settingsGearBtn .sg-label { display: none; }
+    #settingsGearBtn { padding: 11px 14px; min-width: 0; }
+}
+
 html[data-theme="dark"] #settingsGearBtn {
     background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
     box-shadow: 0 4px 18px rgba(124,58,237,0.55);
@@ -4832,7 +4855,7 @@ observer.observe(document.documentElement, {
 
 <button id="settingsGearBtn" onclick="toggleSettingsPanel()"
 title="Open Settings" aria-label="Open Settings">
-<span class="sg-icon">⚙️</span> Settings
+<span class="sg-icon">⚙️</span> <span class="sg-label">Settings</span>
 </button>
 
 <div id="settingsFloatPanel" role="dialog" aria-label="Quick Settings">
