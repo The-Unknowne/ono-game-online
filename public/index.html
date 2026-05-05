@@ -50,66 +50,141 @@
         /* Shown only via JS when mobile + portrait */
         body.force-landscape #landscape-prompt { display: flex; }
         body.force-landscape > *:not(#landscape-prompt) { display: none !important; }
-    </style>
-    <title>O,No Online</title>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
-    <script src="/socket.io/socket.io.js"></script>
-    <!-- Apply saved theme BEFORE CSS renders to prevent flash and ensure vars are correct -->
-    <script>
-        (function() {
-            var t = localStorage.getItem('ono-theme') || 'light';
-            document.documentElement.setAttribute('data-theme', t);
-        })();
-    </script>
-    <style>
-        /* =============================================
-           CSS VARIABLE THEME SYSTEM (Light / Dark)
-        ============================================= */
-        :root {
-            --bg-grad-a: #667eea;
-            --bg-grad-b: #764ba2;
-            /* Menus / surfaces */
-            --surface: rgba(255,255,255,0.97);
-            --surface-glass: rgba(255,255,255,0.12);
-            --surface-glass-strong: rgba(255,255,255,0.22);
-            --surface-inset: rgba(255,255,255,0.15);
-            --surface-slot: rgba(255,255,255,0.12);
-            --surface-slot-you: rgba(102,126,234,0.25);
-            --surface-slot-empty: rgba(255,255,255,0.05);
-            --surface-rule-item: rgba(255,255,255,0.08);
-            /* Text */
-            --text-primary: #333;
-            --text-secondary: #555;
-            --text-muted: #666;
-            --text-on-glass: #fff;
-            --text-mono: rgba(0,0,0,0.7);
-            /* Cards */
-            --card-border: rgba(255,255,255,0.65);
-            --card-inner-bg: rgba(255,255,255,0.92);
-            --card-shadow: 0 6px 20px rgba(0,0,0,0.32);
-            --card-hover-shadow: 0 14px 36px rgba(0,0,0,0.45);
-            --draw-pile-bg: linear-gradient(145deg, #1a1a2e 0%, #16213e 45%, #0f3460 100%);
-            --draw-pile-border: rgba(255,255,255,0.22);
-            --draw-pile-glow: rgba(100,130,255,0.3);
-            /* UI chrome */
-            --menu-shadow: 0 20px 60px rgba(0,0,0,0.4);
-            --menu-h1: #667eea;
-            --game-container-bg: rgba(255,255,255,0.08);
-            --opp-box-bg: rgba(255,255,255,0.14);
-            --info-chip-bg: rgba(255,255,255,0.22);
-            --input-border: #667eea;
-            --input-bg: #fff;
-            --input-text: #333;
-            --lobby-card-bg: #fff;
-            --popup-bg: #fff;
-            --popup-text: #333;
-            --popup-sub: #555;
-            --slider-bg: #ccc;
-            --slider-knob: #fff;
-            --lobby-header-bg: rgba(255,255,255,0.15);
-            --lobby-id-color: rgba(0,0,0,0.7);
-            --rules-bg: rgba(255,255,255,0.12);
-        }
+
+/* ══════════════════════════════════════════════
+PAY BACK THEME — deep purple
+══════════════════════════════════════════════ */
+html[data-payback=“1”] { –bg-grad-a:#2d0057; –bg-grad-b:#13002b; –menu-h1:#c084fc; }
+html[data-theme=“dark”][data-payback=“1”] { –bg-grad-a:#160030; –bg-grad-b:#08001a; –menu-h1:#d8b4fe; }
+html[data-payback=“1”] .menu-button { background:linear-gradient(135deg,#7c3aed,#5b21b6); box-shadow:0 6px 15px rgba(124,58,237,0.4); }
+html[data-payback=“1”] .menu-button.online { background:linear-gradient(135deg,#9333ea,#7c3aed); }
+html[data-payback=“1”] #settingsGearBtn { background:linear-gradient(135deg,#7c3aed,#5b21b6)!important; box-shadow:0 4px 18px rgba(124,58,237,0.55)!important; }
+html[data-payback=“1”] #modePickerBtn { background:linear-gradient(135deg,#9333ea,#7c3aed)!important; }
+html[data-payback=“1”] .cube-face { border-color:rgba(180,100,255,0.7); }
+.mode-card.payback { –mode-accent:linear-gradient(135deg,#2d0057,#7c3aed); }
+.mode-card.payback.selected { box-shadow:0 6px 24px rgba(124,58,237,0.55); }
+.mode-card.payback .mode-card-title { color:#c084fc; }
+.mode-card.payback .mode-card-badge { background:rgba(124,58,237,0.18); color:#d8b4fe; }
+.mode-card.payback .mode-card-desc  { color:#dbb6ff; }
+.mode-card.payback .mode-rule-tag   { background:rgba(124,58,237,0.12); color:#a855f7; border-color:rgba(124,58,237,0.25); }
+
+/* ═══════════════════════════════════════════════════════
+PAY BACK — BANK CARD TAB + MODAL
+═══════════════════════════════════════════════════════ */
+#bankCardTab {
+position:fixed; right:0; bottom:130px; z-index:600;
+display:none; flex-direction:column; align-items:center; justify-content:center;
+width:46px; height:76px;
+background:linear-gradient(160deg,#3b0764,#7c3aed);
+border-radius:14px 0 0 14px; border:2px solid rgba(192,132,252,0.55); border-right:none;
+box-shadow:-4px 0 24px rgba(124,58,237,0.55); cursor:pointer; gap:4px; padding:0;
+-webkit-tap-highlight-color:transparent;
+}
+#bankCardTab:active { background:linear-gradient(160deg,#4c1d95,#9333ea); }
+#bankCardTab.locked { background:linear-gradient(160deg,#2a2a2a,#444); border-color:rgba(255,255,255,0.12); box-shadow:none; cursor:not-allowed; opacity:0.55; }
+.tab-dollar { font-size:1.4em; line-height:1; color:#f3e8ff; text-shadow:0 0 10px rgba(216,180,254,0.8); }
+#bankCardTab.locked .tab-dollar { display:none; }
+.tab-pts { font-family:‘Orbitron’,sans-serif; font-size:0.62em; font-weight:900; color:#d8b4fe; line-height:1; }
+#bankCardTab.locked .tab-pts { display:none; }
+.tab-lock { font-size:0.9em; display:none; }
+#bankCardTab.locked .tab-lock { display:block; }
+#bankModal { display:none; position:fixed; inset:0; z-index:900; background:rgba(0,0,0,0.72); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); align-items:flex-end; justify-content:center; }
+#bankModal.open { display:flex; }
+#bankModalSheet { width:100%; max-width:480px; background:linear-gradient(180deg,#1e0040 0%,#2d0057 60%,#160030 100%); border:2px solid rgba(180,100,255,0.4); border-bottom:none; border-radius:24px 24px 0 0; padding-bottom:env(safe-area-inset-bottom,12px); box-shadow:0 -12px 60px rgba(100,0,200,0.6); animation:sheetUp 0.32s cubic-bezier(0.34,1.20,0.64,1); max-height:90dvh; overflow-y:auto; scrollbar-width:none; }
+#bankModalSheet::-webkit-scrollbar { display:none; }
+@keyframes sheetUp { from{transform:translateY(100%);opacity:0.5;} to{transform:translateY(0);opacity:1;} }
+#bankModalSheet::before { content:’’; display:block; width:40px; height:4px; border-radius:2px; background:rgba(192,132,252,0.4); margin:10px auto 0; }
+.bm-header { display:flex; align-items:center; justify-content:space-between; padding:14px 20px 10px; border-bottom:1px solid rgba(192,132,252,0.18); gap:10px; }
+.bm-title-group { display:flex; align-items:center; gap:10px; }
+.bm-dollar { width:38px; height:38px; background:linear-gradient(135deg,#7c3aed,#9333ea); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1.3em; flex-shrink:0; }
+.bm-title { font-family:‘Orbitron’,sans-serif; font-size:0.82em; font-weight:900; letter-spacing:1.5px; color:#c084fc; }
+.bm-balance-chip { background:rgba(124,58,237,0.25); border:1.5px solid rgba(192,132,252,0.4); border-radius:20px; padding:6px 14px; display:flex; align-items:baseline; gap:3px; margin-left:auto; }
+.bm-pts-num { font-family:‘Orbitron’,sans-serif; font-size:1.5em; font-weight:900; color:#d8b4fe; }
+@keyframes ptsBump { 0%{transform:scale(1);} 45%{transform:scale(1.45);color:#f5d0fe;} 100%{transform:scale(1);} }
+.bm-pts-num.bump { animation:ptsBump 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+.bm-pts-label { font-size:0.78em; font-weight:700; color:#a78bfa; }
+.bm-close { width:32px; height:32px; flex-shrink:0; background:rgba(255,255,255,0.08); border:none; border-radius:50%; color:#c4b5fd; font-size:1.1em; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.bm-locked-notice { margin:10px 20px; padding:10px 14px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:12px; font-size:0.8em; color:#a78bfa; text-align:center; display:none; }
+.bm-locked-notice.show { display:block; }
+.bm-shield-banner { margin:8px 20px; padding:8px 14px; background:rgba(167,139,250,0.15); border:1.5px solid rgba(167,139,250,0.4); border-radius:12px; font-size:0.8em; font-weight:700; color:#c4b5fd; text-align:center; display:none; }
+.bm-shield-banner.show { display:block; }
+.bm-section { padding:12px 20px 4px; font-size:0.65em; font-weight:900; letter-spacing:2px; text-transform:uppercase; color:#7c3aed; }
+.bm-actions { padding:0 12px 10px; display:flex; flex-direction:column; gap:8px; }
+.bm-action { display:flex; align-items:center; gap:12px; padding:12px 14px; background:rgba(124,58,237,0.12); border:1.5px solid rgba(180,100,255,0.22); border-radius:14px; cursor:default; }
+.bm-action.can-afford { cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.bm-action.can-afford:active { background:rgba(124,58,237,0.3); transform:scale(0.98); }
+.bm-action.cant-afford { opacity:0.52; border-color:rgba(255,255,255,0.08); }
+.bm-action-icon { font-size:1.4em; width:32px; text-align:center; flex-shrink:0; }
+.bm-action-info { flex:1; min-width:0; }
+.bm-action-name { font-size:0.85em; font-weight:800; color:#e9d5ff; }
+.bm-action-desc { font-size:0.72em; color:#a78bfa; margin-top:2px; line-height:1.3; }
+.bm-action-desc.short { color:#f87171; font-weight:700; }
+.bm-cost-badge { flex-shrink:0; font-family:‘Orbitron’,sans-serif; font-size:0.72em; font-weight:900; padding:4px 10px; border-radius:20px; background:rgba(124,58,237,0.3); border:1px solid rgba(180,100,255,0.35); color:#c084fc; }
+.bm-action.cant-afford .bm-cost-badge { background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.1); color:#888; }
+.bm-opponents { padding:0 20px 16px; display:flex; flex-direction:column; gap:6px; }
+.bm-opp-row { display:flex; align-items:center; justify-content:space-between; padding:7px 12px; background:rgba(255,255,255,0.04); border-radius:10px; font-size:0.8em; }
+.bm-opp-name { color:#ddd6fe; font-weight:700; max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.bm-opp-pts { font-family:‘Orbitron’,sans-serif; font-size:0.85em; font-weight:700; color:#c084fc; }
+</style>
+<title>O,No Online</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<script src="/socket.io/socket.io.js"></script>
+<!-- Apply saved theme BEFORE CSS renders to prevent flash and ensure vars are correct -->
+<script>
+(function() {
+var t = localStorage.getItem(‘ono-theme’) || ‘light’;
+document.documentElement.setAttribute(‘data-theme’, t);
+})();
+</script>
+<style>
+/* =============================================
+CSS VARIABLE THEME SYSTEM (Light / Dark)
+============================================= */
+:root {
+–bg-grad-a: #667eea;
+–bg-grad-b: #764ba2;
+/* Menus / surfaces */
+–surface: rgba(255,255,255,0.97);
+–surface-glass: rgba(255,255,255,0.12);
+–surface-glass-strong: rgba(255,255,255,0.22);
+–surface-inset: rgba(255,255,255,0.15);
+–surface-slot: rgba(255,255,255,0.12);
+–surface-slot-you: rgba(102,126,234,0.25);
+–surface-slot-empty: rgba(255,255,255,0.05);
+–surface-rule-item: rgba(255,255,255,0.08);
+/* Text */
+–text-primary: #333;
+–text-secondary: #555;
+–text-muted: #666;
+–text-on-glass: #fff;
+–text-mono: rgba(0,0,0,0.7);
+/* Cards */
+–card-border: rgba(255,255,255,0.65);
+–card-inner-bg: rgba(255,255,255,0.92);
+–card-shadow: 0 6px 20px rgba(0,0,0,0.32);
+–card-hover-shadow: 0 14px 36px rgba(0,0,0,0.45);
+–draw-pile-bg: linear-gradient(145deg, #1a1a2e 0%, #16213e 45%, #0f3460 100%);
+–draw-pile-border: rgba(255,255,255,0.22);
+–draw-pile-glow: rgba(100,130,255,0.3);
+/* UI chrome */
+–menu-shadow: 0 20px 60px rgba(0,0,0,0.4);
+–menu-h1: #667eea;
+–game-container-bg: rgba(255,255,255,0.08);
+–opp-box-bg: rgba(255,255,255,0.14);
+–info-chip-bg: rgba(255,255,255,0.22);
+–input-border: #667eea;
+–input-bg: #fff;
+–input-text: #333;
+–lobby-card-bg: #fff;
+–popup-bg: #fff;
+–popup-text: #333;
+–popup-sub: #555;
+–slider-bg: #ccc;
+–slider-knob: #fff;
+–lobby-header-bg: rgba(255,255,255,0.15);
+–lobby-id-color: rgba(0,0,0,0.7);
+–rules-bg: rgba(255,255,255,0.12);
+}
 
 ```
 html[data-theme="dark"] {
@@ -479,35 +554,30 @@ cursor: default;
 box-shadow: none;
 }
 
-/* All menu panels — light mode */
-.menu-container,
-.login-container {
-background: rgba(255,255,255,0.92);
-border: 1px solid rgba(255,255,255,0.6);
-box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+/* All menu panels: solid white, no shadow */
+#mainMenu .menu-container,
+#onlineMenu .menu-container,
+#createLobby .menu-container,
+#waitingLobby .menu-container,
+#lobbyList .menu-container,
+#scoreboardScreen .menu-container,
+.login-container,
+.login-screen-wrapper > .menu-container {
+box-shadow: none;
+background: #ffffff;
+backdrop-filter: none;
+-webkit-backdrop-filter: none;
+border: none;
 }
-/* Dark mode */
-html[data-theme=“dark”] .menu-container,
-html[data-theme=“dark”] .login-container {
-background: rgba(30,30,46,0.92);
-border-color: rgba(255,255,255,0.06);
-box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-}
-/* Mobile portrait: fully transparent so gradient shows through */
-@media (orientation: portrait) and (max-width: 600px) {
-.menu-container,
-.login-container {
-background: rgba(255,255,255,0.88);
-backdrop-filter: blur(16px);
--webkit-backdrop-filter: blur(16px);
-border-radius: 20px;
-border: 1px solid rgba(255,255,255,0.45);
-}
-html[data-theme=“dark”] .menu-container,
-html[data-theme=“dark”] .login-container {
-background: rgba(20,10,35,0.88);
-border-color: rgba(255,255,255,0.08);
-}
+html[data-theme=“dark”] #mainMenu .menu-container,
+html[data-theme=“dark”] #onlineMenu .menu-container,
+html[data-theme=“dark”] #createLobby .menu-container,
+html[data-theme=“dark”] #waitingLobby .menu-container,
+html[data-theme=“dark”] #lobbyList .menu-container,
+html[data-theme=“dark”] #scoreboardScreen .menu-container,
+html[data-theme=“dark”] .login-container,
+html[data-theme=“dark”] .login-screen-wrapper > .menu-container {
+background: #1e1e2e;
 }
 
 /* ═══════════════════════════════════════════════════
@@ -2215,13 +2285,6 @@ animation: unoBtnPulse 0.8s ease-in-out infinite;
     transition: transform 0.45s cubic-bezier(0.34,1.56,0.64,1);
 }
 #settingsGearBtn:hover .sg-icon { transform: rotate(90deg); }
-
-/* Mobile: icon-only pill so it never overflows off-screen */
-@media (max-width: 600px) {
-    #settingsGearBtn .sg-label { display: none; }
-    #settingsGearBtn { padding: 11px 14px; min-width: 0; }
-}
-
 html[data-theme="dark"] #settingsGearBtn {
     background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
     box-shadow: 0 4px 18px rgba(124,58,237,0.55);
@@ -2421,8 +2484,6 @@ GAME MODE PICKER  (expanding panel)
 .mode-picker-wrapper {
 margin-top: 8px;
 margin-bottom: 0;
-/* clip-height trick: use grid rows instead of max-height so content
-is never cropped mid-card during the open animation */
 display: grid;
 grid-template-rows: 0fr;
 transition: grid-template-rows 0.42s cubic-bezier(0.4,0,0.2,1),
@@ -2438,7 +2499,6 @@ background: rgba(0, 0, 0, 0.25);
 backdrop-filter: blur(12px);
 -webkit-backdrop-filter: blur(12px);
 }
-/* Inner wrapper needed for grid-row animation — must have overflow:hidden */
 .mode-picker-inner {
 overflow: hidden;
 min-height: 0;
@@ -3330,446 +3390,6 @@ html[data-glitch=“1”] #modePickerBtn { background:linear-gradient(135deg,#00
 .mode-card.glitch .mode-card-desc  { color: #aaffaa; }
 .mode-card.glitch .mode-rule-tag   { background: rgba(0,255,65,0.1); color: #00dd33; border-color: rgba(0,255,65,0.2); }
 
-/* ══════════════════════════════════════════════
-PAY BACK THEME  — deep purple
-══════════════════════════════════════════════ */
-html[data-payback=“1”] {
-–bg-grad-a: #2d0057;
-–bg-grad-b: #13002b;
-–menu-h1: #c084fc;
-–menu-shadow: 0 20px 60px rgba(120,0,200,0.6), 0 0 0 1px rgba(180,100,255,0.1);
-}
-html[data-theme=“dark”][data-payback=“1”] {
-–bg-grad-a: #160030;
-–bg-grad-b: #08001a;
-–menu-h1: #d8b4fe;
-–menu-shadow: 0 20px 80px rgba(120,0,200,0.8), 0 0 0 1px rgba(180,100,255,0.12);
-}
-html[data-payback=“1”] .menu-button {
-background: linear-gradient(135deg, #7c3aed, #5b21b6);
-box-shadow: 0 6px 15px rgba(124,58,237,0.4);
-}
-html[data-payback=“1”] .menu-button.online {
-background: linear-gradient(135deg, #9333ea, #7c3aed);
-box-shadow: 0 6px 18px rgba(147,51,234,0.45);
-}
-html[data-payback=“1”] .menu-button.create {
-background: linear-gradient(135deg, #7c3aed, #5b21b6);
-box-shadow: 0 6px 15px rgba(124,58,237,0.4);
-}
-html[data-payback=“1”] #settingsGearBtn {
-background: linear-gradient(135deg, #7c3aed, #5b21b6) !important;
-box-shadow: 0 4px 18px rgba(124,58,237,0.55) !important;
-}
-html[data-payback=“1”] .sfp-close-btn {
-background: linear-gradient(135deg, #7c3aed, #5b21b6) !important;
-}
-html[data-payback=“1”] .sfp-vol-pct { color: #c084fc; }
-html[data-payback=“1”] input[type=range]#sfpVolume {
-background: linear-gradient(to right, #7c3aed var(–vol,70%), rgba(124,58,237,0.2) var(–vol,70%));
-}
-html[data-payback=“1”] input[type=range]#sfpVolume::-webkit-slider-thumb,
-html[data-payback=“1”] input[type=range]#sfpVolume::-moz-range-thumb {
-background: linear-gradient(135deg, #9333ea, #7c3aed);
-}
-html[data-payback=“1”] #modePickerBtn {
-background: linear-gradient(135deg, #9333ea, #7c3aed) !important;
-box-shadow: 0 6px 18px rgba(147,51,234,0.45) !important;
-}
-html[data-payback=“1”] .cube-face {
-border-color: rgba(180, 100, 255, 0.7);
-}
-html[data-payback=“1”] .cube-face:nth-child(1) {
-background: linear-gradient(135deg, rgba(180,100,255,0.3) 0%, rgba(140,60,240,0.15) 100%);
-}
-html[data-payback=“1”] .cube-face:nth-child(5) {
-background: linear-gradient(135deg, rgba(200,140,255,0.32) 0%, rgba(160,80,255,0.18) 100%);
-}
-
-/* Pay Back mode card styling */
-.mode-card.payback { –mode-accent: linear-gradient(135deg,#2d0057,#7c3aed); }
-.mode-card.payback.selected { box-shadow: 0 6px 24px rgba(124,58,237,0.55); }
-.mode-card.payback .mode-card-title { color: #c084fc; }
-.mode-card.payback .mode-card-badge { background: rgba(124,58,237,0.18); color: #d8b4fe; }
-.mode-card.payback .mode-card-desc  { color: #dbb6ff; }
-.mode-card.payback .mode-rule-tag   { background: rgba(124,58,237,0.12); color: #a855f7; border-color: rgba(124,58,237,0.25); }
-
-/* ══════════════════════════════════════════════
-BANK CARD PANEL
-══════════════════════════════════════════════ */
-.bank-card-panel {
-position: fixed;
-right: 14px;
-bottom: 140px;
-z-index: 500;
-width: 148px;
-background: linear-gradient(160deg, #1a003a 0%, #2d0057 50%, #160030 100%);
-border: 2px solid rgba(180,100,255,0.55);
-border-radius: 18px;
-padding: 14px 12px 12px;
-box-shadow:
-0 0 0 1px rgba(180,100,255,0.18),
-0 8px 32px rgba(100,0,200,0.45),
-0 0 40px rgba(140,60,255,0.15);
-color: #e9d5ff;
-font-family: ‘Nunito’, sans-serif;
-user-select: none;
-animation: bankPanelIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
-}
-
-@keyframes bankPanelIn {
-from { opacity: 0; transform: translateX(30px) scale(0.9); }
-to   { opacity: 1; transform: translateX(0)    scale(1); }
-}
-
-.bank-card-header {
-display: flex;
-align-items: center;
-gap: 6px;
-margin-bottom: 10px;
-border-bottom: 1px solid rgba(180,100,255,0.3);
-padding-bottom: 8px;
-}
-
-.bank-card-icon { font-size: 1.1em; }
-
-.bank-card-title {
-font-family: ‘Orbitron’, sans-serif;
-font-size: 0.62em;
-font-weight: 900;
-letter-spacing: 1.5px;
-color: #c084fc;
-text-shadow: 0 0 10px rgba(192,132,252,0.6);
-}
-
-.bank-card-balance-row {
-display: flex;
-align-items: baseline;
-gap: 4px;
-justify-content: center;
-margin-bottom: 4px;
-}
-
-.bank-card-pts {
-font-family: ‘Orbitron’, sans-serif;
-font-size: 2em;
-font-weight: 900;
-color: #d8b4fe;
-text-shadow: 0 0 16px rgba(192,132,252,0.8), 0 0 32px rgba(140,60,255,0.4);
-line-height: 1;
-transition: color 0.2s;
-}
-
-.bank-card-pts-label {
-font-size: 0.78em;
-color: #a78bfa;
-font-weight: 700;
-}
-
-@keyframes bankPtsBump {
-0%   { transform: scale(1);    color: #d8b4fe; }
-40%  { transform: scale(1.35); color: #f5d0fe; text-shadow: 0 0 24px rgba(240,171,252,1); }
-100% { transform: scale(1);    color: #d8b4fe; }
-}
-
-.bank-card-pts.bank-pts-bump {
-animation: bankPtsBump 0.55s cubic-bezier(0.34,1.56,0.64,1);
-}
-
-.bank-card-shield-row {
-background: rgba(167,139,250,0.18);
-border: 1px solid rgba(167,139,250,0.4);
-border-radius: 8px;
-padding: 4px 8px;
-font-size: 0.72em;
-font-weight: 700;
-color: #c4b5fd;
-text-align: center;
-margin-bottom: 6px;
-animation: shieldPulse 1.5s ease-in-out infinite;
-}
-
-@keyframes shieldPulse {
-0%,100% { box-shadow: 0 0 0 0 rgba(167,139,250,0.4); }
-50%      { box-shadow: 0 0 0 4px rgba(167,139,250,0); }
-}
-
-.bank-card-legend {
-margin-top: 6px;
-border-top: 1px solid rgba(180,100,255,0.2);
-padding-top: 6px;
-display: flex;
-flex-direction: column;
-gap: 3px;
-}
-
-.bcl-row {
-display: flex;
-justify-content: space-between;
-font-size: 0.62em;
-color: #c4b5fd;
-}
-
-.bcl-cost {
-color: #a78bfa;
-font-weight: 800;
-font-family: ‘Orbitron’, sans-serif;
-}
-
-.bank-opponents-title {
-font-size: 0.62em;
-font-weight: 900;
-letter-spacing: 1.5px;
-text-transform: uppercase;
-color: #9333ea;
-margin: 8px 0 4px;
-border-top: 1px solid rgba(147,51,234,0.3);
-padding-top: 6px;
-}
-
-.bank-opponents-list {
-display: flex;
-flex-direction: column;
-gap: 3px;
-}
-
-.bank-opp-row {
-display: flex;
-justify-content: space-between;
-align-items: center;
-font-size: 0.68em;
-color: #ddd6fe;
-}
-
-.bank-opp-name {
-max-width: 82px;
-overflow: hidden;
-text-overflow: ellipsis;
-white-space: nowrap;
-}
-
-.bank-opp-pts {
-font-family: ‘Orbitron’, sans-serif;
-font-size: 0.9em;
-font-weight: 700;
-color: #c084fc;
-}
-
-/* Pay Back bank cards in hand */
-.card.bank-skip    { background: linear-gradient(145deg,#2d0057,#7c3aed,#4c1d95) !important; border-color: #a855f7 !important; box-shadow: 0 0 18px rgba(168,85,247,0.6) !important; }
-.card.bank-skip    .card-inner { color: #d8b4fe !important; background: rgba(0,0,0,0.65) !important; font-size: 0.55em !important; }
-.card.bank-draw2   { background: linear-gradient(145deg,#1e0040,#6d28d9,#3b0764) !important; border-color: #8b5cf6 !important; box-shadow: 0 0 18px rgba(139,92,246,0.6) !important; }
-.card.bank-draw2   .card-inner { color: #c4b5fd !important; background: rgba(0,0,0,0.65) !important; font-size: 0.55em !important; }
-.card.bank-draw4   { background: linear-gradient(145deg,#140029,#5b21b6,#2e1065) !important; border-color: #7c3aed !important; box-shadow: 0 0 22px rgba(124,58,237,0.7) !important; }
-.card.bank-draw4   .card-inner { color: #ddd6fe !important; background: rgba(0,0,0,0.7) !important; font-size: 0.55em !important; }
-.card.bank-reverse { background: linear-gradient(145deg,#240048,#9333ea,#4a0f9c) !important; border-color: #a855f7 !important; box-shadow: 0 0 18px rgba(168,85,247,0.6) !important; }
-.card.bank-reverse .card-inner { color: #f0abfc !important; background: rgba(0,0,0,0.65) !important; font-size: 0.55em !important; }
-.card.bank-shield  { background: linear-gradient(145deg,#1e0050,#7c3aed,#4c0f98) !important; border-color: #c084fc !important; box-shadow: 0 0 22px rgba(192,132,252,0.75) !important; animation: bankShieldCardGlow 1.5s ease-in-out infinite !important; }
-.card.bank-shield  .card-inner { color: #f5d0fe !important; background: rgba(0,0,0,0.7) !important; font-size: 0.55em !important; }
-.card.bank-strike  { background: linear-gradient(145deg,#0d0020,#4c1d95,#2d0057) !important; border-color: #e879f9 !important; box-shadow: 0 0 28px rgba(232,121,249,0.8) !important; animation: bankStrikeGlow 0.9s ease-in-out infinite !important; }
-.card.bank-strike  .card-inner { color: #fae8ff !important; background: rgba(0,0,0,0.8) !important; font-size: 0.55em !important; }
-
-@keyframes bankShieldCardGlow {
-0%,100% { box-shadow: 0 0 20px rgba(192,132,252,0.7); }
-50%      { box-shadow: 0 0 40px rgba(192,132,252,1), 0 0 60px rgba(140,60,255,0.4); }
-}
-@keyframes bankStrikeGlow {
-0%,100% { box-shadow: 0 0 24px rgba(232,121,249,0.8); }
-50%      { box-shadow: 0 0 48px rgba(232,121,249,1), 0 0 70px rgba(180,0,255,0.5); }
-}
-
-/* ═══════════════════════════════════════════════════════════════
-PAY BACK — BANK CARD TAB + MODAL  (mobile-first)
-═══════════════════════════════════════════════════════════════ */
-
-#bankCardTab {
-position: fixed;
-right: 0;
-bottom: 130px;
-z-index: 600;
-display: none;
-flex-direction: column;
-align-items: center;
-justify-content: center;
-width: 46px;
-height: 76px;
-background: linear-gradient(160deg, #3b0764, #7c3aed);
-border-radius: 14px 0 0 14px;
-border: 2px solid rgba(192,132,252,0.55);
-border-right: none;
-box-shadow: -4px 0 24px rgba(124,58,237,0.55);
-cursor: pointer;
-gap: 4px;
-transition: background 0.2s;
--webkit-tap-highlight-color: transparent;
-padding: 0;
-}
-#bankCardTab:active { background: linear-gradient(160deg,#4c1d95,#9333ea); }
-#bankCardTab.locked {
-background: linear-gradient(160deg,#2a2a2a,#444);
-border-color: rgba(255,255,255,0.12);
-box-shadow: none;
-cursor: not-allowed;
-opacity: 0.55;
-}
-.tab-dollar { font-size: 1.4em; line-height:1; color:#f3e8ff; text-shadow: 0 0 10px rgba(216,180,254,0.8); }
-#bankCardTab.locked .tab-dollar { text-shadow:none; color:#aaa; display:none; }
-.tab-pts { font-family:‘Orbitron’,sans-serif; font-size:0.62em; font-weight:900; color:#d8b4fe; line-height:1; }
-#bankCardTab.locked .tab-pts { display:none; }
-.tab-lock { font-size:0.9em; display:none; }
-#bankCardTab.locked .tab-lock { display:block; }
-#bankCardTab.shielded::after {
-content:’’; position:absolute; inset:-4px;
-border-radius:16px 0 0 16px;
-border:2px solid #c084fc;
-animation:tabShieldPulse 1.4s ease-in-out infinite;
-pointer-events:none;
-}
-@keyframes tabShieldPulse {
-0%,100%{opacity:.8;transform:scale(1);}
-50%{opacity:.3;transform:scale(1.06);}
-}
-
-#bankModal {
-display: none;
-position: fixed;
-inset: 0;
-z-index: 900;
-background: rgba(0,0,0,0.72);
-backdrop-filter: blur(6px);
--webkit-backdrop-filter: blur(6px);
-align-items: flex-end;
-justify-content: center;
-}
-#bankModal.open { display: flex; }
-
-#bankModalSheet {
-width: 100%;
-max-width: 480px;
-background: linear-gradient(180deg, #1e0040 0%, #2d0057 60%, #160030 100%);
-border: 2px solid rgba(180,100,255,0.4);
-border-bottom: none;
-border-radius: 24px 24px 0 0;
-padding-bottom: env(safe-area-inset-bottom,12px);
-box-shadow: 0 -12px 60px rgba(100,0,200,0.6);
-animation: sheetUp 0.32s cubic-bezier(0.34,1.20,0.64,1);
-max-height: 90dvh;
-overflow-y: auto;
-scrollbar-width: none;
-}
-#bankModalSheet::-webkit-scrollbar { display:none; }
-@keyframes sheetUp {
-from{transform:translateY(100%);opacity:0.5;}
-to{transform:translateY(0);opacity:1;}
-}
-#bankModalSheet::before {
-content:’’; display:block; width:40px; height:4px;
-border-radius:2px; background:rgba(192,132,252,0.4);
-margin:10px auto 0;
-}
-.bm-header {
-display:flex; align-items:center; justify-content:space-between;
-padding:14px 20px 10px;
-border-bottom:1px solid rgba(192,132,252,0.18);
-gap: 10px;
-}
-.bm-title-group{display:flex;align-items:center;gap:10px;}
-.bm-dollar {
-width:38px;height:38px;
-background:linear-gradient(135deg,#7c3aed,#9333ea);
-border-radius:10px; display:flex; align-items:center; justify-content:center;
-font-size:1.3em; flex-shrink:0;
-box-shadow:0 4px 14px rgba(124,58,237,0.55);
-}
-.bm-title {
-font-family:‘Orbitron’,sans-serif; font-size:0.82em; font-weight:900;
-letter-spacing:1.5px; color:#c084fc;
-text-shadow:0 0 12px rgba(192,132,252,0.5);
-}
-.bm-balance-chip {
-background:rgba(124,58,237,0.25);
-border:1.5px solid rgba(192,132,252,0.4);
-border-radius:20px; padding:6px 14px;
-display:flex; align-items:baseline; gap:3px; margin-left:auto;
-}
-.bm-pts-num {
-font-family:‘Orbitron’,sans-serif; font-size:1.5em; font-weight:900;
-color:#d8b4fe; text-shadow:0 0 14px rgba(192,132,252,0.8);
-}
-@keyframes ptsBump {
-0%{transform:scale(1);color:#d8b4fe;}
-45%{transform:scale(1.45);color:#f5d0fe;text-shadow:0 0 24px rgba(240,171,252,1);}
-100%{transform:scale(1);color:#d8b4fe;}
-}
-.bm-pts-num.bump{animation:ptsBump 0.5s cubic-bezier(0.34,1.56,0.64,1);}
-.bm-pts-label{font-size:0.78em;font-weight:700;color:#a78bfa;}
-.bm-close {
-width:32px;height:32px;flex-shrink:0;
-background:rgba(255,255,255,0.08);
-border:none;border-radius:50%;
-color:#c4b5fd;font-size:1.1em;cursor:pointer;
-display:flex;align-items:center;justify-content:center;
--webkit-tap-highlight-color:transparent;
-}
-.bm-close:active{background:rgba(255,255,255,0.18);}
-.bm-locked-notice {
-margin:10px 20px; padding:10px 14px;
-background:rgba(255,255,255,0.06);
-border:1px solid rgba(255,255,255,0.12);
-border-radius:12px; font-size:0.8em; color:#a78bfa;
-text-align:center; display:none;
-}
-.bm-locked-notice.show{display:block;}
-.bm-shield-banner {
-margin:8px 20px; padding:8px 14px;
-background:rgba(167,139,250,0.15);
-border:1.5px solid rgba(167,139,250,0.4);
-border-radius:12px; font-size:0.8em; font-weight:700;
-color:#c4b5fd; text-align:center; display:none;
-animation:shieldPulse 1.5s ease-in-out infinite;
-}
-.bm-shield-banner.show{display:block;}
-@keyframes shieldPulse {
-0%,100%{box-shadow:0 0 0 0 rgba(167,139,250,0.4);}
-50%{box-shadow:0 0 0 5px rgba(167,139,250,0);}
-}
-.bm-section {
-padding:12px 20px 4px; font-size:0.65em; font-weight:900;
-letter-spacing:2px; text-transform:uppercase; color:#7c3aed;
-}
-.bm-actions{padding:0 12px 10px;display:flex;flex-direction:column;gap:8px;}
-.bm-action {
-display:flex; align-items:center; gap:12px;
-padding:12px 14px;
-background:rgba(124,58,237,0.12);
-border:1.5px solid rgba(180,100,255,0.22);
-border-radius:14px;
-cursor:default;
-transition:background 0.18s, border-color 0.18s, opacity 0.18s;
-}
-.bm-action.can-afford{cursor:pointer;-webkit-tap-highlight-color:transparent;}
-.bm-action.can-afford:active{background:rgba(124,58,237,0.3);transform:scale(0.98);}
-.bm-action.cant-afford{opacity:0.52;border-color:rgba(255,255,255,0.08);}
-.bm-action-icon{font-size:1.4em;width:32px;text-align:center;flex-shrink:0;}
-.bm-action-info{flex:1;min-width:0;}
-.bm-action-name{font-size:0.85em;font-weight:800;color:#e9d5ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.bm-action-desc{font-size:0.72em;color:#a78bfa;margin-top:2px;line-height:1.3;}
-.bm-action-desc.short{color:#f87171;font-weight:700;}
-.bm-cost-badge {
-flex-shrink:0; font-family:‘Orbitron’,sans-serif; font-size:0.72em; font-weight:900;
-padding:4px 10px; border-radius:20px;
-background:rgba(124,58,237,0.3); border:1px solid rgba(180,100,255,0.35); color:#c084fc;
-white-space:nowrap;
-}
-.bm-action.cant-afford .bm-cost-badge{background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.1);color:#888;}
-.bm-opponents{padding:0 20px 16px;display:flex;flex-direction:column;gap:6px;}
-.bm-opp-row {
-display:flex; align-items:center; justify-content:space-between;
-padding:7px 12px; background:rgba(255,255,255,0.04); border-radius:10px; font-size:0.8em;
-}
-.bm-opp-name{color:#ddd6fe;font-weight:700;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.bm-opp-pts{font-family:‘Orbitron’,sans-serif;font-size:0.85em;font-weight:700;color:#c084fc;}
-
 </style>
 
 <script>
@@ -3805,9 +3425,9 @@ function syncBgPalette() {
     var html    = document.documentElement;
     var isDark   = html.getAttribute('data-theme')  === 'dark';
     var isMercy  = html.getAttribute('data-mercy')  === '1';
-    var isGlitch = html.getAttribute('data-glitch') === '1';
-    var isPayBack = html.getAttribute('data-payback') === '1';
-    var modeKey  = isGlitch ? 'glitch' : isMercy ? 'mercy' : isPayBack ? 'payback' : 'original';
+    var isGlitch   = html.getAttribute('data-glitch') === '1';
+    var isPayBack2 = html.getAttribute('data-payback') === '1';
+    var modeKey    = isGlitch ? 'glitch' : isMercy ? 'mercy' : isPayBack2 ? 'payback' : 'original';
     var themeKey = isDark ? 'dark' : 'light';
     var pal = BG_PALETTES[modeKey][themeKey];
     var h1=pal[0], s1=pal[1], l1=pal[2], h2=pal[3], s2=pal[4], l2=pal[5];
@@ -4231,29 +3851,23 @@ observer.observe(document.documentElement, {
                     </div>
                 </div>
 
-                <div class="mode-card payback" id="modeCard-payback"
-                     onclick="selectMode('payback')">
-                    <div class="mode-card-inner">
-                        <div class="mode-card-title">
-                            💳 Pay Back
-                            <span class="mode-card-badge">Strategic</span>
-                        </div>
-                        <div class="mode-card-desc">
-                            Every card you play earns Bank Points. Spend them on powerful
-                            Bank Cards to devastate opponents — or shield yourself.
-                        </div>
-                        <div class="mode-card-rules">
-                            <span class="mode-rule-tag">💳 Bank Card System</span>
-                            <span class="mode-rule-tag">💸 +1pt per card played</span>
-                            <span class="mode-rule-tag">⏭️ BankSkip (2pt)</span>
-                            <span class="mode-rule-tag">💸 BankDraw +2/+4</span>
-                            <span class="mode-rule-tag">🛡️ BankShield (4pt)</span>
-                            <span class="mode-rule-tag">⚡ BankStrike (6pt)</span>
-                        </div>
+            </div>
+
+            <div class="mode-card payback" id="modeCard-payback" onclick="selectMode('payback')">
+                <div class="mode-card-inner">
+                    <div class="mode-card-title">💳 Pay Back <span class="mode-card-badge">Strategic</span></div>
+                    <div class="mode-card-desc">Every card you play earns Bank Points. Spend them on powerful Bank Cards to pay back opponents.</div>
+                    <div class="mode-card-rules">
+                        <span class="mode-rule-tag">💳 Bank Card System</span>
+                        <span class="mode-rule-tag">💸 +1pt per card played</span>
+                        <span class="mode-rule-tag">⏭️ BankSkip (2pt)</span>
+                        <span class="mode-rule-tag">💸 BankDraw +2/+4</span>
+                        <span class="mode-rule-tag">🛡️ BankShield (4pt)</span>
+                        <span class="mode-rule-tag">⚡ BankStrike (6pt)</span>
                     </div>
                 </div>
-
             </div>
+
             </div><!-- /.mode-picker-inner -->
         </div>
 
@@ -4463,17 +4077,12 @@ observer.observe(document.documentElement, {
                 </div>
             </div>
 
-            <div class="mode-card payback" id="modeCard-payback"
-                 onclick="selectMode('payback')">
+        </div>
+
+            <div class="mode-card payback" id="modeCard-payback" onclick="selectMode('payback')">
                 <div class="mode-card-inner">
-                    <div class="mode-card-title">
-                        💳 Pay Back
-                        <span class="mode-card-badge">Strategic</span>
-                    </div>
-                    <div class="mode-card-desc">
-                        Every card you play earns Bank Points. Spend them on powerful
-                        Bank Cards to devastate opponents — or shield yourself.
-                    </div>
+                    <div class="mode-card-title">💳 Pay Back <span class="mode-card-badge">Strategic</span></div>
+                    <div class="mode-card-desc">Every card you play earns Bank Points. Spend them on powerful Bank Cards to pay back opponents.</div>
                     <div class="mode-card-rules">
                         <span class="mode-rule-tag">💳 Bank Card System</span>
                         <span class="mode-rule-tag">💸 +1pt per card played</span>
@@ -4485,7 +4094,6 @@ observer.observe(document.documentElement, {
                 </div>
             </div>
 
-        </div>
         </div><!-- /.mode-picker-inner -->
     </div>
 
@@ -4855,7 +4463,7 @@ observer.observe(document.documentElement, {
 
 <button id="settingsGearBtn" onclick="toggleSettingsPanel()"
 title="Open Settings" aria-label="Open Settings">
-<span class="sg-icon">⚙️</span> <span class="sg-label">Settings</span>
+<span class="sg-icon">⚙️</span> Settings
 </button>
 
 <div id="settingsFloatPanel" role="dialog" aria-label="Quick Settings">
@@ -5538,7 +5146,6 @@ title="Open Settings" aria-label="Open Settings">
             startHeartbeat();
             applyMercyTheme(data.settings && data.settings.gameMode === 'mercy');
             applyGlitchTheme(data.settings && data.settings.gameMode === 'glitch');
-            applyPayBackTheme(data.settings && data.settings.gameMode === 'payback');
             showWaitingLobby(data.lobbyName, data.settings, data.players, data.minPlayers || 2);
         });
 
@@ -5837,30 +5444,21 @@ title="Open Settings" aria-label="Open Settings">
             updateGameUI(); // FIX: Re-render UI
         });
 
-        // ── PAY BACK: Bank card events ─────────────────────────────
+        // PAY BACK: Bank card events
         socket.on('bankActionUsed', (data) => {
             if (gameState) {
                 gameState.bankPoints   = data.bankPoints;
                 gameState.myBankPoints = data.bankPoints[socket.id] || 0;
                 gameState.bankShields  = data.bankShields;
             }
-            const actionLabels = {
-                BankSkip:    '⏭️ Bank Skip',
-                BankDraw2:   '💸 Bank Draw +2',
-                BankDraw4:   '💸 Bank Draw +4',
-                BankReverse: '🔄 Bank Reverse',
-                BankShield:  '🛡️ Bank Shield',
-                BankStrike:  '⚡ Bank Strike'
-            };
-            const label = actionLabels[data.action] || data.action;
-            showToast(`💜 ${data.playerName} used ${label} (−${data.cost} pts)`, '#9b59b6');
+            const actionLabels = { BankSkip:'⏭️ Bank Skip', BankDraw2:'💸 Bank Draw +2', BankDraw4:'💸 Bank Draw +4', BankReverse:'🔄 Bank Reverse', BankShield:'🛡️ Bank Shield', BankStrike:'⚡ Bank Strike' };
+            showToast(`💜 ${data.playerName} used ${actionLabels[data.action] || data.action} (−${data.cost} pts)`, '#9b59b6');
             updateBankCardUI();
             if (document.getElementById('bankModal')?.classList.contains('open')) refreshBankModal();
             updateGameUI();
         });
-
         socket.on('bankActionFailed', (data) => {
-            showToast(`❌ Not enough bank points! Need ${data.cost}, have ${data.have}.`, '#e74c3c');
+            showToast(`❌ Not enough pts! Need ${data.cost}, have ${data.have}.`, '#e74c3c');
             isWaitingForServer = false;
             updateGameUI();
         });
@@ -6052,25 +5650,15 @@ title="Open Settings" aria-label="Open Settings">
     function toggleModePicker() {
         const activeScreen = document.querySelector('.screen.active');
         if (!activeScreen) return;
-
         const panel   = activeScreen.querySelector('.mode-picker-wrapper');
         const chevron = activeScreen.querySelector('.mode-chevron');
         if (!panel || !chevron) return;
-
         const isOpen = panel.classList.toggle('open');
         chevron.classList.toggle('open', isOpen);
-
         if (isOpen) {
-            // After the grid-row transition starts, scroll the panel into view
-            // inside the menu-container so all cards are visible
             setTimeout(() => {
-                panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                // Also scroll the menu-container itself down to the panel
                 const container = panel.closest('.menu-container, .login-container');
-                if (container) {
-                    const panelBottom = panel.offsetTop + panel.scrollHeight + 20;
-                    container.scrollTo({ top: panelBottom - container.clientHeight + 20, behavior: 'smooth' });
-                }
+                if (container) container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
             }, 60);
         }
     }
@@ -6115,13 +5703,8 @@ title="Open Settings" aria-label="Open Settings">
         applyMercyTheme(mode === 'mercy');
         applyGlitchTheme(mode === 'glitch');
         applyPayBackTheme(mode === 'payback');
-
         selectedGameMode = mode;
-        console.log(`[Menu] Selected game mode: ${mode}`);
-
-        // Scroll the container back to the top so the mode button is in view
-        const container = activeScreen.querySelector('.menu-container, .login-container');
-        if (container) container.scrollTo({ top: 0, behavior: 'smooth' });
+     console.log(`[Menu] Selected game mode: ${mode}`);
     }
 
 
@@ -6721,7 +6304,6 @@ if (gameState.isYourTurn && gameState.stackedDrawCount > 0 && !isWaitingForServe
             console.error('Error updating UI:', error);
         }
 
-        // Update Bank Card UI if in Pay Back mode
         if (isPayBack()) updateBankCardUI();
 
         // Add this at the end of updateGameUI()
@@ -7388,81 +6970,53 @@ console.log('[UI Debug]', {
         setTimeout(() => burst.remove(), 1300);
     }
 
+
     // ═══════════════════════════════════════════════════════
     // PAY BACK — BANK CARD TAB + MODAL
     // ═══════════════════════════════════════════════════════
-
     const BANK_ACTIONS_DEF = [
-        { id:'BankSkip',    icon:'⏭️', name:'Bank Skip',      desc:'Skip the next player\'s turn',        cost:2 },
-        { id:'BankDraw2',   icon:'💸', name:'Bank Draw +2',   desc:'Force next player to draw 2 cards',   cost:3 },
-        { id:'BankDraw4',   icon:'💸', name:'Bank Draw +4',   desc:'Force next player to draw 4 cards',   cost:5 },
-        { id:'BankReverse', icon:'🔄', name:'Bank Reverse',   desc:'Reverse the direction of play',       cost:2 },
-        { id:'BankShield',  icon:'🛡️', name:'Bank Shield',    desc:'Block the next draw penalty against you', cost:4 },
-        { id:'BankStrike',  icon:'⚡', name:'Bank Strike',    desc:'Drain 3 pts from every opponent\'s bank', cost:6 },
+        { id:'BankSkip',    icon:'⏭️', name:'Bank Skip',    desc:'Skip the next player\'s turn',           cost:2 },
+        { id:'BankDraw2',   icon:'💸', name:'Bank Draw +2', desc:'Force next player to draw 2 cards',      cost:3 },
+        { id:'BankDraw4',   icon:'💸', name:'Bank Draw +4', desc:'Force next player to draw 4 cards',      cost:5 },
+        { id:'BankReverse', icon:'🔄', name:'Bank Reverse', desc:'Reverse the direction of play',          cost:2 },
+        { id:'BankShield',  icon:'🛡️', name:'Bank Shield',  desc:'Block the next draw penalty against you',cost:4 },
+        { id:'BankStrike',  icon:'⚡', name:'Bank Strike',  desc:'Drain 3pts from every opponent\'s bank', cost:6 },
     ];
 
     function ensureBankUI() {
-        // Create tab button if missing
         if (!document.getElementById('bankCardTab')) {
             const tab = document.createElement('button');
             tab.id = 'bankCardTab';
-            tab.setAttribute('aria-label', 'Open Bank Card');
-            tab.innerHTML = `
-                <span class="tab-lock">🔒</span>
-                <span class="tab-dollar">$</span>
-                <span class="tab-pts" id="bankTabPts">0</span>
-            `;
+            tab.setAttribute('aria-label','Open Bank Card');
+            tab.innerHTML = '<span class="tab-lock">🔒</span><span class="tab-dollar">$</span><span class="tab-pts" id="bankTabPts">0</span>';
             tab.addEventListener('click', openBankModal);
             document.body.appendChild(tab);
         }
-        // Create modal if missing
         if (!document.getElementById('bankModal')) {
             const modal = document.createElement('div');
             modal.id = 'bankModal';
-            modal.setAttribute('role', 'dialog');
-            modal.setAttribute('aria-modal', 'true');
+            modal.setAttribute('role','dialog');
             modal.innerHTML = `
                 <div id="bankModalSheet">
                     <div class="bm-header">
-                        <div class="bm-title-group">
-                            <div class="bm-dollar">$</div>
-                            <span class="bm-title">BANK CARD</span>
-                        </div>
-                        <div class="bm-balance-chip">
-                            <span class="bm-pts-num" id="bmPtsNum">0</span>
-                            <span class="bm-pts-label">pts</span>
-                        </div>
+                        <div class="bm-title-group"><div class="bm-dollar">$</div><span class="bm-title">BANK CARD</span></div>
+                        <div class="bm-balance-chip"><span class="bm-pts-num" id="bmPtsNum">0</span><span class="bm-pts-label">pts</span></div>
                         <button class="bm-close" onclick="closeBankModal()">✕</button>
                     </div>
-
-                    <div class="bm-locked-notice" id="bmLockedNotice">
-                        🔒 Bank Card unlocks after you call <strong>O,NO!</strong>
-                    </div>
+                    <div class="bm-locked-notice" id="bmLockedNotice">🔒 Bank Card unlocks after you call <strong>O,NO!</strong></div>
                     <div class="bm-shield-banner" id="bmShieldBanner">🛡️ Shield Active — next draw is blocked!</div>
-
                     <div class="bm-section">Actions</div>
                     <div class="bm-actions" id="bmActionsList"></div>
-
                     <div class="bm-section">Opponents' Banks</div>
                     <div class="bm-opponents" id="bmOpponentsList"></div>
-                </div>
-            `;
-            // close on backdrop tap
+                </div>`;
             modal.addEventListener('click', e => { if (e.target === modal) closeBankModal(); });
             document.body.appendChild(modal);
         }
     }
 
-    function openBankModal() {
-        ensureBankUI();
-        refreshBankModal();
-        document.getElementById('bankModal').classList.add('open');
-    }
-
-    function closeBankModal() {
-        const m = document.getElementById('bankModal');
-        if (m) m.classList.remove('open');
-    }
+    function openBankModal()  { ensureBankUI(); refreshBankModal(); document.getElementById('bankModal').classList.add('open'); }
+    function closeBankModal() { const m = document.getElementById('bankModal'); if (m) m.classList.remove('open'); }
 
     function updateBankCardUI() {
         if (!gameState || !isPayBack()) {
@@ -7471,136 +7025,60 @@ console.log('[UI Debug]', {
             closeBankModal();
             return;
         }
-
         ensureBankUI();
-
-        const myPts     = gameState.myBankPoints || 0;
-        const myPlayer  = gameState.allPlayers?.find(p => p.isYou);
-        const calledUno = myPlayer?.calledUno || false;
-        const myId      = myPlayer?.id;
-        const hasShield = !!(gameState.bankShields && myId && gameState.bankShields[myId]);
-
-        // ── Tab ──────────────────────────────────────────────
-        const tab = document.getElementById('bankCardTab');
-        tab.style.display = 'flex';
-        tab.classList.toggle('locked',   !calledUno);
-        tab.classList.toggle('shielded', hasShield && calledUno);
-
-        const tabPts = document.getElementById('bankTabPts');
-        if (tabPts) {
-            const prev = parseInt(tabPts.dataset.prev || '0');
-            if (prev !== myPts) {
-                tabPts.classList.remove('bump');
-                void tabPts.offsetWidth;
-                tabPts.classList.add('bump');
-            }
-            tabPts.textContent = myPts;
-            tabPts.dataset.prev = myPts;
-        }
-
-        // ── If modal is open, refresh it too ──────────────────
-        if (document.getElementById('bankModal')?.classList.contains('open')) {
-            refreshBankModal();
-        }
-    }
-
-    function refreshBankModal() {
-        if (!gameState) return;
-
         const myPts    = gameState.myBankPoints || 0;
         const myPlayer = gameState.allPlayers?.find(p => p.isYou);
         const calledUno = myPlayer?.calledUno || false;
         const myId     = myPlayer?.id;
         const hasShield= !!(gameState.bankShields && myId && gameState.bankShields[myId]);
+        const tab = document.getElementById('bankCardTab');
+        tab.style.display = 'flex';
+        tab.classList.toggle('locked',   !calledUno);
+        tab.classList.toggle('shielded', hasShield && calledUno);
+        const tabPts = document.getElementById('bankTabPts');
+        if (tabPts) { tabPts.textContent = myPts; }
+        if (document.getElementById('bankModal')?.classList.contains('open')) refreshBankModal();
+    }
 
-        // pts display with bump
+    function refreshBankModal() {
+        if (!gameState) return;
+        const myPts    = gameState.myBankPoints || 0;
+        const myPlayer = gameState.allPlayers?.find(p => p.isYou);
+        const calledUno = myPlayer?.calledUno || false;
+        const myId     = myPlayer?.id;
+        const hasShield= !!(gameState.bankShields && myId && gameState.bankShields[myId]);
         const ptsEl = document.getElementById('bmPtsNum');
-        if (ptsEl) {
-            const prev = parseInt(ptsEl.dataset.prev || '-1');
-            if (prev !== myPts) {
-                ptsEl.classList.remove('bump');
-                void ptsEl.offsetWidth;
-                ptsEl.classList.add('bump');
-            }
-            ptsEl.textContent = myPts;
-            ptsEl.dataset.prev = myPts;
-        }
-
-        // locked notice
+        if (ptsEl) { const prev=parseInt(ptsEl.dataset.prev||'-1'); if(prev!==myPts){ptsEl.classList.remove('bump');void ptsEl.offsetWidth;ptsEl.classList.add('bump');} ptsEl.textContent=myPts; ptsEl.dataset.prev=myPts; }
         const notice = document.getElementById('bmLockedNotice');
         if (notice) notice.classList.toggle('show', !calledUno);
-
-        // shield banner
-        const shield = document.getElementById('bmShieldBanner');
-        if (shield) shield.classList.toggle('show', hasShield);
-
-        // actions list
+        const shieldEl = document.getElementById('bmShieldBanner');
+        if (shieldEl) shieldEl.classList.toggle('show', hasShield);
         const actionsList = document.getElementById('bmActionsList');
         if (actionsList) {
             actionsList.innerHTML = '';
             BANK_ACTIONS_DEF.forEach(action => {
                 const canAfford = calledUno && myPts >= action.cost;
-                const locked    = !calledUno;
                 const row = document.createElement('div');
                 row.className = 'bm-action ' + (canAfford ? 'can-afford' : 'cant-afford');
-
-                let descText = action.desc;
-                let descClass = '';
-                if (locked) {
-                    descText  = 'Call O,NO! first to unlock';
-                    descClass = '';
-                } else if (myPts < action.cost) {
-                    const need = action.cost - myPts;
-                    descText  = `Need ${need} more pt${need !== 1 ? 's' : ''} — keep playing cards`;
-                    descClass = 'short';
-                }
-
-                row.innerHTML = `
-                    <span class="bm-action-icon">${action.icon}</span>
-                    <div class="bm-action-info">
-                        <div class="bm-action-name">${action.name}</div>
-                        <div class="bm-action-desc ${descClass}">${descText}</div>
-                    </div>
-                    <span class="bm-cost-badge">${action.cost} pt</span>
-                `;
-
-                if (canAfford) {
-                    row.addEventListener('click', () => spendBankPoints(action));
-                }
+                let descText = action.desc, descClass = '';
+                if (!calledUno) { descText = 'Call O,NO! first to unlock'; }
+                else if (myPts < action.cost) { descText = `Need ${action.cost - myPts} more pt${action.cost-myPts!==1?'s':''} — keep playing`; descClass='short'; }
+                row.innerHTML = `<span class="bm-action-icon">${action.icon}</span><div class="bm-action-info"><div class="bm-action-name">${action.name}</div><div class="bm-action-desc ${descClass}">${descText}</div></div><span class="bm-cost-badge">${action.cost} pt</span>`;
+                if (canAfford) row.addEventListener('click', () => spendBankPoints(action));
                 actionsList.appendChild(row);
             });
         }
-
-        // opponents list
         const oppList = document.getElementById('bmOpponentsList');
         if (oppList && gameState.allPlayers && gameState.bankPoints) {
             const opps = gameState.allPlayers.filter(p => !p.isYou);
-            if (opps.length === 0) {
-                oppList.innerHTML = '<div style="color:#6b7280;font-size:0.78em;text-align:center;padding:8px 0;">No opponents yet</div>';
-            } else {
-                oppList.innerHTML = opps.map(p => {
-                    const pts    = gameState.bankPoints[p.id] || 0;
-                    const shield = gameState.bankShields && gameState.bankShields[p.id];
-                    return `<div class="bm-opp-row">
-                        <span class="bm-opp-name">${p.name}${shield ? ' 🛡️' : ''}</span>
-                        <span class="bm-opp-pts">${pts} pt</span>
-                    </div>`;
-                }).join('');
-            }
+            oppList.innerHTML = opps.length ? opps.map(p => `<div class="bm-opp-row"><span class="bm-opp-name">${p.name}${gameState.bankShields?.[p.id]?' 🛡️':''}</span><span class="bm-opp-pts">${gameState.bankPoints[p.id]||0} pt</span></div>`).join('') : '<div style="color:#6b7280;font-size:0.78em;text-align:center;padding:8px 0;">No opponents yet</div>';
         }
     }
 
     function spendBankPoints(action) {
         if (!gameState || !socket) return;
-        const myPts = gameState.myBankPoints || 0;
-        if (myPts < action.cost) return;
-        // Play the bank card by emitting a synthetic playCard event
-        // The bank card value matches what the server expects
-        socket.emit('playCard', {
-            roomId,
-            card:        { color:'wild', value: action.id, type:'wild', bank:true, cost: action.cost },
-            chosenColor: 'wild'
-        });
+        if ((gameState.myBankPoints || 0) < action.cost) return;
+        socket.emit('playCard', { roomId, card:{ color:'wild', value:action.id, type:'wild', bank:true, cost:action.cost }, chosenColor:'wild' });
         closeBankModal();
     }
 
