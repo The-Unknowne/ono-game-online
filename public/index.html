@@ -359,6 +359,55 @@ html[data-payback="1"] .cube-face { border-color:rgba(180,100,255,0.7); }
     background:rgba(124,58,237,0.3); border:1px solid rgba(180,100,255,0.35); color:#c084fc;
 }
 .bm-action.cant-afford .bm-cost-badge { background:rgba(255,255,255,0.05); border-color:rgba(255,255,255,0.08); color:#666; }
+
+/* ── Creator credit button — bottom-right corner ── */
+#creatorBtn {
+    position: fixed;
+    bottom: 14px;
+    right: 14px;
+    z-index: 9050;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 16px;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800;
+    font-size: 0.82em;
+    box-shadow: 0 4px 18px rgba(102,126,234,0.45);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.25s ease;
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+    max-width: calc(100vw - 28px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#creatorBtn:hover  { transform: translateY(-2px); box-shadow: 0 7px 24px rgba(102,126,234,0.65); }
+#creatorBtn:active { transform: translateY(1px); }
+#creatorBtn .cb-icon { font-size: 1.05em; flex-shrink: 0; }
+#creatorBtn .cb-label { font-size: 0.9em; opacity: 0.85; flex-shrink: 0; }
+#creatorBtn .cb-name  { font-weight: 900; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+html[data-theme="dark"] #creatorBtn {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    box-shadow: 0 4px 18px rgba(124,58,237,0.5);
+}
+html[data-mercy="1"]  #creatorBtn { background: linear-gradient(135deg, #7f0000, #c0392b); box-shadow: 0 4px 18px rgba(192,57,43,0.5); }
+html[data-glitch="1"] #creatorBtn { background: linear-gradient(135deg, #002200, #006611); box-shadow: 0 4px 18px rgba(0,200,50,0.4); }
+html[data-payback="1"] #creatorBtn { background: linear-gradient(135deg, #3b0764, #7c3aed); box-shadow: 0 4px 18px rgba(124,58,237,0.5); }
+
+/* hide on game screen so it doesn't overlap hand */
+#gameScreen.active ~ #creatorBtn,
+body.in-game #creatorBtn { display: none; }
+
+@media (max-width: 400px) {
+    #creatorBtn .cb-label { display: none; }
+    #creatorBtn { padding: 9px 13px; }
+}
 </style>
     <title>O,No Online</title>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
@@ -4663,6 +4712,13 @@ title="Open Settings" aria-label="Open Settings">
 <span class="sg-icon">⚙️</span> Settings
 </button>
 
+<!-- Creator credit button -->
+<button id="creatorBtn" onclick="toggleCreatorInfo()" title="Game created by">
+    <span class="cb-icon">🎮</span>
+    <span class="cb-label">Created by</span>
+    <span class="cb-name" id="creatorName">Unknowne</span>
+</button>
+
 <div id="settingsFloatPanel" role="dialog" aria-label="Quick Settings">
     <div class="sfp-header"><h2>⚙️ Settings</h2></div>
     <div class="sfp-body">
@@ -5331,6 +5387,8 @@ title="Open Settings" aria-label="Open Settings">
             applyGlitchTheme(data.settings && data.settings.gameMode === 'glitch');
             applyPayBackTheme(data.settings && data.settings.gameMode === 'payback');
             showWaitingLobby(data.lobbyName, data.settings, data.players, data.minPlayers || 2);
+            // Host created this lobby — mark them as creator
+            updateCreatorBtn(data.players && data.players[0] ? data.players[0].name : (currentUser || 'Unknowne'));
         });
 
         socket.on('lobbyJoined', (data) => {
@@ -5341,6 +5399,7 @@ title="Open Settings" aria-label="Open Settings">
             applyMercyTheme(data.settings && data.settings.gameMode === 'mercy');
             applyGlitchTheme(data.settings && data.settings.gameMode === 'glitch');
             showWaitingLobby(data.lobbyName, data.settings, data.players, data.minPlayers || 2);
+            updateCreatorBtn(data.players && data.players[0] ? data.players[0].name : 'Unknowne');
         });
 
         socket.on('lobbyUpdate', (data) => {
@@ -5758,6 +5817,26 @@ title="Open Settings" aria-label="Open Settings">
     function showScreen(screenId) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.getElementById(screenId).classList.add('active');
+        // Hide creator button on game screen
+        const cb = document.getElementById('creatorBtn');
+        if (cb) cb.style.display = screenId === 'gameScreen' ? 'none' : 'flex';
+    }
+
+
+    // ── Creator credit button ──────────────────────────────────
+    function updateCreatorBtn(hostName) {
+        const btn  = document.getElementById('creatorBtn');
+        const name = document.getElementById('creatorName');
+        if (!btn || !name) return;
+        name.textContent = hostName || 'Unknowne';
+        // Show only on non-game screens
+        const onGame = document.getElementById('gameScreen')?.classList.contains('active');
+        btn.style.display = onGame ? 'none' : 'flex';
+    }
+
+    function toggleCreatorInfo() {
+        const name = document.getElementById('creatorName')?.textContent || 'Unknowne';
+        showPopup('🎮 This game was created by: ' + name);
     }
 
     function showMainMenu() {
