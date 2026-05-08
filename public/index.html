@@ -4001,20 +4001,20 @@ observer.observe(document.documentElement, {
             <p style="margin-bottom: 20px; color: var(--text-muted);">Choose how you want to play</p>
 
             <!-- Game mode toggle trigger -->
-            <button class="menu-button" id="modePickerBtn"
+            <button class="menu-button" id="modePickerBtnLogin"
                     onclick="toggleModePicker()"
                     style="background:linear-gradient(135deg,#f093fb,#f5576c);box-shadow:0 6px 18px rgba(240,147,251,0.4);margin-bottom:6px;">
-                🎲 Game Mode: <span id="modeLabel">Original</span>
-                <span class="mode-chevron" id="modeChevron">▼</span>
+                🎲 Game Mode: <span id="modeLabelLogin">Original</span>
+                <span class="mode-chevron" id="modeChevronLogin">▼</span>
             </button>
 
             <!-- Expanding mode picker -->
-            <div class="mode-picker-wrapper" id="modePickerPanel">
+            <div class="mode-picker-wrapper" id="modePickerPanelLogin">
                 <div class="mode-picker-inner">
                 <div class="mode-picker-label">Select a game mode</div>
                 <div class="mode-cards">
 
-                    <div class="mode-card selected" id="modeCard-original"
+                    <div class="mode-card selected" id="modeCard-originalLogin"
                          onclick="selectMode('original')">
                         <div class="mode-card-inner">
                             <div class="mode-card-title">
@@ -4030,7 +4030,7 @@ observer.observe(document.documentElement, {
                         </div>
                     </div>
 
-                    <div class="mode-card mercy" id="modeCard-mercy"
+                    <div class="mode-card mercy" id="modeCard-mercyLogin"
                          onclick="selectMode('mercy')">
                         <div class="mode-card-inner">
                             <div class="mode-card-title">
@@ -4053,7 +4053,7 @@ observer.observe(document.documentElement, {
                         </div>
                     </div>
 
-                    <div class="mode-card glitch" id="modeCard-glitch"
+                    <div class="mode-card glitch" id="modeCard-glitchLogin"
                          onclick="selectMode('glitch')">
                         <div class="mode-card-inner">
                             <div class="mode-card-title">
@@ -4074,7 +4074,7 @@ observer.observe(document.documentElement, {
                         </div>
                     </div>
 
-                <div class="mode-card payback" id="modeCard-payback" onclick="selectMode('payback')">
+                <div class="mode-card payback" id="modeCard-paybackLogin" onclick="selectMode('payback')">
                     <div class="mode-card-inner">
                         <div class="mode-card-title">💳 Pay Back <span class="mode-card-badge">Strategic</span></div>
                         <div class="mode-card-desc">Every card you play earns Bank Points. Spend them on powerful Bank Cards to pay back opponents.</div>
@@ -5353,6 +5353,8 @@ title="Open Settings" aria-label="Open Settings">
         socket.on('gameStarted', (state) => {
             gameState = state;
             isWaitingForServer = false;
+            // Sync selectedGameMode for all players (joiners never clicked a mode card)
+            if (state.settings && state.settings.gameMode) selectedGameMode = state.settings.gameMode;
             applyMercyTheme(state.settings && state.settings.gameMode === 'mercy');
             applyGlitchTheme(state.settings && state.settings.gameMode === 'glitch');
             applyPayBackTheme(state.settings && state.settings.gameMode === 'payback');
@@ -5372,6 +5374,7 @@ title="Open Settings" aria-label="Open Settings">
             gameState = state;
             roomId = state.roomId;
             isWaitingForServer = false;
+            if (state.settings && state.settings.gameMode) selectedGameMode = state.settings.gameMode;
             applyMercyTheme(state.settings && state.settings.gameMode === 'mercy');
             applyGlitchTheme(state.settings && state.settings.gameMode === 'glitch');
             applyPayBackTheme(state.settings && state.settings.gameMode === 'payback');
@@ -5479,6 +5482,8 @@ title="Open Settings" aria-label="Open Settings">
             isWaitingForServer = false;
             clearRecoveryTimeout();
             lastAutoDrawId = null; // Reset auto-draw tracking
+            // Keep selectedGameMode in sync for all players
+            if (state.settings?.gameMode) selectedGameMode = state.settings.gameMode;
 
              const stateChanged = !gameState || 
                 state.currentPlayer !== gameState.currentPlayer ||
@@ -5859,48 +5864,46 @@ title="Open Settings" aria-label="Open Settings">
         }
     }
 
-    function isGlitch()   { return selectedGameMode === 'glitch'; }
-    function isPayBack()  { return selectedGameMode === 'payback'; }
+    function isGlitch()   { return (gameState?.settings?.gameMode || selectedGameMode) === 'glitch'; }
+    function isPayBack()  { return (gameState?.settings?.gameMode || selectedGameMode) === 'payback'; }
 
     
     function selectMode(mode) {
-        // Find the active screen (Login or Main Menu)
         const activeScreen = document.querySelector('.screen.active');
-     if (!activeScreen) return;
-    
-     // Update selection state - find cards within the active screen only
+        if (!activeScreen) return;
+
+        // Detect which picker is active (login uses -Login suffix)
+        const isLogin = !!activeScreen.querySelector('#modePickerBtnLogin');
+        const suffix  = isLogin ? 'Login' : '';
+
+        // Deselect all, select the correct card
         activeScreen.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
-        
-        // Find the clicked mode card within active screen
-     const modeCards = activeScreen.querySelectorAll('.mode-card');
-        modeCards.forEach(card => {
-        if (card.id.includes(mode)) {
-            card.classList.add('selected');
-        }
-    });
-    
-        // Update the label (find the span inside the button)
-        const modeBtn = activeScreen.querySelector('#modePickerBtn, #modePickerBtnMain');
+        const target = activeScreen.querySelector('#modeCard-' + mode + suffix);
+        if (target) target.classList.add('selected');
+
+        // Update button label
+        const modeBtn = activeScreen.querySelector('#modePickerBtn' + suffix + ', #modePickerBtnMain');
         if (modeBtn) {
-        const label = modeBtn.querySelector('span');
-        if (label) {
-            const labels = { original: 'Original', mercy: 'Please Have Mercy', glitch: "Glitched N'NO", payback: 'Pay Back' };
-            label.textContent = labels[mode] || mode;
+            const labelEl = modeBtn.querySelector('span');
+            if (labelEl) {
+                const labels = { original: 'Original', mercy: 'Please Have Mercy', glitch: "Glitched N'NO", payback: 'Pay Back' };
+                labelEl.textContent = labels[mode] || mode;
+            }
         }
-    }
-    
-     // CLOSE the panel automatically
-     const panel = activeScreen.querySelector('.mode-picker-wrapper');
-        const chevron = activeScreen.querySelector('.mode-chevron');
-        if (panel) panel.classList.remove('open');
+
+        // Close picker
+        const panel   = activeScreen.querySelector('#modePickerPanel' + suffix) || activeScreen.querySelector('.mode-picker-wrapper');
+        const chevron = activeScreen.querySelector('#modeChevron' + suffix) || activeScreen.querySelector('.mode-chevron');
+        if (panel)   panel.classList.remove('open');
         if (chevron) chevron.classList.remove('open');
-    
-        // Apply theme
+
         applyMercyTheme(mode === 'mercy');
         applyGlitchTheme(mode === 'glitch');
         applyPayBackTheme(mode === 'payback');
         selectedGameMode = mode;
-     console.log(`[Menu] Selected game mode: ${mode}`);
+        console.log('[Menu] Selected game mode: ' + mode);
+        const container = activeScreen.querySelector('.menu-container, .login-container');
+        if (container) container.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
 
@@ -8000,20 +8003,6 @@ function debugTurn() {
     </div>
 </div>
 
-<!-- Passcode Modal (already in correct place, keep it) -->
-
-<div class="custom-popup" id="passcodePopup">
-    <h2>🔒 Private Lobby</h2>
-    <p style="margin-bottom: 20px; color: var(--text-muted);">Enter the passcode to join</p>
-    <input type="text" id="passcodeInput" placeholder="Enter passcode" maxlength="12" 
-           style="width: 100%; padding: 15px; font-size: 1.1em; border: 2px solid var(--input-border); 
-                  border-radius: 10px; background: var(--input-bg); color: var(--input-text); 
-                  margin-bottom: 20px; text-align: center; letter-spacing: 3px; font-weight: 700;">
-    <div class="popup-buttons">
-        <button class="popup-button secondary" onclick="closePasscodePopup()">Cancel</button>
-        <button class="popup-button" onclick="confirmPasscode()">✓ Join</button>
-    </div>
-</div>
 
 </body>
 </html>
