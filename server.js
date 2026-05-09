@@ -356,6 +356,7 @@ class GameRoom {
         // ── PAY BACK: Bank Card system ──────────────────────
         this.bankPoints        = {};   // { playerId: number }
         this.pendingBankAction = null; // { playerId, action, cost }
+        this.bankBoughtThisTurn = new Set(); // playerIds who already bought this turn
     }
 
     isMercy()   { return this.settings.gameMode === 'mercy'; }
@@ -968,6 +969,8 @@ case 'Wild+10':
     advanceTurn() {
         this.currentPlayer    = this.getNextPlayerIndex();
         this.hasDrawnThisTurn = false;
+        // Reset per-turn bank purchase tracker
+        this.bankBoughtThisTurn = new Set();
     }
 
     getNextPlayerIndex(fromIndex = null) {
@@ -1465,6 +1468,15 @@ io.on('connection', socket => {
             socket.emit('bankActionFailed', { reason:'insufficient_points', cost, have: pts });
             return;
         }
+
+        // Enforce once-per-turn rule
+        if (room.bankBoughtThisTurn.has(player.id)) {
+            socket.emit('bankActionFailed', { reason:'already_bought', cost, have: pts });
+            return;
+        }
+
+        // Mark this player as having bought this turn
+        room.bankBoughtThisTurn.add(player.id);
 
         // Deduct points and add the card to the player's hand
         room.bankPoints[player.id] -= cost;
