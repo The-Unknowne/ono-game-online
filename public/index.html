@@ -5479,8 +5479,6 @@ title="Open Settings" aria-label="Open Settings">
             applyGlitchTheme(data.settings && data.settings.gameMode === 'glitch');
             applyPayBackTheme(data.settings && data.settings.gameMode === 'payback');
             showWaitingLobby(data.lobbyName, data.settings, data.players, data.minPlayers || 2);
-            // Host created this lobby — mark them as creator
-            updateCreatorBtn(data.players && data.players[0] ? data.players[0].name : (currentUser || 'Unknowne'));
         });
 
         socket.on('lobbyJoined', (data) => {
@@ -5491,7 +5489,6 @@ title="Open Settings" aria-label="Open Settings">
             applyMercyTheme(data.settings && data.settings.gameMode === 'mercy');
             applyGlitchTheme(data.settings && data.settings.gameMode === 'glitch');
             showWaitingLobby(data.lobbyName, data.settings, data.players, data.minPlayers || 2);
-            updateCreatorBtn(data.players && data.players[0] ? data.players[0].name : 'Unknowne');
         });
 
         socket.on('lobbyUpdate', (data) => {
@@ -5916,10 +5913,8 @@ title="Open Settings" aria-label="Open Settings">
 
 
     // ── Creator credit button ──────────────────────────────────
-    function updateCreatorBtn(hostName) {
-        const name = document.getElementById('creatorName');
-        if (name) name.textContent = hostName || 'Unknowne';
-        // Visibility is controlled entirely by showScreen — no change here
+    function updateCreatorBtn() {
+        // Name is always 'Unknowne' — no dynamic changes
     }
 
     function toggleCreatorInfo() {
