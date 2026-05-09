@@ -5632,6 +5632,11 @@ title="Open Settings" aria-label="Open Settings">
             lastAutoDrawId = null; // Reset auto-draw tracking
             // Keep selectedGameMode in sync for all players
             if (state.settings?.gameMode) selectedGameMode = state.settings.gameMode;
+            // Reset client-side bank purchase flag when turn changes
+            if (window._lastBankTurnPlayer !== state.currentPlayer) {
+                window._lastBankTurnPlayer = state.currentPlayer;
+                window._bankBoughtThisTurn = false;
+            }
 
              const stateChanged = !gameState || 
                 state.currentPlayer !== gameState.currentPlayer ||
@@ -5801,12 +5806,18 @@ title="Open Settings" aria-label="Open Settings">
             }
             const actionLabels = { BankSkip:'⏭️ B Skip', BankDraw2:'💸 B Draw +2', BankDraw4:'💸 B Draw +4', BankReverse:'🔄 B Reverse', BankShield:'🛡️ B Shield', BankStrike:'⚡ B Strike' };
             showToast(`💜 ${data.playerName} used ${actionLabels[data.action] || data.action} (−${data.cost} pts)`, '#9b59b6');
+            // Mark locally that this player bought this turn
+            if (data.playerId === socket.id) window._bankBoughtThisTurn = true;
             updateBankCardUI();
             if (document.getElementById('bankModal')?.classList.contains('open')) refreshBankModal();
             updateGameUI();
         });
         socket.on('bankActionFailed', (data) => {
-            showToast(`❌ Not enough pts! Need ${data.cost}, have ${data.have}.`, '#e74c3c');
+            if (data.reason === 'already_bought') {
+                showToast('🚫 You can only buy one Bank Card per turn!', '#e74c3c');
+            } else {
+                showToast(`❌ Not enough pts! Need ${data.cost}, have ${data.have}.`, '#e74c3c');
+            }
             isWaitingForServer = false;
             updateGameUI();
         });
@@ -7545,13 +7556,16 @@ console.log('[UI Debug]', {
         if (actionsList) {
             actionsList.innerHTML = '';
             BANK_ACTIONS_DEF.forEach(action => {
-                const canAfford = calledUno && myPts >= action.cost;
+                const canAfford = calledUno && myPts >= action.cost && !window._bankBoughtThisTurn;
                 const row = document.createElement('div');
                 row.className = 'bm-action ' + (canAfford ? 'can-afford' : 'cant-afford');
 
                 let descText = action.desc, descClass = '';
                 if (!calledUno) {
                     descText = 'Call O,NO! first to unlock';
+                } else if (window._bankBoughtThisTurn) {
+                    descText  = 'Already bought this turn — wait for next turn';
+                    descClass = 'short';
                 } else if (myPts < action.cost) {
                     const need = action.cost - myPts;
                     descText  = `Need ${need} more pt${need !== 1 ? 's' : ''} — keep playing`;
