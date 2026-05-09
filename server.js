@@ -408,19 +408,7 @@ class GameRoom {
                 this.deck.push({ color: 'wild', value: 'Roulette',      type: 'wild' });
             }
         }
-        // ── PAY BACK special bank cards ─────────────────────
-        if (this.isPayBack()) {
-            for (let i = 0; i < 3; i++) {
-                this.deck.push({ color: 'wild', value: 'BankSkip',    type: 'wild', bank: true, cost: 2 });
-                this.deck.push({ color: 'wild', value: 'BankDraw2',   type: 'wild', bank: true, cost: 3 });
-                this.deck.push({ color: 'wild', value: 'BankDraw4',   type: 'wild', bank: true, cost: 5 });
-                this.deck.push({ color: 'wild', value: 'BankReverse', type: 'wild', bank: true, cost: 2 });
-            }
-            for (let i = 0; i < 2; i++) {
-                this.deck.push({ color: 'wild', value: 'BankShield',  type: 'wild', bank: true, cost: 4 });
-                this.deck.push({ color: 'wild', value: 'BankStrike',  type: 'wild', bank: true, cost: 6 });
-            }
-        }
+        // PAY BACK: bank cards are purchased from the store, not drawn from deck
         this.shuffleDeck();
     }
 
@@ -676,8 +664,8 @@ class GameRoom {
         this.currentValue = card.value;
     }
 
-    // ── PAY BACK: award +1 bank point for every card played ──
-    if (this.isPayBack()) {
+    // ── PAY BACK: award +1 bank point for regular cards (not bank cards) ──
+    if (this.isPayBack() && !card.bank) {
         if (this.bankPoints[player.id] === undefined) this.bankPoints[player.id] = 0;
         this.bankPoints[player.id] += 1;
     }
@@ -921,105 +909,47 @@ case 'Wild+10':
                 break;
             }
 
-            // ── PAY BACK: Bank card effects ──────────────────────────────
+            // ── PAY BACK: Bank card effects (played from hand after purchase) ──
             case 'BankSkip': {
-                const bsCost = 2;
-                const bsPoints = this.bankPoints[player.id] || 0;
-                if (bsPoints < bsCost) {
-                    // Not enough points — card bounces back (treat as unplayable effect)
-                    this._bankActionFailed = { reason: 'insufficient_points', cost: bsCost, have: bsPoints };
-                    this.advanceTurn();
-                    break;
-                }
-                this.bankPoints[player.id] -= bsCost;
+                this.bankPoints[player.id] = this.bankPoints[player.id] || 0; // no extra cost
                 this.skipNextPlayer();
-                this._bankActionUsed = { action: 'BankSkip', cost: bsCost };
+                this._bankActionUsed = { action: 'BankSkip', cost: 0 };
                 break;
             }
-
             case 'BankDraw2': {
-                const bd2Cost = 3;
-                const bd2Points = this.bankPoints[player.id] || 0;
-                if (bd2Points < bd2Cost) {
-                    this._bankActionFailed = { reason: 'insufficient_points', cost: bd2Cost, have: bd2Points };
-                    this.advanceTurn();
-                    break;
-                }
-                this.bankPoints[player.id] -= bd2Cost;
                 const bd2Next = this.getNextPlayerIndex(playerIndex);
                 this.drawCards(bd2Next, 2);
                 this.skipNextPlayer();
-                this._bankActionUsed = { action: 'BankDraw2', cost: bd2Cost };
+                this._bankActionUsed = { action: 'BankDraw2', cost: 0 };
                 break;
             }
-
             case 'BankDraw4': {
-                const bd4Cost = 5;
-                const bd4Points = this.bankPoints[player.id] || 0;
-                if (bd4Points < bd4Cost) {
-                    this._bankActionFailed = { reason: 'insufficient_points', cost: bd4Cost, have: bd4Points };
-                    this.advanceTurn();
-                    break;
-                }
-                this.bankPoints[player.id] -= bd4Cost;
                 const bd4Next = this.getNextPlayerIndex(playerIndex);
                 this.drawCards(bd4Next, 4);
                 this.skipNextPlayer();
-                this._bankActionUsed = { action: 'BankDraw4', cost: bd4Cost };
+                this._bankActionUsed = { action: 'BankDraw4', cost: 0 };
                 break;
             }
-
-            case 'BankReverse': {
-                const brCost = 2;
-                const brPoints = this.bankPoints[player.id] || 0;
-                if (brPoints < brCost) {
-                    this._bankActionFailed = { reason: 'insufficient_points', cost: brCost, have: brPoints };
-                    this.advanceTurn();
-                    break;
-                }
-                this.bankPoints[player.id] -= brCost;
+            case 'BankReverse':
                 this.direction *= -1;
                 this.advanceTurn();
-                this._bankActionUsed = { action: 'BankReverse', cost: brCost };
+                this._bankActionUsed = { action: 'BankReverse', cost: 0 };
                 break;
-            }
-
-            case 'BankShield': {
-                // Shield: next draw penalty aimed at you is nullified (stored as flag)
-                const bshCost = 4;
-                const bshPoints = this.bankPoints[player.id] || 0;
-                if (bshPoints < bshCost) {
-                    this._bankActionFailed = { reason: 'insufficient_points', cost: bshCost, have: bshPoints };
-                    this.advanceTurn();
-                    break;
-                }
-                this.bankPoints[player.id] -= bshCost;
+            case 'BankShield':
                 if (!this.bankShields) this.bankShields = {};
                 this.bankShields[player.id] = true;
                 this.advanceTurn();
-                this._bankActionUsed = { action: 'BankShield', cost: bshCost };
+                this._bankActionUsed = { action: 'BankShield', cost: 0 };
                 break;
-            }
-
-            case 'BankStrike': {
-                // Strike: drain 3 points from every other player
-                const bstCost = 6;
-                const bstPoints = this.bankPoints[player.id] || 0;
-                if (bstPoints < bstCost) {
-                    this._bankActionFailed = { reason: 'insufficient_points', cost: bstCost, have: bstPoints };
-                    this.advanceTurn();
-                    break;
-                }
-                this.bankPoints[player.id] -= bstCost;
+            case 'BankStrike':
                 for (const p of this.players) {
                     if (p.id !== player.id) {
                         this.bankPoints[p.id] = Math.max(0, (this.bankPoints[p.id] || 0) - 3);
                     }
                 }
                 this.advanceTurn();
-                this._bankActionUsed = { action: 'BankStrike', cost: bstCost };
+                this._bankActionUsed = { action: 'BankStrike', cost: 0 };
                 break;
-            }
 
             default:
                 this.advanceTurn();
@@ -1518,7 +1448,50 @@ io.on('connection', socket => {
 
 
 
-    socket.on('drawCard', ({ roomId }) => {
+    // ── PAY BACK: Buy a bank card from the store → adds to hand ─
+   socket.on('buyBankAction', ({ roomId, action }) => {
+        const room = rooms.get(roomId);
+        if (!room || !room.gameStarted || !room.isPayBack()) return;
+
+        const player = room.players.find(p => p.id === socket.id);
+        if (!player) return;
+
+        const COSTS = { BankSkip:2, BankDraw2:3, BankDraw4:5, BankReverse:2, BankShield:4, BankStrike:6 };
+        const cost = COSTS[action];
+        if (!cost) { socket.emit('error', 'Unknown bank action'); return; }
+
+        const pts = room.bankPoints[player.id] || 0;
+        if (pts < cost) {
+            socket.emit('bankActionFailed', { reason:'insufficient_points', cost, have: pts });
+            return;
+        }
+
+        // Deduct points and add the card to the player's hand
+        room.bankPoints[player.id] -= cost;
+        const bankCard = { color: 'wild', value: action, type: 'wild', bank: true, cost };
+        player.hand.push(bankCard);
+
+        // Shield also activates an indicator immediately (separate from playing the card)
+        if (action === 'BankShield') {
+            if (!room.bankShields) room.bankShields = {};
+            // Just flag it — the card still goes to hand; playing it later activates the real shield
+        }
+
+        // Tell everyone a card was purchased
+        io.to(roomId).emit('bankActionUsed', {
+            playerName:  player.name,
+            playerId:    player.id,
+            action,
+            cost,
+            bankPoints:  room.bankPoints,
+            bankShields: room.bankShields || {}
+        });
+
+        // Refresh game state for all players so they see the hand count change
+        broadcastGameState(room);
+    });
+
+   socket.on('drawCard', ({ roomId }) => {
         const room = rooms.get(roomId);
         if (!room || !room.gameStarted) return;
         const result = room.drawCard(socket.id);
