@@ -435,6 +435,62 @@ html[data-payback="1"] #creatorBtn { background: linear-gradient(135deg, #3b0764
     #creatorBtn .cb-label { display: none; }
     #creatorBtn { padding: 9px 13px; }
 }
+
+/* ── Bank cards in hand (purchased from store) ── */
+.card.bank-skip    { background: linear-gradient(145deg,#2d0057,#7c3aed,#4c1d95) !important; border-color: rgba(168,85,247,0.9) !important; box-shadow: 0 0 16px rgba(168,85,247,0.6) !important; }
+.card.bank-draw2   { background: linear-gradient(145deg,#1e0040,#6d28d9,#3b0764) !important; border-color: rgba(139,92,246,0.9) !important; box-shadow: 0 0 16px rgba(139,92,246,0.6) !important; }
+.card.bank-draw4   { background: linear-gradient(145deg,#140029,#5b21b6,#2e1065) !important; border-color: rgba(124,58,237,0.9) !important; box-shadow: 0 0 20px rgba(124,58,237,0.7) !important; }
+.card.bank-reverse { background: linear-gradient(145deg,#240048,#9333ea,#4a0f9c) !important; border-color: rgba(168,85,247,0.9) !important; box-shadow: 0 0 16px rgba(168,85,247,0.6) !important; }
+.card.bank-shield  { background: linear-gradient(145deg,#1e0050,#7c3aed,#4c0f98) !important; border-color: rgba(192,132,252,0.95) !important; box-shadow: 0 0 22px rgba(192,132,252,0.8) !important; animation: bankShieldCardPulse 1.4s ease-in-out infinite !important; }
+.card.bank-strike  { background: linear-gradient(145deg,#0d0020,#4c1d95,#2d0057) !important; border-color: rgba(232,121,249,0.95) !important; box-shadow: 0 0 26px rgba(232,121,249,0.85) !important; animation: bankStrikeGlow 0.9s ease-in-out infinite !important; }
+.card.bank-skip .card-inner, .card.bank-draw2 .card-inner, .card.bank-draw4 .card-inner,
+.card.bank-reverse .card-inner, .card.bank-shield .card-inner, .card.bank-strike .card-inner {
+    color: #f3e8ff !important;
+    font-weight: 900 !important;
+    font-size: 0.62em !important;
+    text-align: center !important;
+    text-shadow: 0 0 8px rgba(216,180,254,0.8) !important;
+}
+@keyframes bankShieldCardPulse {
+    0%,100% { box-shadow: 0 0 22px rgba(192,132,252,0.8); }
+    50%      { box-shadow: 0 0 40px rgba(192,132,252,1), 0 0 60px rgba(140,60,255,0.4); }
+}
+@keyframes bankStrikeGlow {
+    0%,100% { box-shadow: 0 0 26px rgba(232,121,249,0.85); }
+    50%      { box-shadow: 0 0 50px rgba(232,121,249,1), 0 0 70px rgba(180,0,255,0.5); }
+}
+
+/* ── Shield indicator badge (right of bank card) ── */
+#shieldIndicator {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 56px;
+    border-radius: 10px;
+    border: 2px solid rgba(192,132,252,0.8);
+    background: linear-gradient(160deg, #1e0050, #7c3aed);
+    box-shadow: 0 0 18px rgba(192,132,252,0.7);
+    font-size: 1.3em;
+    animation: shieldIndicatorPulse 1.4s ease-in-out infinite;
+    cursor: default;
+    position: relative;
+    flex-shrink: 0;
+}
+#shieldIndicator.active { display: flex; }
+@keyframes shieldIndicatorPulse {
+    0%,100% { box-shadow: 0 0 18px rgba(192,132,252,0.7); }
+    50%      { box-shadow: 0 0 36px rgba(192,132,252,1), 0 0 52px rgba(140,60,255,0.4); }
+}
+#shieldIndicator .si-label {
+    font-size: 0.38em;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    color: #f3e8ff;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+}
 </style>
     <title>O,No Online</title>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
@@ -5746,7 +5802,7 @@ title="Open Settings" aria-label="Open Settings">
                 gameState.myBankPoints = data.bankPoints[socket.id] || 0;
                 gameState.bankShields  = data.bankShields;
             }
-            const actionLabels = { BankSkip:'⏭️ Bank Skip', BankDraw2:'💸 Bank Draw +2', BankDraw4:'💸 Bank Draw +4', BankReverse:'🔄 Bank Reverse', BankShield:'🛡️ Bank Shield', BankStrike:'⚡ Bank Strike' };
+            const actionLabels = { BankSkip:'⏭️ B Skip', BankDraw2:'💸 B Draw +2', BankDraw4:'💸 B Draw +4', BankReverse:'🔄 B Reverse', BankShield:'🛡️ B Shield', BankStrike:'⚡ B Strike' };
             showToast(`💜 ${data.playerName} used ${actionLabels[data.action] || data.action} (−${data.cost} pts)`, '#9b59b6');
             updateBankCardUI();
             if (document.getElementById('bankModal')?.classList.contains('open')) refreshBankModal();
@@ -6867,12 +6923,12 @@ console.log('[UI Debug]', {
     function createCardElement(card) {
         const cardDiv = document.createElement('div');
         const MERCY_CLASS = { 'Wild+6': 'wild mercy-draw', 'Wild+10': 'wild mercy-draw-big', 'DiscardAll': 'wild mercy-skipall', 'WildReverseD4': 'wild mercy-draw', 'SkipAll': 'wild mercy-skipall', 'Roulette': 'wild mercy-roulette' };
-        const BANK_CLASS  = { 'BankSkip': 'wild bank-skip', 'BankDraw2': 'wild bank-draw2', 'BankDraw4': 'wild bank-draw4', 'BankReverse': 'wild bank-reverse', 'BankShield': 'wild bank-shield', 'BankStrike': 'wild bank-strike' };
+        const BANK_CLASS = { 'BankSkip':'wild bank-skip','BankDraw2':'wild bank-draw2','BankDraw4':'wild bank-draw4','BankReverse':'wild bank-reverse','BankShield':'wild bank-shield','BankStrike':'wild bank-strike' };
         const colorClass = card.value === '+12' ? 'plus12' : (MERCY_CLASS[card.value] || BANK_CLASS[card.value] ? '' : card.color);
         cardDiv.className = `card ${MERCY_CLASS[card.value] || BANK_CLASS[card.value] || colorClass}`;
 
-        const LABELS = { 'Wild+4': '+4', 'Wild+6': '+6', 'Wild+10': '+10', 'DiscardAll': 'DISCARD ALL', 'WildReverseD4': 'REV +4', '+12': '+12', 'SkipAll': 'SKIP ALL', 'Roulette': 'ROULETTE', 'Wild': 'WILD',
-                         'BankSkip': '⏭ SKIP', 'BankDraw2': '💸 +2', 'BankDraw4': '💸 +4', 'BankReverse': '🔄 REV', 'BankShield': '🛡 SHIELD', 'BankStrike': '⚡ STRIKE' };
+        const LABELS = { 'Wild+4':'+4','Wild+6':'+6','Wild+10':'+10','DiscardAll':'DISCARD ALL','WildReverseD4':'REV +4','+12':'+12','SkipAll':'SKIP ALL','Roulette':'ROULETTE','Wild':'WILD',
+                         'BankSkip':'B Skip','BankDraw2':'B Draw +2','BankDraw4':'B Draw +4','BankReverse':'B Reverse','BankShield':'B Shield','BankStrike':'B Strike' };
         const cardInner = document.createElement('div');
         cardInner.className = 'card-inner';
         const _ISTOP = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" style="width:100%;height:100%;display:block"><path fill="currentColor" d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372 0-89 31.3-170.8 83.5-234.8l523.3 523.3C682.8 852.7 601 884 512 884zm288.5-137.2L277.2 223.5C341.2 171.3 423 140 512 140c205.4 0 372 166.6 372 372 0 89-31.3 170.8-83.5 234.8z"/></svg>';
@@ -7285,12 +7341,12 @@ console.log('[UI Debug]', {
     // PAY BACK — BANK CARD TAB + MODAL
     // ═══════════════════════════════════════════════════════
     const BANK_ACTIONS_DEF = [
-        { id:'BankSkip',    icon:'⏭️', name:'Bank Skip',    desc:'Skip the next player\'s turn',            cost:2 },
-        { id:'BankDraw2',   icon:'💸', name:'Bank Draw +2', desc:'Force next player to draw 2 cards',       cost:3 },
-        { id:'BankDraw4',   icon:'💸', name:'Bank Draw +4', desc:'Force next player to draw 4 cards',       cost:5 },
-        { id:'BankReverse', icon:'🔄', name:'Bank Reverse', desc:'Reverse the direction of play',           cost:2 },
-        { id:'BankShield',  icon:'🛡️', name:'Bank Shield',  desc:'Block the next draw penalty against you', cost:4 },
-        { id:'BankStrike',  icon:'⚡', name:'Bank Strike',  desc:'Drain 3 pts from every opponent\'s bank', cost:6 },
+        { id:'BankSkip',    icon:'⏭️', name:'B Skip',    desc:'Skip the next player\'s turn',            cost:2 },
+        { id:'BankDraw2',   icon:'💸', name:'B Draw +2', desc:'Force next player to draw 2 cards',       cost:3 },
+        { id:'BankDraw4',   icon:'💸', name:'B Draw +4', desc:'Force next player to draw 4 cards',       cost:5 },
+        { id:'BankReverse', icon:'🔄', name:'B Reverse', desc:'Reverse the direction of play',           cost:2 },
+        { id:'BankShield',  icon:'🛡️', name:'B Shield',  desc:'Block the next draw penalty against you', cost:4 },
+        { id:'BankStrike',  icon:'⚡', name:'B Strike',  desc:'Drain 3 pts from every opponent\'s bank', cost:6 },
     ];
 
     // ── Create or retrieve the physical bank card element ──────────
@@ -7307,6 +7363,15 @@ console.log('[UI Debug]', {
             row.id = 'handAndBankRow';
             handEl.parentNode.insertBefore(row, handEl);
             row.appendChild(handEl);
+        }
+
+        // Shield indicator (right of bank card)
+        if (!document.getElementById('shieldIndicator')) {
+            const si = document.createElement('div');
+            si.id = 'shieldIndicator';
+            si.title = 'Shield Active';
+            si.innerHTML = '🛡️<span class="si-label">SHIELD</span>';
+            document.getElementById('handAndBankRow').appendChild(si);
         }
 
         // Build the physical bank card
@@ -7341,7 +7406,7 @@ console.log('[UI Debug]', {
                         </div>
                         <div class="bm-header-info">
                             <div class="bm-title">BANK CARD</div>
-                            <div class="bm-subtitle" id="bmSubtitle">Pay Back Mode</div>
+                            <div class="bm-subtitle" id="bmSubtitle">Bank Store — buy actions anytime</div>
                         </div>
                         <div class="bm-balance-chip">
                             <span class="bm-pts-num" id="bmPtsNum">0</span>
@@ -7353,7 +7418,7 @@ console.log('[UI Debug]', {
                     <div class="bm-all-players" id="bmAllPlayers"></div>
                     <div class="bm-locked-notice" id="bmLockedNotice">🔒 Unlocks after you call <strong>O,NO!</strong></div>
                     <div class="bm-shield-banner" id="bmShieldBanner">🛡️ Shield Active — next draw against you is blocked!</div>
-                    <div class="bm-section">Actions</div>
+                    <div class="bm-section">🏪 Store — buy cards for your hand</div>
                     <div class="bm-actions" id="bmActionsList"></div>
                 </div>`;
             modal.addEventListener('click', e => { if (e.target === modal) closeBankModal(); });
@@ -7377,7 +7442,9 @@ console.log('[UI Debug]', {
         const card  = document.getElementById('bankCard');
         const modal = document.getElementById('bankModal');
         const row   = document.getElementById('handAndBankRow');
+        const si    = document.getElementById('shieldIndicator');
         if (card)  { card.classList.add('disabled-end'); card.style.display = 'none'; }
+        if (si)    { si.classList.remove('active'); si.style.display = 'none'; }
         if (modal) { modal.classList.remove('open'); modal.style.display = 'none'; }
         // Unwrap: put playerHand back where it was if row exists
         if (row) {
@@ -7409,6 +7476,9 @@ console.log('[UI Debug]', {
         card.style.display = 'flex';
         card.classList.toggle('locked',   !calledUno);
         card.classList.toggle('shielded',  hasShield && calledUno);
+        // Update shield indicator badge
+        const si = document.getElementById('shieldIndicator');
+        if (si) si.classList.toggle('active', hasShield);
 
         const badge = document.getElementById('bcPtsBadge');
         if (badge) {
@@ -7491,6 +7561,8 @@ console.log('[UI Debug]', {
                     const need = action.cost - myPts;
                     descText  = `Need ${need} more pt${need !== 1 ? 's' : ''} — keep playing`;
                     descClass = 'short';
+                } else {
+                    descText = action.desc + ' — adds to your hand';
                 }
 
                 row.innerHTML = `
@@ -7510,11 +7582,7 @@ console.log('[UI Debug]', {
     function spendBankPoints(action) {
         if (!gameState || !socket) return;
         if ((gameState.myBankPoints || 0) < action.cost) return;
-        socket.emit('playCard', {
-            roomId,
-            card: { color:'wild', value:action.id, type:'wild', bank:true, cost:action.cost },
-            chosenColor: 'wild'
-        });
+        socket.emit('buyBankAction', { roomId, action: action.id });
         closeBankModal();
     }
 
