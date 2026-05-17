@@ -5929,8 +5929,20 @@ title="Open Settings" aria-label="Open Settings">
     }
 
     function toggleCreatorInfo() {
-        const name = document.getElementById('creatorName')?.textContent || 'Unknowne';
-        showPopup('🎮 This game was created by: ' + name);
+        // Open the popup then override message with HTML for proper formatting
+        showPopup('', 'About O,No Online');
+        const msgEl = document.getElementById('popupMessage');
+        if (msgEl) {
+            msgEl.innerHTML = [
+                '<span style="font-size:2em">🎮</span>',
+                '<strong style="font-size:1.1em">O,No Online</strong>',
+                '<hr style="border:none;border-top:1px solid rgba(255,255,255,0.15);margin:10px 0">',
+                '<span>Created by &nbsp;<strong>Unknowne</strong></span>',
+                '<span style="color:var(--text-muted);font-size:0.9em">Version 1.0</span>'
+            ].join('<br>');
+            msgEl.style.textAlign = 'center';
+            msgEl.style.lineHeight = '1.9';
+        }
     }
 
     function showMainMenu() {
